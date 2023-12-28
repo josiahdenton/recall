@@ -1,9 +1,9 @@
-package views
+package internal
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/josiahdenton/recall/internal/views/tasks"
+	tasklist "github.com/josiahdenton/recall/internal/pages/tasks/list"
 )
 
 // height for each window should be 25
@@ -13,7 +13,7 @@ var (
 
 func New() Model {
 	return Model{
-		TaskModel: tasks.New(),
+		TaskModel: tasklist.Model{},
 	}
 }
 
@@ -32,7 +32,8 @@ type Model struct {
 func (m Model) Init() tea.Cmd {
 	// this call the Init from the active child model
 	// I will need to use either tea.Batch or tea.Sequence
-	return tea.Batch(m.TaskModel.Init(), tasks.Tick(), tea.EnterAltScreen)
+	// TODO add tick back for timer
+	return tea.Batch(m.TaskModel.Init(), tea.EnterAltScreen)
 }
 
 func (m Model) View() string {

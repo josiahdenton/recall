@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/josiahdenton/recall/internal/views"
+	"github.com/josiahdenton/recall/internal"
 	"log"
 	"os"
 )
@@ -24,7 +24,7 @@ func Run() error {
 
 	log.SetOutput(f)
 	log.Println(">>>>>>>>>>>>>>>>> STARTING LOGGER!")
-	p := tea.NewProgram(views.New())
+	p := tea.NewProgram(internal.New())
 	if _, err := p.Run(); err != nil {
 		return err
 	}
