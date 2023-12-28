@@ -3,44 +3,55 @@ package internal
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	taskdetailed "github.com/josiahdenton/recall/internal/pages/tasks/detailed"
 	tasklist "github.com/josiahdenton/recall/internal/pages/tasks/list"
 )
 
-// height for each window should be 25
-var (
-	activeWindowStyle = lipgloss.NewStyle().Width(80).Padding(1).BorderStyle(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#292524"))
+const (
+	TaskList = iota
+	TaskDetailed
 )
+
+var (
+	windowStyle = lipgloss.NewStyle().Align(lipgloss.Center)
+)
+
+type Page = int
 
 func New() Model {
 	return Model{
-		TaskModel: tasklist.Model{},
+		taskList:     &tasklist.Model{},
+		taskDetailed: &taskdetailed.Model{},
+		page:         TaskList,
 	}
 }
 
 type Model struct {
-	TaskModel tea.Model
-	//windowStyle lipgloss.Style
-
-	width  int
-	height int
-	// Projects
-	// ^ Projects will have Categories
-	// tasks should have a "child" model that handles the logic here...
-	// child models will use the same methods (
+	taskList     tea.Model
+	taskDetailed tea.Model
+	page         Page
+	width        int
+	height       int
 }
 
 func (m Model) Init() tea.Cmd {
 	// this call the Init from the active child model
 	// I will need to use either tea.Batch or tea.Sequence
 	// TODO add tick back for timer
-	return tea.Batch(m.TaskModel.Init(), tea.EnterAltScreen)
+	return tea.Batch(m.taskList.Init(), tea.EnterAltScreen)
 }
 
 func (m Model) View() string {
-	// create a header...
-	// it should have task info...
-	// this might create a lot more garbage collection... may need to fix this
-	return lipgloss.NewStyle().Width(m.width).Height(m.height).Align(lipgloss.Center).Render(activeWindowStyle.Render(m.TaskModel.View()))
+	var pageModel tea.Model
+	var style lipgloss.Style
+	switch m.page {
+	case TaskList:
+		pageModel = m.taskList
+		style = windowStyle.Width(m.width).Height(m.height)
+	case TaskDetailed:
+		pageModel = m.taskDetailed
+	}
+	return style.Render(pageModel.View())
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -49,18 +60,24 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.Type {
-		case tea.KeyCtrlC, tea.KeyEsc:
+		case tea.KeyCtrlC:
 			return m, tea.Quit
 		}
 	case tea.WindowSizeMsg:
-		//m.windowStyle = m.windowStyle.Width(msg.Width).Height(msg.Height).Align(lipgloss.Center)
 		m.height = msg.Height
 		m.width = msg.Width
+	case tasklist.ShowDetailedMsg:
+		m.page = TaskDetailed
 	}
 
-	// need another switch for "active page"
-	m.TaskModel, cmd = m.TaskModel.Update(msg)
-	cmds = append(cmds, cmd)
+	switch m.page {
+	case TaskList:
+		m.taskList, cmd = m.taskList.Update(msg)
+		cmds = append(cmds, cmd)
+	case TaskDetailed:
+		m.taskDetailed, cmd = m.taskDetailed.Update(msg)
+		cmds = append(cmds, cmd)
+	}
 
 	return m, tea.Batch(cmds...)
 }

@@ -1,9 +1,9 @@
 package tasks
 
-type Step struct {
+type Status struct {
 	Description string
 }
 
-func (s *Step) FilterValue() string {
+func (s *Status) FilterValue() string {
 	return s.Description
 }

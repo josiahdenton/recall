@@ -21,6 +21,8 @@ type Task struct {
 	Complete          bool
 	TotalActiveTime   time.Duration
 	LastActivatedTime time.Time
+	Resources         []Resource
+	Status            []Status
 	Steps             []Step
 }
 
@@ -38,6 +40,7 @@ func (t *Task) Deactivate() {
 	t.TotalActiveTime += time.Now().Sub(t.LastActivatedTime)
 }
 
+// TODO this go to into the renders file...
 func (t *Task) Runtime() string {
 	seconds := int((time.Now().Add(t.TotalActiveTime).Sub(t.LastActivatedTime)).Seconds())
 	switch {
