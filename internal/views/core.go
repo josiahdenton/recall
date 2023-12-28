@@ -6,8 +6,9 @@ import (
 	"github.com/josiahdenton/recall/internal/views/tasks"
 )
 
+// height for each window should be 25
 var (
-	activeWindowStyle = lipgloss.NewStyle().PaddingLeft(4).PaddingTop(2)
+	activeWindowStyle = lipgloss.NewStyle().Width(80).Padding(1).BorderStyle(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#292524"))
 )
 
 func New() Model {
@@ -18,6 +19,10 @@ func New() Model {
 
 type Model struct {
 	TaskModel tea.Model
+	//windowStyle lipgloss.Style
+
+	width  int
+	height int
 	// Projects
 	// ^ Projects will have Categories
 	// tasks should have a "child" model that handles the logic here...
@@ -33,7 +38,8 @@ func (m Model) Init() tea.Cmd {
 func (m Model) View() string {
 	// create a header...
 	// it should have task info...
-	return activeWindowStyle.Render(m.TaskModel.View())
+	// this might create a lot more garbage collection... may need to fix this
+	return lipgloss.NewStyle().Width(m.width).Height(m.height).Align(lipgloss.Center).Render(activeWindowStyle.Render(m.TaskModel.View()))
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -45,6 +51,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyCtrlC, tea.KeyEsc:
 			return m, tea.Quit
 		}
+	case tea.WindowSizeMsg:
+		//m.windowStyle = m.windowStyle.Width(msg.Width).Height(msg.Height).Align(lipgloss.Center)
+		m.height = msg.Height
+		m.width = msg.Width
 	}
 
 	// need another switch for "active page"

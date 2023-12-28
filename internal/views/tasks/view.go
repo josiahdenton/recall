@@ -23,7 +23,14 @@ func New() Model {
 //    tea messages    //
 // ------------------ //
 
-type activeTaskTick time.Time
+type redrawTick time.Time
+
+const (
+	TaskListView = iota
+	DetailedView
+)
+
+type Page = int
 
 type Model struct {
 	Tasks     []Task // for now, just a string
@@ -31,6 +38,7 @@ type Model struct {
 	paginator paginator.Model
 	ready     bool
 	active    int
+	page      Page
 }
 
 type LoadTasks struct {
@@ -38,22 +46,23 @@ type LoadTasks struct {
 }
 
 func loadTasks() tea.Msg {
+	exampleDuration, _ := time.ParseDuration("2hr")
 	return LoadTasks{[]Task{
-		{Title: "update PM for EOY", Priority: Low, Due: "11/22/23"},
-		{Title: "clean dishes and then take the trash out my dude", Due: "11/25/23"},
-		{Title: "pickup toys"},
-		{Title: "update docs", Priority: None, Active: true},
-		{Title: "message Sesha", Priority: High},
-		{Title: "update PM for EOY", Priority: Low, Due: "11/22/23"},
-		{Title: "clean dishes and then take the trash out my dude", Due: "11/25/23"},
-		{Title: "pickup toys"},
-		{Title: "update docs", Priority: None},
-		{Title: "message Sesha", Priority: High},
-		{Title: "update PM for EOY", Priority: Low, Due: "11/22/23"},
-		{Title: "clean dishes and then take the trash out my dude", Due: "11/25/23"},
-		{Title: "pickup toys"},
-		{Title: "update docs", Priority: None},
-		{Title: "message Sesha", Priority: High},
+		{Title: "update PM for EOY", Priority: Low, Due: "11/22/23", LastActivatedTime: time.Now()},
+		{Title: "clean dishes and then take the trash out my dude", Due: "11/25/23", LastActivatedTime: time.Now()},
+		{Title: "pickup toys", LastActivatedTime: time.Now()},
+		{Title: "update docs", Priority: None, Active: true, TotalActiveTime: exampleDuration, LastActivatedTime: time.Now()},
+		{Title: "message Sesha", Priority: High, LastActivatedTime: time.Now()},
+		{Title: "update PM for EOY", Priority: Low, Due: "11/22/23", LastActivatedTime: time.Now()},
+		{Title: "clean dishes and then take the trash out my dude", Due: "11/25/23", LastActivatedTime: time.Now()},
+		{Title: "pickup toys", LastActivatedTime: time.Now()},
+		{Title: "update docs", Priority: None, LastActivatedTime: time.Now()},
+		{Title: "message Sesha", Priority: High, LastActivatedTime: time.Now()},
+		{Title: "update PM for EOY", Priority: Low, Due: "11/22/23", LastActivatedTime: time.Now()},
+		{Title: "clean dishes and then take the trash out my dude", Due: "11/25/23", LastActivatedTime: time.Now()},
+		{Title: "pickup toys", LastActivatedTime: time.Now()},
+		{Title: "update docs", Priority: None, LastActivatedTime: time.Now()},
+		{Title: "message Sesha", Priority: High, LastActivatedTime: time.Now()},
 	}}
 }
 
@@ -68,6 +77,14 @@ var (
 )
 
 func (m Model) View() string {
+	return m.taskList()
+}
+
+func (m Model) detailed() string {
+	return ""
+}
+
+func (m Model) taskList() string {
 	// let's add a headerStyle with the active task info
 	var b strings.Builder
 	b.WriteString(m.header())
@@ -99,7 +116,7 @@ func (m Model) header() string {
 		b.WriteString(" " + m.Tasks[m.active].Runtime())
 	}
 	b.WriteString("\n")
-	b.WriteString(headerKeyStyle.Render("Sub-Tasks:"))
+	b.WriteString(headerKeyStyle.Render("Steps:"))
 	b.WriteString("\n")
 	b.WriteString(headerKeyStyle.Render("Tags:"))
 	b.WriteString("\n")
@@ -114,7 +131,7 @@ func (m Model) footer() string {
 	b.WriteString(footerStyle.Render(fmt.Sprintf("(%d/%d)", m.Selected+1, len(m.Tasks))))
 	b.WriteString(fmt.Sprintf("  %s %s %s ", footerBoldStyle.Render("a"), footerStyle.Render("add"), footerBoldStyle.Render("\uF444")))
 	b.WriteString(fmt.Sprintf("%s %s %s ", footerBoldStyle.Render("e"), footerStyle.Render("edit"), footerBoldStyle.Render("\uF444")))
-	b.WriteString(fmt.Sprintf("%s %s %s ", footerBoldStyle.Render("t"), footerStyle.Render("toggle"), footerBoldStyle.Render("\uF444")))
+	b.WriteString(fmt.Sprintf("%s %s %s ", footerBoldStyle.Render("<space>"), footerStyle.Render("toggle"), footerBoldStyle.Render("\uF444")))
 	b.WriteString(fmt.Sprintf("%s %s %s ", footerBoldStyle.Render("c"), footerStyle.Render("complete"), footerBoldStyle.Render("\uF444")))
 	return b.String()
 }
@@ -147,27 +164,24 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if m.Selected > i {
 					m.Selected--
 				}
-			case "t":
+			case " ":
 				// BUG fix timer, it should just be relative instead of increasing a value...
 				// set selected task to be active
 				if !hasActiveTask(m.Tasks) {
-					m.Tasks[m.Selected].Active = true
+					m.Tasks[m.Selected].Activate()
 					m.active = m.Selected
 					// restart timer
 					cmds = append(cmds, Tick())
 				} else if m.Tasks[m.Selected].Active {
-					m.Tasks[m.Selected].Active = false
+					m.Tasks[m.Selected].Deactivate()
 					m.active = -1
 				}
 			case "enter":
 				// this will enter detailed task view
 			}
 		}
-	case activeTaskTick:
-		if m.active >= 0 {
-			m.Tasks[m.active].Tick()
-			cmds = append(cmds, Tick())
-		}
+	case redrawTick:
+		cmds = append(cmds, Tick())
 	}
 
 	if m.ready {
@@ -185,6 +199,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func Tick() tea.Cmd {
 	return tea.Tick(time.Second, func(t time.Time) tea.Msg {
-		return activeTaskTick(t)
+		return redrawTick(t)
 	})
 }

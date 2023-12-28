@@ -3,6 +3,7 @@ package tasks
 import (
 	"fmt"
 	"github.com/charmbracelet/lipgloss"
+	"time"
 )
 
 const (
@@ -14,35 +15,40 @@ const (
 type Priority int
 
 type Task struct {
-	Title    string
-	Due      string
-	Priority Priority
-	Active   bool
-	Complete bool
-	runtime  int64 // number of seconds this task has been worked
+	Title             string
+	Due               string
+	Priority          Priority
+	Active            bool
+	Complete          bool
+	TotalActiveTime   time.Duration
+	LastActivatedTime time.Time
+	Steps             []Step
 }
 
-func (t *Task) Tick() {
-	t.runtime++
+func (t *Task) Activate() {
+	t.Active = true
+	t.LastActivatedTime = time.Now()
+}
+
+func (t *Task) Deactivate() {
+	t.Active = false
+	//delta := time.Now().Sub(t.LastActivatedTime)
+	//t.TotalActiveTime += delta
+	t.TotalActiveTime += time.Now().Sub(t.LastActivatedTime)
 }
 
 func (t *Task) Runtime() string {
-	var runtime string
-	seconds := t.runtime % 60
-	minutes := (t.runtime / 60) % 60
-	hours := (t.runtime / 60 / 60) % 60
-	days := t.runtime / 60 / 60 / 24
+	seconds := int((time.Now().Add(t.TotalActiveTime).Sub(t.LastActivatedTime)).Seconds())
 	switch {
-	case t.runtime <= 60:
-		runtime = fmt.Sprintf("%d sec", seconds)
-	case t.runtime > 60:
-		runtime = fmt.Sprintf("%d min %d sec", minutes, seconds)
-	case t.runtime > 3600:
-		runtime = fmt.Sprintf("%d hr %d min %d sec", hours, minutes, seconds)
-	case t.runtime > 86400:
-		runtime = fmt.Sprintf("%d days %d hr %d min %d sec", days, hours, minutes, seconds)
+	case seconds < 60:
+		return fmt.Sprintf("%d sec", seconds)
+	case seconds < 3600:
+		return fmt.Sprintf("%d min %d sec", seconds/60, seconds%60)
+	case seconds < 86400:
+		return fmt.Sprintf("%d hr %d min %d sec", seconds/60/60, (seconds/60)%60, seconds%60)
+	default:
+		return fmt.Sprintf("%d days %d hr %d min %d sec", seconds/60/60/24, (seconds/60/60)%24, (seconds/60)%60, seconds%60)
 	}
-	return runtime
 }
 
 var (
@@ -56,6 +62,15 @@ var (
 	selectedLowPriorityStyle  = selectedStyle.Copy().Foreground(lipgloss.Color("#f59e0b")).Bold(true)
 	selectedHighPriorityStyle = selectedStyle.Copy().Foreground(lipgloss.Color("#ef4444")).Bold(true)
 )
+
+func (t *Task) DetailedView() string {
+	// title
+	// meta section (runtime, due date, difficulty
+	// subtasks
+	// resources
+	// status updates
+	return ""
+}
 
 func (t *Task) Render(selected bool) string {
 	var style lipgloss.Style
