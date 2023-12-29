@@ -21,7 +21,7 @@ type Page = int
 func New() Model {
 	return Model{
 		taskList:     &tasklist.Model{},
-		taskDetailed: &taskdetailed.Model{},
+		taskDetailed: taskdetailed.New(),
 		page:         TaskList,
 	}
 }
@@ -43,15 +43,13 @@ func (m Model) Init() tea.Cmd {
 
 func (m Model) View() string {
 	var pageModel tea.Model
-	var style lipgloss.Style
 	switch m.page {
 	case TaskList:
 		pageModel = m.taskList
-		style = windowStyle.Width(m.width).Height(m.height)
 	case TaskDetailed:
 		pageModel = m.taskDetailed
 	}
-	return style.Render(pageModel.View())
+	return windowStyle.Width(m.width).Height(m.height).Render(pageModel.View())
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -62,6 +60,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.Type {
 		case tea.KeyCtrlC:
 			return m, tea.Quit
+		case tea.KeyEsc:
+			// TODO this should reset the model I was last on
+			// this should act more like a "back button"
+			m.page = TaskList
 		}
 	case tea.WindowSizeMsg:
 		m.height = msg.Height

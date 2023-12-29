@@ -20,7 +20,7 @@ func (d resourceDelegate) Render(w io.Writer, m list.Model, index int, item list
 	if !ok {
 		return
 	}
-	fmt.Fprintf(w, renderResource(resource))
+	fmt.Fprintf(w, renderResource(resource, index == m.Index()))
 }
 
 type statusDelegate struct{}
@@ -35,7 +35,7 @@ func (d statusDelegate) Render(w io.Writer, m list.Model, index int, item list.I
 	if !ok {
 		return
 	}
-	fmt.Fprintf(w, renderStatus(status))
+	fmt.Fprintf(w, renderStatus(status, index == m.Index()))
 }
 
 type stepDelegate struct{}
@@ -50,5 +50,5 @@ func (d stepDelegate) Render(w io.Writer, m list.Model, index int, item list.Ite
 	if !ok {
 		return
 	}
-	fmt.Fprintf(w, renderStep(step))
+	fmt.Fprintf(w, renderStep(step, index == m.Index()))
 }

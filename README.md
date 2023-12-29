@@ -1,6 +1,6 @@
 # recall
 
-## What should change in the v1 rewrite?
+## Colorscheme
 
-- I don't like the "views" folder...
-- I should generalize the components (make cards and lists)
+- magic night: "#3a3b5b" for supporting info
+- ppp: "#D120AF"

@@ -5,6 +5,7 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/josiahdenton/recall/internal/pages/styles"
 	"github.com/josiahdenton/recall/internal/pages/tasks"
 	"io"
 	"time"
@@ -12,7 +13,7 @@ import (
 
 var (
 	paginationStyle = list.DefaultStyles().PaginationStyle
-	titleStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("#FF06B7"))
+	titleStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("#3a3b5b"))
 )
 
 type redrawTick time.Time
@@ -54,6 +55,32 @@ func loadTasks() tea.Msg {
 				{
 					Description: "tnsteisieraTIRSTREIAns",
 				},
+				{
+					Description: "sintnrneirn",
+				},
+				{
+					Description: "snitrnseeisintnrneirrnitern",
+				},
+			},
+			Status: []tasks.Status{
+				{
+					Description: "Needed to meet with my manager to discuss where this is headed hNeeded to meet with my manager to discuss where this is headed h",
+				},
+				{
+					Description: "After meeting, moved toward creating a more sensible position for this",
+				},
+				{
+					Description: "Needed to meet with my manager to discuss where this is headed",
+				},
+				{
+					Description: "After meeting, moved toward creating a more sensible position for this",
+				},
+				{
+					Description: "Needed to meet with my manager to discuss where this is headed",
+				},
+				{
+					Description: "After meeting, moved toward creating a more sensible position for this",
+				},
 			},
 		},
 		{Title: "clean dishes and then take the trash out my dude", Due: "11/25/23", LastActivatedTime: time.Now()},
@@ -83,7 +110,7 @@ func (m *Model) Init() tea.Cmd {
 }
 
 func (m *Model) View() string {
-	return "\n" + m.tasks.View()
+	return styles.WindowStyle.Render(m.tasks.View())
 }
 
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -99,6 +126,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.tasks.Styles.PaginationStyle = paginationStyle
 		m.tasks.Styles.Title = titleStyle
 		m.tasks.SetShowHelp(false)
+		m.tasks.KeyMap.Quit.Unbind()
 		m.ready = true
 	case tea.KeyMsg:
 		switch msg.String() {
