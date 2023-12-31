@@ -48,9 +48,8 @@ func (d taskDelegate) Render(w io.Writer, m list.Model, index int, item list.Ite
 
 // I feel like this should move to core...
 func loadTasks() tea.Msg {
-	exampleDuration, _ := time.ParseDuration("2hr")
 	tl := []tasks.Task{
-		{Title: "update PM for EOY", Priority: tasks.Low, Due: "11/22/23", LastActivatedTime: time.Now(),
+		{Title: "update PM for EOY", Priority: tasks.Low, Due: "11/22/23",
 			Steps: []tasks.Step{
 				{
 					Description: "tnsteisieraTIRSTREIAns",
@@ -83,24 +82,24 @@ func loadTasks() tea.Msg {
 				},
 			},
 		},
-		{Title: "clean dishes and then take the trash out my dude", Due: "11/25/23", LastActivatedTime: time.Now()},
-		{Title: "pickup toys", LastActivatedTime: time.Now()},
-		{Title: "update docs", Priority: tasks.None, Active: true, TotalActiveTime: exampleDuration, LastActivatedTime: time.Now()},
-		{Title: "message Sesha", Priority: tasks.High, LastActivatedTime: time.Now()},
-		{Title: "update PM for EOY", Priority: tasks.Low, Due: "11/22/23", LastActivatedTime: time.Now()},
-		{Title: "clean dishes and then take the trash out my dude", Due: "11/25/23", LastActivatedTime: time.Now()},
-		{Title: "update PM for EOY", Priority: tasks.Low, Due: "11/22/23", LastActivatedTime: time.Now()},
-		{Title: "clean dishes and then take the trash out my dude", Due: "11/25/23", LastActivatedTime: time.Now()},
-		{Title: "pickup toys", LastActivatedTime: time.Now()},
-		{Title: "update docs", Priority: tasks.None, Active: true, TotalActiveTime: exampleDuration, LastActivatedTime: time.Now()},
-		{Title: "message Sesha", Priority: tasks.High, LastActivatedTime: time.Now()},
-		{Title: "update PM for EOY", Priority: tasks.Low, Due: "11/22/23", LastActivatedTime: time.Now()},
-		{Title: "clean dishes and then take the trash out my dude", Due: "11/25/23", LastActivatedTime: time.Now()},
+		{Title: "clean dishes and then take the trash out my dude", Due: "11/25/23"},
+		{Title: "pickup toys"},
+		{Title: "update docs", Priority: tasks.None, Active: true},
+		{Title: "message Sesha", Priority: tasks.High},
+		{Title: "update PM for EOY", Priority: tasks.Low, Due: "11/22/23"},
+		{Title: "clean dishes and then take the trash out my dude", Due: "11/25/23"},
+		{Title: "update PM for EOY", Priority: tasks.Low, Due: "11/22/23"},
+		{Title: "clean dishes and then take the trash out my dude", Due: "11/25/23"},
+		{Title: "pickup toys"},
+		{Title: "update docs", Priority: tasks.None, Active: true},
+		{Title: "message Sesha", Priority: tasks.High},
+		{Title: "update PM for EOY", Priority: tasks.Low, Due: "11/22/23"},
+		{Title: "clean dishes and then take the trash out my dude", Due: "11/25/23"},
 	}
 	taskList := make([]list.Item, len(tl))
 	for i := range tl {
-		task := tl[i]
-		taskList[i] = &task
+		task := &tl[i]
+		taskList[i] = task
 	}
 	return LoadTasks{Tasks: taskList}
 }

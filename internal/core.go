@@ -3,33 +3,27 @@ package internal
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/josiahdenton/recall/internal/pages"
 	taskdetailed "github.com/josiahdenton/recall/internal/pages/tasks/detailed"
 	tasklist "github.com/josiahdenton/recall/internal/pages/tasks/list"
-)
-
-const (
-	TaskList = iota
-	TaskDetailed
 )
 
 var (
 	windowStyle = lipgloss.NewStyle().Align(lipgloss.Center)
 )
 
-type Page = int
-
 func New() Model {
 	return Model{
 		taskList:     &tasklist.Model{},
 		taskDetailed: taskdetailed.New(),
-		page:         TaskList,
+		page:         pages.TaskList,
 	}
 }
 
 type Model struct {
 	taskList     tea.Model
 	taskDetailed tea.Model
-	page         Page
+	page         pages.Page
 	width        int
 	height       int
 }
@@ -44,9 +38,9 @@ func (m Model) Init() tea.Cmd {
 func (m Model) View() string {
 	var pageModel tea.Model
 	switch m.page {
-	case TaskList:
+	case pages.TaskList:
 		pageModel = m.taskList
-	case TaskDetailed:
+	case pages.TaskDetailed:
 		pageModel = m.taskDetailed
 	}
 	return windowStyle.Width(m.width).Height(m.height).Render(pageModel.View())
@@ -59,27 +53,28 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyCtrlC:
+			// TODO before quitting repository will need to save all changes
 			return m, tea.Quit
-		case tea.KeyEsc:
-			// TODO this should reset the model I was last on
-			// this should act more like a "back button"
-			m.page = TaskList
 		}
 	case tea.WindowSizeMsg:
 		m.height = msg.Height
 		m.width = msg.Width
 	case tasklist.ShowDetailedMsg:
-		m.page = TaskDetailed
+		m.page = pages.TaskDetailed
+	case pages.GotoPageMsg:
+		m.page = msg.Page
 	}
 
 	switch m.page {
-	case TaskList:
+	case pages.TaskList:
 		m.taskList, cmd = m.taskList.Update(msg)
 		cmds = append(cmds, cmd)
-	case TaskDetailed:
+	case pages.TaskDetailed:
 		m.taskDetailed, cmd = m.taskDetailed.Update(msg)
 		cmds = append(cmds, cmd)
 	}
 
 	return m, tea.Batch(cmds...)
 }
+
+// TODO I should have a tick for auto saving my changes
