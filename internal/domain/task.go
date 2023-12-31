@@ -1,10 +1,10 @@
-package tasks
+package domain
 
 // TODO rename to be more accurate
 const (
-	None = iota
-	Low
-	High
+	TaskPriorityNone = iota
+	TaskPriorityLow
+	TaskPriorityHigh
 )
 
 type Priority int
@@ -34,22 +34,4 @@ func (t *Task) RemoveStep(i int) {
 
 func (t *Task) FilterValue() string {
 	return t.Title
-}
-
-func ActiveTask(tasks []Task) int {
-	for i, task := range tasks {
-		if task.Active {
-			return i
-		}
-	}
-	return -1
-}
-
-func HasActiveTask(tasks []Task) bool {
-	for _, task := range tasks {
-		if task.Active {
-			return true
-		}
-	}
-	return false
 }

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/josiahdenton/recall/internal/pages/tasks"
+	"github.com/josiahdenton/recall/internal/domain"
 	"io"
 )
 
@@ -16,7 +16,7 @@ func (d resourceDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd {
 	return nil
 }
 func (d resourceDelegate) Render(w io.Writer, m list.Model, index int, item list.Item) {
-	resource, ok := item.(*tasks.Resource)
+	resource, ok := item.(*domain.Resource)
 	if !ok {
 		return
 	}
@@ -31,7 +31,7 @@ func (d statusDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd {
 	return nil
 }
 func (d statusDelegate) Render(w io.Writer, m list.Model, index int, item list.Item) {
-	status, ok := item.(*tasks.Status)
+	status, ok := item.(*domain.Status)
 	if !ok {
 		return
 	}
@@ -46,7 +46,7 @@ func (d stepDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd {
 	return nil
 }
 func (d stepDelegate) Render(w io.Writer, m list.Model, index int, item list.Item) {
-	step, ok := item.(*tasks.Step)
+	step, ok := item.(*domain.Step)
 	if !ok {
 		return
 	}

@@ -2,11 +2,11 @@ package detailed
 
 import (
 	"fmt"
+	"github.com/josiahdenton/recall/internal/domain"
+	"github.com/josiahdenton/recall/internal/ui/styles"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/josiahdenton/recall/internal/pages/styles"
-	"github.com/josiahdenton/recall/internal/pages/tasks"
 )
 
 var (
@@ -19,11 +19,11 @@ var (
 	metaTitleStyle   = styles.SecondaryGray.Copy()
 )
 
-func renderResource(r *tasks.Resource, selected bool) string {
+func renderResource(r *domain.Resource, selected bool) string {
 	return renderItem(r.Name, selected)
 }
 
-func renderStatus(s *tasks.Status, selected bool) string {
+func renderStatus(s *domain.Status, selected bool) string {
 	style := statusStyle
 	if selected {
 		style = hiStatusStyle
@@ -31,7 +31,7 @@ func renderStatus(s *tasks.Status, selected bool) string {
 	return style.Render(s.Description)
 }
 
-func renderStep(s *tasks.Step, selected bool) string {
+func renderStep(s *domain.Step, selected bool) string {
 	selectedMarker := " "
 	completedMarker := "\uE640"
 	if selected {
@@ -54,7 +54,7 @@ func renderItem(s string, selected bool) string {
 	return fmt.Sprintf("%s %s", cursorStyle.Render(selectedMarker), itemStyle.Render(s))
 }
 
-func renderHeader(task *tasks.Task, headerActive bool) string {
+func renderHeader(task *domain.Task, headerActive bool) string {
 	style := titleStyle
 	if headerActive {
 		style = activeTitleStyle

@@ -1,9 +1,8 @@
-package renders
+package common
 
 import (
+	"github.com/josiahdenton/recall/internal/ui/styles"
 	"strings"
-
-	"github.com/josiahdenton/recall/internal/pages/styles"
 )
 
 func VerticalOptions(options []string, cursor int) string {
@@ -15,5 +14,5 @@ func VerticalOptions(options []string, cursor int) string {
 			b.WriteString(styles.PrimaryGray.Render(option))
 		}
 	}
-    return b.String()
+	return b.String()
 }

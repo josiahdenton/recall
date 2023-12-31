@@ -2,7 +2,7 @@ package list
 
 import (
 	"github.com/charmbracelet/lipgloss"
-	"github.com/josiahdenton/recall/internal/pages/tasks"
+	"github.com/josiahdenton/recall/internal/domain"
 )
 
 var (
@@ -17,7 +17,7 @@ var (
 	selectedHighPriorityStyle = selectedStyle.Copy().Foreground(lipgloss.Color("#ef4444")).Bold(true)
 )
 
-func renderTask(t *tasks.Task, selected bool) string {
+func renderTask(t *domain.Task, selected bool) string {
 	var style lipgloss.Style
 	var priorityStyle lipgloss.Style
 	var priorityMarker string
@@ -38,18 +38,18 @@ func renderTask(t *tasks.Task, selected bool) string {
 	}
 
 	switch {
-	case t.Priority == tasks.None && selected:
+	case t.Priority == domain.TaskPriorityNone && selected:
 		priorityStyle = selectedStyle
-	case t.Priority == tasks.Low && selected:
+	case t.Priority == domain.TaskPriorityLow && selected:
 		priorityStyle = selectedLowPriorityStyle
 		priorityMarker = " *"
-	case t.Priority == tasks.High && selected:
+	case t.Priority == domain.TaskPriorityHigh && selected:
 		priorityStyle = selectedHighPriorityStyle
 		priorityMarker = " ***"
-	case t.Priority == tasks.Low:
+	case t.Priority == domain.TaskPriorityLow:
 		priorityStyle = lowPriorityStyle
 		priorityMarker = " *"
-	case t.Priority == tasks.High:
+	case t.Priority == domain.TaskPriorityHigh:
 		priorityStyle = highPriorityStyle
 		priorityMarker = " ***"
 	}

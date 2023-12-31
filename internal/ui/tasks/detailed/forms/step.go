@@ -2,15 +2,15 @@ package forms
 
 import (
 	"fmt"
+	"github.com/josiahdenton/recall/internal/domain"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/josiahdenton/recall/internal/pages/tasks"
 )
 
 type StepFormMsg struct {
-	Step tasks.Step
+	Step domain.Step
 }
 
 type StepModel struct {
@@ -25,7 +25,7 @@ func NewStepForm() StepModel {
 	input.CharLimit = 120
 	input.Prompt = "Description: "
 	input.PromptStyle = formLabelStyle
-    input.Placeholder = "..."
+	input.Placeholder = "..."
 
 	input.Validate = func(s string) error {
 		if len(strings.Trim(s, " \n")) < 1 {
@@ -82,7 +82,7 @@ func (m StepModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func addStep(s string) tea.Cmd {
 	return func() tea.Msg {
 		return StepFormMsg{
-			Step: tasks.Step{
+			Step: domain.Step{
 				Description: s,
 			},
 		}

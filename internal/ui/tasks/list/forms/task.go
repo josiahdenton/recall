@@ -2,13 +2,13 @@ package forms
 
 import (
 	"fmt"
+	"github.com/josiahdenton/recall/internal/domain"
+	styles2 "github.com/josiahdenton/recall/internal/ui/styles"
 	"regexp"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/josiahdenton/recall/internal/pages/styles"
-	"github.com/josiahdenton/recall/internal/pages/tasks"
 )
 
 const (
@@ -20,17 +20,17 @@ const (
 var (
 	dateRe                = regexp.MustCompile(`\d{1,2}/\d{1,2}/\d{2,4}`)
 	priorityKeys          = []string{"None", "Low", "High"}
-	selectedPriorityStyle = styles.PrimaryColor.Copy()
-	priorityStyle         = styles.SecondaryGray.Copy()
+	selectedPriorityStyle = styles2.PrimaryColor.Copy()
+	priorityStyle         = styles2.SecondaryGray.Copy()
 )
 
 type TaskFormMsg struct {
-	Task tasks.Task
+	Task domain.Task
 }
 
 type TaskModel struct {
 	inputs        []textinput.Model
-	priorityMap   map[string]tasks.Priority
+	priorityMap   map[string]domain.Priority
 	prioriyCursor int
 	status        string
 	active        int
@@ -42,7 +42,7 @@ func NewTaskForm() TaskModel {
 	inputTitle.Width = 60
 	inputTitle.CharLimit = 60
 	inputTitle.Prompt = "Title: "
-	inputTitle.PromptStyle = styles.FormLabelStyle
+	inputTitle.PromptStyle = styles2.FormLabelStyle
 	inputTitle.Placeholder = "..."
 
 	inputTitle.Validate = func(s string) error {
@@ -56,7 +56,7 @@ func NewTaskForm() TaskModel {
 	inputDue.Width = 60
 	inputDue.CharLimit = 120
 	inputDue.Prompt = "Due: "
-	inputDue.PromptStyle = styles.FormLabelStyle
+	inputDue.PromptStyle = styles2.FormLabelStyle
 	inputDue.Placeholder = "mm/dd/yyyy"
 
 	inputDue.Validate = func(s string) error {
@@ -70,10 +70,10 @@ func NewTaskForm() TaskModel {
 	inputs[title] = inputTitle
 	inputs[due] = inputDue
 
-	priority := make(map[string]tasks.Priority, 3)
-	priority[priorityKeys[tasks.None]] = tasks.None
-	priority[priorityKeys[tasks.Low]] = tasks.Low
-	priority[priorityKeys[tasks.High]] = tasks.High
+	priority := make(map[string]domain.Priority, 3)
+	priority[priorityKeys[domain.TaskPriorityNone]] = domain.TaskPriorityNone
+	priority[priorityKeys[domain.TaskPriorityLow]] = domain.TaskPriorityLow
+	priority[priorityKeys[domain.TaskPriorityHigh]] = domain.TaskPriorityHigh
 
 	return TaskModel{
 		inputs:      inputs,
@@ -87,16 +87,16 @@ func (m TaskModel) Init() tea.Cmd {
 
 func (m TaskModel) View() string {
 	var b strings.Builder
-	b.WriteString(styles.FormTitleStyle.Render("Add Status"))
+	b.WriteString(styles2.FormTitleStyle.Render("Add Status"))
 	b.WriteString("\n\n")
 	b.WriteString(m.inputs[title].View())
 	b.WriteString("\n")
 	b.WriteString(m.inputs[due].View())
 	b.WriteString("\n")
-    b.WriteString("Priority: ")
-    b.WriteString(fmt.Sprintf("%s %s %s"))
+	b.WriteString("Priority: ")
+	b.WriteString(fmt.Sprintf("%s %s %s"))
 	b.WriteString("\n\n")
-	b.WriteString(styles.FormErrorStyle.Render(m.status))
+	b.WriteString(styles2.FormErrorStyle.Render(m.status))
 	return b.String()
 }
 
@@ -178,11 +178,10 @@ func nextInput(current int) int {
 
 }
 
-
 func addTask(title, due string) tea.Cmd {
 	return func() tea.Msg {
 		return TaskFormMsg{
-			Task: tasks.Task{
+			Task: domain.Task{
 				Title: title,
 				Due:   due,
 			},

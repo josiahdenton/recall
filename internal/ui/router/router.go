@@ -1,12 +1,12 @@
-package pages
+package router
 
 import tea "github.com/charmbracelet/bubbletea"
 
 type Page = int
 
 const (
-	TaskList = iota
-	TaskDetailed
+	TaskListPage = iota
+	TaskDetailedPage
 )
 
 type GotoPageMsg struct {

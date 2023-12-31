@@ -1,4 +1,4 @@
-package tasks
+package domain
 
 type Step struct {
 	Description string

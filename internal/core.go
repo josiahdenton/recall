@@ -3,9 +3,9 @@ package internal
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/josiahdenton/recall/internal/pages"
-	taskdetailed "github.com/josiahdenton/recall/internal/pages/tasks/detailed"
-	tasklist "github.com/josiahdenton/recall/internal/pages/tasks/list"
+	"github.com/josiahdenton/recall/internal/ui/router"
+	taskdetailed "github.com/josiahdenton/recall/internal/ui/tasks/detailed"
+	tasklist "github.com/josiahdenton/recall/internal/ui/tasks/list"
 )
 
 var (
@@ -16,31 +16,28 @@ func New() Model {
 	return Model{
 		taskList:     &tasklist.Model{},
 		taskDetailed: taskdetailed.New(),
-		page:         pages.TaskList,
+		page:         router.TaskListPage,
 	}
 }
 
 type Model struct {
 	taskList     tea.Model
 	taskDetailed tea.Model
-	page         pages.Page
+	page         router.Page
 	width        int
 	height       int
 }
 
 func (m Model) Init() tea.Cmd {
-	// this call the Init from the active child model
-	// I will need to use either tea.Batch or tea.Sequence
-	// TODO add tick back for timer
 	return tea.Batch(m.taskList.Init(), tea.EnterAltScreen)
 }
 
 func (m Model) View() string {
 	var pageModel tea.Model
 	switch m.page {
-	case pages.TaskList:
+	case router.TaskListPage:
 		pageModel = m.taskList
-	case pages.TaskDetailed:
+	case router.TaskDetailedPage:
 		pageModel = m.taskDetailed
 	}
 	return windowStyle.Width(m.width).Height(m.height).Render(pageModel.View())
@@ -59,17 +56,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.height = msg.Height
 		m.width = msg.Width
-	case tasklist.ShowDetailedMsg:
-		m.page = pages.TaskDetailed
-	case pages.GotoPageMsg:
+	// TODO move this to the router
+	case tasklist.GotoDetailedPageMsg:
+		m.page = router.TaskDetailedPage
+	case router.GotoPageMsg:
 		m.page = msg.Page
 	}
 
 	switch m.page {
-	case pages.TaskList:
+	case router.TaskListPage:
 		m.taskList, cmd = m.taskList.Update(msg)
 		cmds = append(cmds, cmd)
-	case pages.TaskDetailed:
+	case router.TaskDetailedPage:
 		m.taskDetailed, cmd = m.taskDetailed.Update(msg)
 		cmds = append(cmds, cmd)
 	}
@@ -78,3 +76,4 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 // TODO I should have a tick for auto saving my changes
+// run after every 5 minutes or something like that

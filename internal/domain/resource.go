@@ -1,4 +1,4 @@
-package tasks
+package domain
 
 const (
 	WebLinkType = iota

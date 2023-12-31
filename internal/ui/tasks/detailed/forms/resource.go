@@ -2,11 +2,11 @@ package forms
 
 import (
 	"fmt"
+	"github.com/josiahdenton/recall/internal/domain"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/josiahdenton/recall/internal/pages/tasks"
 )
 
 const (
@@ -15,7 +15,7 @@ const (
 )
 
 type ResourceFormMsg struct {
-	Resource tasks.Resource
+	Resource domain.Resource
 }
 
 type ResourceModel struct {
@@ -128,7 +128,7 @@ func (m ResourceModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func addResource(name string, source string) tea.Cmd {
 	return func() tea.Msg {
 		return ResourceFormMsg{
-			Resource: tasks.Resource{
+			Resource: domain.Resource{
 				Name:   name,
 				Source: source,
 			},

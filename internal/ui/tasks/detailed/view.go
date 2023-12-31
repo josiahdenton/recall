@@ -4,20 +4,20 @@ import (
 	"github.com/atotto/clipboard"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/josiahdenton/recall/internal/pages"
-	"github.com/josiahdenton/recall/internal/pages/styles"
-	"github.com/josiahdenton/recall/internal/pages/tasks"
-	"github.com/josiahdenton/recall/internal/pages/tasks/detailed/forms"
-	tasklist "github.com/josiahdenton/recall/internal/pages/tasks/list"
+	"github.com/josiahdenton/recall/internal/domain"
+	"github.com/josiahdenton/recall/internal/ui/router"
+	styles2 "github.com/josiahdenton/recall/internal/ui/styles"
+	forms2 "github.com/josiahdenton/recall/internal/ui/tasks/detailed/forms"
+	tasklist "github.com/josiahdenton/recall/internal/ui/tasks/list"
 	"log"
 	"strings"
 	"time"
 )
 
 var (
-	listTitleStyle     = styles.SecondaryGray.Copy()
-	activeListStyle    = styles.SecondaryColor.Copy()
-	statusMessageStyle = styles.PrimaryColor.Copy().PaddingLeft(1)
+	listTitleStyle     = styles2.SecondaryGray.Copy()
+	activeListStyle    = styles2.SecondaryColor.Copy()
+	statusMessageStyle = styles2.PrimaryColor.Copy().PaddingLeft(1)
 )
 
 // active options
@@ -38,16 +38,16 @@ type Model struct {
 	headerActive  bool
 	forms         []tea.Model
 	statusMessage string
-	task          *tasks.Task
+	task          *domain.Task
 	lists         []list.Model
 	active        int
 }
 
 func New() *Model {
 	formList := make([]tea.Model, formCount)
-	formList[steps] = forms.NewStepForm()
-	formList[resources] = forms.NewStepResourceForm()
-	formList[status] = forms.NewStatusForm()
+	formList[steps] = forms2.NewStepForm()
+	formList[resources] = forms2.NewStepResourceForm()
+	formList[status] = forms2.NewStatusForm()
 	return &Model{
 		headerActive: true,
 		active:       header,
@@ -74,7 +74,7 @@ func (m *Model) View() string {
 	} else {
 		b.WriteString("loading...")
 	}
-	return styles.WindowStyle.Render(b.String())
+	return styles2.WindowStyle.Render(b.String())
 }
 
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -88,21 +88,21 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	switch msg := msg.(type) {
-	case tasklist.ShowDetailedMsg:
+	case tasklist.GotoDetailedPageMsg:
 		m.task = msg.Task
 		m.setupLists(msg.Task)
 		m.ready = true
 	case clearStatusMessage:
 		m.statusMessage = ""
-	case forms.StepFormMsg:
+	case forms2.StepFormMsg:
 		m.task.Steps = append(m.task.Steps, msg.Step)
 		m.lists[steps].InsertItem(len(m.task.Steps)-1, &m.task.Steps[len(m.task.Steps)-1])
 		m.showForm = false
-	case forms.ResourceFormMsg:
+	case forms2.ResourceFormMsg:
 		m.task.Resources = append(m.task.Resources, msg.Resource)
 		m.lists[resources].InsertItem(len(m.task.Resources)-1, &m.task.Resources[len(m.task.Resources)-1])
 		m.showForm = false
-	case forms.StatusFormMsg:
+	case forms2.StatusFormMsg:
 		m.task.Status = append(m.task.Status, msg.Status)
 		m.lists[status].InsertItem(len(m.task.Status)-1, &m.task.Status[len(m.task.Status)-1])
 		m.showForm = false
@@ -112,7 +112,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.showForm {
 				m.showForm = false
 			} else {
-				cmds = append(cmds, pages.GotoPage(pages.TaskList))
+				cmds = append(cmds, router.GotoPage(router.TaskListPage))
 				m.active = header
 			}
 		}
@@ -166,7 +166,7 @@ func (m *Model) detailedControls(msg tea.KeyMsg) tea.Cmd {
 	case " ":
 		switch m.active {
 		case steps:
-			step := m.lists[steps].SelectedItem().(*tasks.Step)
+			step := m.lists[steps].SelectedItem().(*domain.Step)
 			step.ToggleStatus()
 			if step.Complete {
 				m.statusMessage = "step completed!"
@@ -177,14 +177,14 @@ func (m *Model) detailedControls(msg tea.KeyMsg) tea.Cmd {
 			// this should open the resource
 			// refer to the other golang app for that...
 			// for now, copy source to clipboard
-			resource := m.lists[resources].SelectedItem().(*tasks.Resource)
+			resource := m.lists[resources].SelectedItem().(*domain.Resource)
 			err := clipboard.WriteAll(resource.Source)
 			if err != nil {
 				log.Printf("failed to copy to clipboard %v", err)
 			}
 			m.statusMessage = "copied to clipboard!"
 		case status:
-			status := m.lists[status].SelectedItem().(*tasks.Status)
+			status := m.lists[status].SelectedItem().(*domain.Status)
 			err := clipboard.WriteAll(status.Description)
 			if err != nil {
 				log.Printf("failed to copy to clipboard %v", err)
@@ -196,7 +196,7 @@ func (m *Model) detailedControls(msg tea.KeyMsg) tea.Cmd {
 	return cmd
 }
 
-func (m *Model) setupLists(task *tasks.Task) {
+func (m *Model) setupLists(task *domain.Task) {
 	_steps := make([]list.Item, len(task.Steps))
 	_resources := make([]list.Item, len(task.Resources))
 	_status := make([]list.Item, len(task.Status))

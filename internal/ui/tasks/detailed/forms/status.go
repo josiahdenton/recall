@@ -2,15 +2,15 @@ package forms
 
 import (
 	"fmt"
+	"github.com/josiahdenton/recall/internal/domain"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/josiahdenton/recall/internal/pages/tasks"
 )
 
 type StatusFormMsg struct {
-	Status tasks.Status
+	Status domain.Status
 }
 
 type StatusModel struct {
@@ -71,7 +71,7 @@ func (m StatusModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func addStatus(s string) tea.Cmd {
 	return func() tea.Msg {
 		return StatusFormMsg{
-			Status: tasks.Status{
+			Status: domain.Status{
 				Description: s,
 			},
 		}
