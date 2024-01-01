@@ -3,7 +3,8 @@ package forms
 import (
 	"fmt"
 	"github.com/josiahdenton/recall/internal/domain"
-	styles2 "github.com/josiahdenton/recall/internal/ui/styles"
+	"github.com/josiahdenton/recall/internal/ui/common"
+	"github.com/josiahdenton/recall/internal/ui/styles"
 	"regexp"
 	"strings"
 
@@ -20,29 +21,29 @@ const (
 var (
 	dateRe                = regexp.MustCompile(`\d{1,2}/\d{1,2}/\d{2,4}`)
 	priorityKeys          = []string{"None", "Low", "High"}
-	selectedPriorityStyle = styles2.PrimaryColor.Copy()
-	priorityStyle         = styles2.SecondaryGray.Copy()
+	selectedPriorityStyle = styles.PrimaryColor.Copy()
+	priorityStyle         = styles.SecondaryGray.Copy()
 )
 
 type TaskFormMsg struct {
 	Task domain.Task
 }
 
-type TaskModel struct {
-	inputs        []textinput.Model
-	priorityMap   map[string]domain.Priority
-	prioriyCursor int
-	status        string
-	active        int
+type TaskFormModel struct {
+	inputs         []textinput.Model
+	priorityMap    map[string]domain.Priority
+	priorityCursor int
+	status         string
+	active         int
 }
 
-func NewTaskForm() TaskModel {
+func NewTaskForm() TaskFormModel {
 	inputTitle := textinput.New()
 	inputTitle.Focus()
 	inputTitle.Width = 60
 	inputTitle.CharLimit = 60
 	inputTitle.Prompt = "Title: "
-	inputTitle.PromptStyle = styles2.FormLabelStyle
+	inputTitle.PromptStyle = styles.FormLabelStyle
 	inputTitle.Placeholder = "..."
 
 	inputTitle.Validate = func(s string) error {
@@ -56,7 +57,7 @@ func NewTaskForm() TaskModel {
 	inputDue.Width = 60
 	inputDue.CharLimit = 120
 	inputDue.Prompt = "Due: "
-	inputDue.PromptStyle = styles2.FormLabelStyle
+	inputDue.PromptStyle = styles.FormLabelStyle
 	inputDue.Placeholder = "mm/dd/yyyy"
 
 	inputDue.Validate = func(s string) error {
@@ -75,32 +76,33 @@ func NewTaskForm() TaskModel {
 	priority[priorityKeys[domain.TaskPriorityLow]] = domain.TaskPriorityLow
 	priority[priorityKeys[domain.TaskPriorityHigh]] = domain.TaskPriorityHigh
 
-	return TaskModel{
-		inputs:      inputs,
-		priorityMap: priority,
+	return TaskFormModel{
+		inputs:         inputs,
+		priorityMap:    priority,
+		priorityCursor: -1,
 	}
 }
 
-func (m TaskModel) Init() tea.Cmd {
+func (m TaskFormModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m TaskModel) View() string {
+func (m TaskFormModel) View() string {
 	var b strings.Builder
-	b.WriteString(styles2.FormTitleStyle.Render("Add Status"))
+	b.WriteString(styles.FormTitleStyle.Render("Add Status"))
 	b.WriteString("\n\n")
 	b.WriteString(m.inputs[title].View())
 	b.WriteString("\n")
 	b.WriteString(m.inputs[due].View())
 	b.WriteString("\n")
 	b.WriteString("Priority: ")
-	b.WriteString(fmt.Sprintf("%s %s %s"))
+	b.WriteString(common.VerticalOptions(priorityKeys, m.priorityCursor))
 	b.WriteString("\n\n")
-	b.WriteString(styles2.FormErrorStyle.Render(m.status))
+	b.WriteString(styles.FormErrorStyle.Render(m.status))
 	return b.String()
 }
 
-func (m TaskModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m TaskFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	var cmds []tea.Cmd
 
@@ -132,6 +134,7 @@ func (m TaskModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else if m.active == due {
 				m.inputs[m.active%len(m.inputs)].Blur()
 				m.active++
+				break
 			}
 
 			// TODO fix the <nil>
@@ -145,7 +148,7 @@ func (m TaskModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyTab:
 			if m.active < priority {
 				m.inputs[m.active%len(m.inputs)].Blur()
-				m.active++
+				m.active = nextInput(m.active)
 			}
 			if m.active < priority {
 				m.inputs[m.active%len(m.inputs)].Focus()
