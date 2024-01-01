@@ -7,6 +7,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/josiahdenton/recall/internal/domain"
 	"github.com/josiahdenton/recall/internal/ui/styles"
+	"github.com/josiahdenton/recall/internal/ui/tasks/list/forms"
 	"io"
 )
 
@@ -16,8 +17,16 @@ var (
 )
 
 type Model struct {
-	ready bool
-	tasks list.Model
+	ready    bool
+	tasks    list.Model
+	form     forms.TaskFormModel
+	showForm bool
+}
+
+func New() *Model {
+	return &Model{
+		form: forms.NewTaskForm(),
+	}
 }
 
 type GotoDetailedPageMsg struct {
@@ -106,12 +115,24 @@ func (m *Model) Init() tea.Cmd {
 }
 
 func (m *Model) View() string {
-	return styles.WindowStyle.Render(m.tasks.View())
+	var s string
+	if m.showForm {
+		s = styles.WindowStyle.Render(m.form.View())
+	} else {
+		s = styles.WindowStyle.Render(m.tasks.View())
+	}
+	return s
 }
 
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 	var cmd tea.Cmd
+
+	if m.showForm && m.ready {
+		m.form, cmd = m.form.Update(msg)
+		cmds = append(cmds, cmd)
+	}
+
 	switch msg := msg.(type) {
 	case LoadTasks:
 		// TODO split this setup into its own func
@@ -124,11 +145,22 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.tasks.SetShowHelp(false)
 		m.tasks.KeyMap.Quit.Unbind()
 		m.ready = true
+	case forms.TaskFormMsg:
+		m.tasks.InsertItem(len(m.tasks.Items()), &msg.Task)
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "enter":
-			item := m.tasks.SelectedItem().(*domain.Task)
-			cmds = append(cmds, ShowDetailedView(item))
+			if !m.showForm {
+				item := m.tasks.SelectedItem().(*domain.Task)
+				cmds = append(cmds, ShowDetailedView(item))
+			}
+		case "a":
+			m.showForm = true
+		case "c":
+			// now we complete the task
+
+		case "esc":
+			m.showForm = false
 		}
 	}
 

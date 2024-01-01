@@ -6,8 +6,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/josiahdenton/recall/internal/domain"
 	"github.com/josiahdenton/recall/internal/ui/router"
-	styles2 "github.com/josiahdenton/recall/internal/ui/styles"
-	forms2 "github.com/josiahdenton/recall/internal/ui/tasks/detailed/forms"
+	"github.com/josiahdenton/recall/internal/ui/styles"
+	"github.com/josiahdenton/recall/internal/ui/tasks/detailed/forms"
 	tasklist "github.com/josiahdenton/recall/internal/ui/tasks/list"
 	"log"
 	"strings"
@@ -15,9 +15,9 @@ import (
 )
 
 var (
-	listTitleStyle     = styles2.SecondaryGray.Copy()
-	activeListStyle    = styles2.SecondaryColor.Copy()
-	statusMessageStyle = styles2.PrimaryColor.Copy().PaddingLeft(1)
+	listTitleStyle     = styles.SecondaryGray.Copy()
+	activeListStyle    = styles.SecondaryColor.Copy()
+	statusMessageStyle = styles.PrimaryColor.Copy().PaddingLeft(1)
 )
 
 // active options
@@ -45,9 +45,9 @@ type Model struct {
 
 func New() *Model {
 	formList := make([]tea.Model, formCount)
-	formList[steps] = forms2.NewStepForm()
-	formList[resources] = forms2.NewStepResourceForm()
-	formList[status] = forms2.NewStatusForm()
+	formList[steps] = forms.NewStepForm()
+	formList[resources] = forms.NewStepResourceForm()
+	formList[status] = forms.NewStatusForm()
 	return &Model{
 		headerActive: true,
 		active:       header,
@@ -74,7 +74,7 @@ func (m *Model) View() string {
 	} else {
 		b.WriteString("loading...")
 	}
-	return styles2.WindowStyle.Render(b.String())
+	return styles.WindowStyle.Render(b.String())
 }
 
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -94,15 +94,15 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.ready = true
 	case clearStatusMessage:
 		m.statusMessage = ""
-	case forms2.StepFormMsg:
+	case forms.StepFormMsg:
 		m.task.Steps = append(m.task.Steps, msg.Step)
 		m.lists[steps].InsertItem(len(m.task.Steps)-1, &m.task.Steps[len(m.task.Steps)-1])
 		m.showForm = false
-	case forms2.ResourceFormMsg:
+	case forms.ResourceFormMsg:
 		m.task.Resources = append(m.task.Resources, msg.Resource)
 		m.lists[resources].InsertItem(len(m.task.Resources)-1, &m.task.Resources[len(m.task.Resources)-1])
 		m.showForm = false
-	case forms2.StatusFormMsg:
+	case forms.StatusFormMsg:
 		m.task.Status = append(m.task.Status, msg.Status)
 		m.lists[status].InsertItem(len(m.task.Status)-1, &m.task.Status[len(m.task.Status)-1])
 		m.showForm = false
@@ -166,6 +166,7 @@ func (m *Model) detailedControls(msg tea.KeyMsg) tea.Cmd {
 	case " ":
 		switch m.active {
 		case steps:
+			// TODO - SelectedItem returns nil when the list is empty!
 			step := m.lists[steps].SelectedItem().(*domain.Step)
 			step.ToggleStatus()
 			if step.Complete {
@@ -239,6 +240,8 @@ func (m *Model) setupLists(task *domain.Task) {
 	m.lists[status].SetFilteringEnabled(false)
 	m.lists[status].SetShowStatusBar(false)
 	m.lists[status].KeyMap.Quit.Unbind()
+
+	log.Printf("lists: %v", m.lists)
 }
 
 func (m *Model) nextSection() int {

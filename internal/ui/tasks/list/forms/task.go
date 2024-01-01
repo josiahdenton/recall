@@ -61,7 +61,7 @@ func NewTaskForm() TaskFormModel {
 	inputDue.Placeholder = "mm/dd/yyyy"
 
 	inputDue.Validate = func(s string) error {
-		if len(strings.Trim(s, " \n")) < 1 || !dateRe.Match([]byte(s)) {
+		if len(strings.Trim(s, " \n")) < 1 {
 			return fmt.Errorf("step description missing")
 		}
 		return nil
@@ -89,50 +89,50 @@ func (m TaskFormModel) Init() tea.Cmd {
 
 func (m TaskFormModel) View() string {
 	var b strings.Builder
-	b.WriteString(styles.FormTitleStyle.Render("Add Status"))
+	b.WriteString(styles.FormTitleStyle.Render("Add Task"))
 	b.WriteString("\n\n")
 	b.WriteString(m.inputs[title].View())
-	b.WriteString("\n")
+	b.WriteString("\n\n")
 	b.WriteString(m.inputs[due].View())
-	b.WriteString("\n")
-	b.WriteString("Priority: ")
+	b.WriteString("\n\n")
+	b.WriteString(styles.FormLabelStyle.Render("Priority: "))
 	b.WriteString(common.VerticalOptions(priorityKeys, m.priorityCursor))
 	b.WriteString("\n\n")
 	b.WriteString(styles.FormErrorStyle.Render(m.status))
 	return b.String()
 }
 
-func (m TaskFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m TaskFormModel) Update(msg tea.Msg) (TaskFormModel, tea.Cmd) {
 	var cmd tea.Cmd
 	var cmds []tea.Cmd
 
 	if m.active < priority {
-		m.inputs[m.active%len(m.inputs)], cmd = m.inputs[m.active%len(m.inputs)].Update(msg)
+		m.inputs[m.active], cmd = m.inputs[m.active].Update(msg)
 		cmds = append(cmds, cmd)
 	}
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		if m.active == priority {
-			switch msg.String() {
-			case "l":
-				m.prioriyCursor++
-			case "h":
-				if m.prioriyCursor > 0 {
-					m.prioriyCursor--
-				}
+		switch msg.String() {
+		case "l":
+			if m.active == priority && m.priorityCursor < len(priorityKeys)-1 {
+				m.priorityCursor++
+			}
+		case "h":
+			if m.active == priority && m.priorityCursor > 0 {
+				m.priorityCursor--
 			}
 		}
 
 		switch msg.Type {
 		case tea.KeyEnter:
 			if m.active == title {
-				m.inputs[m.active%len(m.inputs)].Blur()
+				m.inputs[title].Blur()
 				m.active++
-				m.inputs[m.active%len(m.inputs)].Focus()
+				m.inputs[due].Focus()
 				break
 			} else if m.active == due {
-				m.inputs[m.active%len(m.inputs)].Blur()
+				m.inputs[due].Blur()
 				m.active++
 				break
 			}
@@ -141,23 +141,25 @@ func (m TaskFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.inputs[title].Err != nil || m.inputs[due].Err != nil {
 				m.status = fmt.Sprintf("%v, %v", m.inputs[title].Err, m.inputs[due].Err)
 			} else {
-				cmds = append(cmds, addTask(m.inputs[title].Value(), m.inputs[due].Value()))
+				cmds = append(cmds, addTask(m.inputs[title].Value(), m.inputs[due].Value(), m.priorityMap[priorityKeys[m.priorityCursor]]))
 				m.inputs[title].Reset()
 				m.inputs[due].Reset()
+				m.priorityCursor = -1
+				m.active = 0
 			}
 		case tea.KeyTab:
 			if m.active < priority {
-				m.inputs[m.active%len(m.inputs)].Blur()
-				m.active = nextInput(m.active)
+				m.inputs[m.active].Blur()
+				m.active = m.nextInput(m.active)
 			}
 			if m.active < priority {
-				m.inputs[m.active%len(m.inputs)].Focus()
+				m.inputs[m.active].Focus()
 			}
 		case tea.KeyShiftTab:
 			if m.active > 0 {
-				m.inputs[m.active%len(m.inputs)].Blur()
+				m.inputs[m.active].Blur()
 				m.active--
-				m.inputs[m.active%len(m.inputs)].Focus()
+				m.inputs[m.active].Focus()
 			}
 		}
 		if len(m.inputs[title].Value()) > 0 || len(m.inputs[due].Value()) > 0 {
@@ -168,7 +170,7 @@ func (m TaskFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-func nextInput(current int) int {
+func (m TaskFormModel) nextInput(current int) int {
 	switch current {
 	case title:
 		return due
@@ -181,12 +183,13 @@ func nextInput(current int) int {
 
 }
 
-func addTask(title, due string) tea.Cmd {
+func addTask(title, due string, priority domain.Priority) tea.Cmd {
 	return func() tea.Msg {
 		return TaskFormMsg{
 			Task: domain.Task{
-				Title: title,
-				Due:   due,
+				Title:    title,
+				Due:      due,
+				Priority: priority,
 			},
 		}
 	}

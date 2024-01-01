@@ -14,7 +14,7 @@ var (
 
 func New() Model {
 	return Model{
-		taskList:     &tasklist.Model{},
+		taskList:     tasklist.New(),
 		taskDetailed: taskdetailed.New(),
 		page:         router.TaskListPage,
 	}
