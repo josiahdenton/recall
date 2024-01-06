@@ -1,4 +1,4 @@
-package detailed
+package task
 
 import (
 	"fmt"

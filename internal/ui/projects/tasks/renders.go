@@ -1,4 +1,4 @@
-package list
+package tasks
 
 import (
 	"github.com/charmbracelet/lipgloss"

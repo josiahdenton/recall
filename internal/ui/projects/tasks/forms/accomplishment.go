@@ -5,6 +5,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/josiahdenton/recall/internal/domain"
+	"github.com/josiahdenton/recall/internal/ui/shared"
 	"github.com/josiahdenton/recall/internal/ui/styles"
 	"strings"
 )
@@ -15,14 +16,23 @@ const (
 	strength
 )
 
-type AccomplishmentFormMsg struct {
-	Accomplishment domain.Accomplishment
+type attachTaskMsg struct {
+	TaskId string
+}
+
+func AttachTask(id string) tea.Cmd {
+	return func() tea.Msg {
+		return attachTaskMsg{TaskId: id}
+	}
 }
 
 type AccomplishmentFormModel struct {
 	inputs []textinput.Model
+	task   domain.Task
 	status string
 	active int
+	ready  bool
+	taskId string
 }
 
 func NewAccomplishmentForm() AccomplishmentFormModel {
@@ -46,7 +56,7 @@ func NewAccomplishmentForm() AccomplishmentFormModel {
 	inputImpact.CharLimit = 120
 	inputImpact.Prompt = "What impact did you have? "
 	inputImpact.PromptStyle = styles.FormLabelStyle
-	inputImpact.Placeholder = "mm/dd/yyyy"
+	inputImpact.Placeholder = "..."
 
 	inputImpact.Validate = func(s string) error {
 		if len(strings.Trim(s, " \n")) < 1 {
@@ -58,9 +68,9 @@ func NewAccomplishmentForm() AccomplishmentFormModel {
 	inputStrength := textinput.New()
 	inputStrength.Width = 60
 	inputStrength.CharLimit = 120
-	inputStrength.Prompt = "What strength did you demonstrate?"
+	inputStrength.Prompt = "What strength did you demonstrate? "
 	inputStrength.PromptStyle = styles.FormLabelStyle
-	inputStrength.Placeholder = "mm/dd/yyyy"
+	inputStrength.Placeholder = "..."
 
 	inputStrength.Validate = func(s string) error {
 		if len(strings.Trim(s, " \n")) < 1 {
@@ -87,27 +97,32 @@ func (m AccomplishmentFormModel) View() string {
 	var b strings.Builder
 	b.WriteString(styles.FormTitleStyle.Render("Complete Task"))
 	b.WriteString("\n\n")
-	b.WriteString(m.inputs[description].View())
-	b.WriteString("\n\n")
-	b.WriteString(m.inputs[impact].View())
-	b.WriteString("\n\n")
-	b.WriteString(m.inputs[strength].View())
-	b.WriteString("\n\n")
+	for _, input := range m.inputs {
+		b.WriteString(input.View())
+		b.WriteString("\n\n")
+	}
 	b.WriteString(styles.FormErrorStyle.Render(m.status))
 	return b.String()
 }
 
-func (m AccomplishmentFormModel) Update(msg tea.Msg) (AccomplishmentFormModel, tea.Cmd) {
+func (m AccomplishmentFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	var cmds []tea.Cmd
 
-	if m.active < priority {
-		m.inputs[m.active], cmd = m.inputs[m.active].Update(msg)
+	if m.ready {
+		m.inputs[m.active%len(m.inputs)], cmd = m.inputs[m.active%len(m.inputs)].Update(msg)
 		cmds = append(cmds, cmd)
 	}
 
 	switch msg := msg.(type) {
+	case attachTaskMsg:
+		m.taskId = msg.TaskId
+		m.ready = true
 	case tea.KeyMsg:
+		if !m.ready {
+			break
+		}
+
 		switch msg.Type {
 		case tea.KeyEnter:
 			if m.active < strength {
@@ -122,9 +137,10 @@ func (m AccomplishmentFormModel) Update(msg tea.Msg) (AccomplishmentFormModel, t
 			if m.inputs[description].Err != nil || m.inputs[impact].Err != nil {
 				m.status = fmt.Sprintf("%v, %v", m.inputs[title].Err, m.inputs[due].Err)
 			} else {
-				cmds = append(cmds, addAccomplishment(m.inputs[description].Value(), m.inputs[impact].Value(), m.inputs[strength].Value()))
-				m.inputs[title].Reset()
-				m.inputs[due].Reset()
+				cmds = append(cmds, addAccomplishment(m.inputs[description].Value(), m.inputs[impact].Value(), m.inputs[strength].Value(), m.taskId))
+				m.inputs[description].Reset()
+				m.inputs[impact].Reset()
+				m.inputs[strength].Reset()
 				m.active = 0
 			}
 		case tea.KeyTab:
@@ -133,9 +149,9 @@ func (m AccomplishmentFormModel) Update(msg tea.Msg) (AccomplishmentFormModel, t
 			m.inputs[m.active%len(m.inputs)].Focus()
 		case tea.KeyShiftTab:
 			if m.active > 0 {
-				m.inputs[m.active].Blur()
+				m.inputs[m.active%len(m.inputs)].Blur()
 				m.active--
-				m.inputs[m.active].Focus()
+				m.inputs[m.active%len(m.inputs)].Focus()
 			}
 		}
 		if len(m.inputs[description].Value()) > 0 || len(m.inputs[impact].Value()) > 0 {
@@ -146,14 +162,13 @@ func (m AccomplishmentFormModel) Update(msg tea.Msg) (AccomplishmentFormModel, t
 	return m, tea.Batch(cmds...)
 }
 
-func addAccomplishment(description, impact, strength string) tea.Cmd {
+func addAccomplishment(description, impact, strength string, id string) tea.Cmd {
 	return func() tea.Msg {
-		return AccomplishmentFormMsg{
-			Accomplishment: domain.Accomplishment{
-				Description: description,
-				Impact:      impact,
-				Strength:    strength,
-			},
+		accomplishment := domain.NewAccomplishment(description, impact, strength)
+		accomplishment.AssociatedTaskIds = append(accomplishment.AssociatedTaskIds, id)
+		return shared.SaveStateMsg{
+			Update: accomplishment,
+			Type:   shared.AccomplishmentUpdate,
 		}
 	}
 }

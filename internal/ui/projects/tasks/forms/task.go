@@ -3,7 +3,7 @@ package forms
 import (
 	"fmt"
 	"github.com/josiahdenton/recall/internal/domain"
-	"github.com/josiahdenton/recall/internal/ui/common"
+	"github.com/josiahdenton/recall/internal/ui/shared"
 	"github.com/josiahdenton/recall/internal/ui/styles"
 	"regexp"
 	"strings"
@@ -24,10 +24,6 @@ var (
 	selectedPriorityStyle = styles.PrimaryColor.Copy()
 	priorityStyle         = styles.SecondaryGray.Copy()
 )
-
-type TaskFormMsg struct {
-	Task domain.Task
-}
 
 type TaskFormModel struct {
 	inputs         []textinput.Model
@@ -96,13 +92,13 @@ func (m TaskFormModel) View() string {
 	b.WriteString(m.inputs[due].View())
 	b.WriteString("\n\n")
 	b.WriteString(styles.FormLabelStyle.Render("Priority: "))
-	b.WriteString(common.VerticalOptions(priorityKeys, m.priorityCursor))
+	b.WriteString(shared.VerticalOptions(priorityKeys, m.priorityCursor))
 	b.WriteString("\n\n")
 	b.WriteString(styles.FormErrorStyle.Render(m.status))
 	return b.String()
 }
 
-func (m TaskFormModel) Update(msg tea.Msg) (TaskFormModel, tea.Cmd) {
+func (m TaskFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	var cmds []tea.Cmd
 
@@ -185,12 +181,9 @@ func (m TaskFormModel) nextInput(current int) int {
 
 func addTask(title, due string, priority domain.Priority) tea.Cmd {
 	return func() tea.Msg {
-		return TaskFormMsg{
-			Task: domain.Task{
-				Title:    title,
-				Due:      due,
-				Priority: priority,
-			},
+		return shared.SaveStateMsg{
+			Type:   shared.TaskUpdate,
+			Update: domain.NewTask(title, due, priority),
 		}
 	}
 }

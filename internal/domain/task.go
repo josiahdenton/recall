@@ -1,5 +1,7 @@
 package domain
 
+import "github.com/google/uuid"
+
 // TODO rename to be more accurate
 const (
 	TaskPriorityNone = iota
@@ -10,6 +12,7 @@ const (
 type Priority int
 
 type Task struct {
+	Id        string
 	Title     string
 	Due       string
 	Priority  Priority
@@ -18,6 +21,20 @@ type Task struct {
 	Resources []Resource
 	Status    []Status
 	Steps     []Step
+}
+
+func NewTask(title, due string, priority Priority) Task {
+	id, err := uuid.NewRandom()
+	if err != nil {
+		return Task{}
+	}
+
+	return Task{
+		Id:       id.String(),
+		Title:    title,
+		Due:      due,
+		Priority: priority,
+	}
 }
 
 func (t *Task) RemoveResource(i int) {
