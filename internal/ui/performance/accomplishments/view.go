@@ -69,6 +69,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.Type {
 		case tea.KeyEnter:
 			// go into accomplishment details
+			accomplishment := m.accomplishments.SelectedItem().(*domain.Accomplishment)
+			cmds = append(cmds, router.GotoPage(domain.AccomplishmentPage, *accomplishment, ""))
 		case tea.KeyEsc:
 			log.Printf("tea esc")
 			cmd = router.GotoPage(domain.CyclesPage, nil, "")

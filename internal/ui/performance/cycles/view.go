@@ -91,7 +91,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyEnter:
 			if !m.showForm {
 				cycle := m.cycles.SelectedItem().(*domain.Cycle)
-				cmd = router.GotoPage(domain.AccomplishmentsPage, cycle, cycle.Id)
+				cmd = router.GotoPage(domain.AccomplishmentsPage, cycle, "")
 				cmds = append(cmds, cmd)
 			}
 		}

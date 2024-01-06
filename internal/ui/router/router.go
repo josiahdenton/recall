@@ -9,12 +9,12 @@ import (
 
 type GotoPageMsg struct {
 	Page      domain.Page
-	Id        string // the requested ID of the page
+	ParentId  string // the requested ID of the page / the parent ID??
 	Parameter any    // any data needed for that page, attached from core
 }
 
 func GotoPage(page domain.Page, parameter any, id string) tea.Cmd {
 	return func() tea.Msg {
-		return GotoPageMsg{Page: page, Parameter: parameter, Id: id}
+		return GotoPageMsg{Page: page, Parameter: parameter, ParentId: id}
 	}
 }

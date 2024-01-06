@@ -14,11 +14,20 @@ var (
 	titleStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("#3a3b5b"))
 )
 
-// TODO replace ALL LoadXYZ msgs with the routers GotoPage
+type loadAccomplishmentMsg struct {
+	accomplishment domain.Accomplishment
+}
+
+func LoadAccomplishment(accomplishment domain.Accomplishment) tea.Cmd {
+	return func() tea.Msg {
+		return loadAccomplishmentMsg{accomplishment: accomplishment}
+	}
+}
 
 type Model struct {
-	tasks list.Model
-	ready bool
+	accomplishment domain.Accomplishment
+	tasks          list.Model
+	ready          bool
 }
 
 func (m Model) Init() tea.Cmd {
@@ -41,8 +50,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case router.GotoPageMsg:
 		if msg.Page == domain.AccomplishmentPage {
-			tasks := msg.Parameter.([]domain.Task)
-			items := setupList(tasks)
+			accomplishment := msg.Parameter.(domain.Accomplishment)
+			m.accomplishment = accomplishment
+			items := setupList(m.accomplishment.AssociatedTasks)
 			m.tasks = list.New(items, shortTaskDelegate{}, 50, 10)
 			m.tasks.SetShowStatusBar(false)
 			m.tasks.SetFilteringEnabled(false)
@@ -56,8 +66,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyEnter:
-			// on enter for task, go to task page
-
+			task := m.tasks.SelectedItem().(*domain.Task)
+			cmds = append(cmds, router.GotoPage(domain.TaskDetailedPage, *task, ""))
 		}
 	}
 

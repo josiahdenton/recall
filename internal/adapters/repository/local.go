@@ -99,6 +99,17 @@ func (l *LocalStorage) AllCycles() []domain.Cycle {
 	return l.cycles
 }
 
+func (l *LocalStorage) Accomplishment(id string) domain.Accomplishment {
+	for _, cycle := range l.cycles {
+		for _, accomplishment := range cycle.Accomplishments {
+			if accomplishment.Id == id {
+				return accomplishment
+			}
+		}
+	}
+	return domain.Accomplishment{}
+}
+
 func (l *LocalStorage) SaveChanges() {
 	return
 }

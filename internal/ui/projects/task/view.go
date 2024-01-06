@@ -34,16 +34,6 @@ const (
 	formCount = 3
 )
 
-type loadTaskMsg struct {
-	task domain.Task
-}
-
-func LoadTask(task domain.Task) tea.Cmd {
-	return func() tea.Msg {
-		return loadTaskMsg{task: task}
-	}
-}
-
 type Model struct {
 	ready         bool
 	showForm      bool
@@ -102,8 +92,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case router.GotoPageMsg:
-	case loadTaskMsg:
-		m.task = msg.task
+		m.task = msg.Parameter.(domain.Task)
 		m.lists = setupLists(m.task)
 		m.ready = true
 	case clearStatusMessage:

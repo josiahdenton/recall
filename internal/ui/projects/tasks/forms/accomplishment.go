@@ -17,12 +17,12 @@ const (
 )
 
 type attachTaskMsg struct {
-	TaskId string
+	Task domain.Task
 }
 
-func AttachTask(id string) tea.Cmd {
+func AttachTask(task domain.Task) tea.Cmd {
 	return func() tea.Msg {
-		return attachTaskMsg{TaskId: id}
+		return attachTaskMsg{Task: task}
 	}
 }
 
@@ -32,7 +32,6 @@ type AccomplishmentFormModel struct {
 	status string
 	active int
 	ready  bool
-	taskId string
 }
 
 func NewAccomplishmentForm() AccomplishmentFormModel {
@@ -116,7 +115,7 @@ func (m AccomplishmentFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case attachTaskMsg:
-		m.taskId = msg.TaskId
+		m.task = msg.Task
 		m.ready = true
 	case tea.KeyMsg:
 		if !m.ready {
@@ -137,7 +136,7 @@ func (m AccomplishmentFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.inputs[description].Err != nil || m.inputs[impact].Err != nil {
 				m.status = fmt.Sprintf("%v, %v", m.inputs[title].Err, m.inputs[due].Err)
 			} else {
-				cmds = append(cmds, addAccomplishment(m.inputs[description].Value(), m.inputs[impact].Value(), m.inputs[strength].Value(), m.taskId))
+				cmds = append(cmds, addAccomplishment(m.inputs[description].Value(), m.inputs[impact].Value(), m.inputs[strength].Value(), m.task))
 				m.inputs[description].Reset()
 				m.inputs[impact].Reset()
 				m.inputs[strength].Reset()
@@ -162,10 +161,10 @@ func (m AccomplishmentFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-func addAccomplishment(description, impact, strength string, id string) tea.Cmd {
+func addAccomplishment(description, impact, strength string, task domain.Task) tea.Cmd {
 	return func() tea.Msg {
 		accomplishment := domain.NewAccomplishment(description, impact, strength)
-		accomplishment.AssociatedTaskIds = append(accomplishment.AssociatedTaskIds, id)
+		accomplishment.AssociatedTasks = append(accomplishment.AssociatedTasks, task)
 		return shared.SaveStateMsg{
 			Update: accomplishment,
 			Type:   shared.AccomplishmentUpdate,

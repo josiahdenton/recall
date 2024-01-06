@@ -9,7 +9,6 @@ import (
 	"github.com/josiahdenton/recall/internal/ui/router"
 	"github.com/josiahdenton/recall/internal/ui/shared"
 	"github.com/josiahdenton/recall/internal/ui/styles"
-	"log"
 )
 
 var (
@@ -41,27 +40,6 @@ func New() Model {
 	}
 }
 
-type GotoDetailedPageMsg struct {
-	Task *domain.Task
-}
-
-type loadTasks struct {
-	tasks []list.Item
-}
-
-func LoadTasks(tasks []domain.Task) tea.Cmd {
-	log.Printf("load tasks cmd!")
-	return func() tea.Msg {
-		log.Printf("load tasks cmd running!!!")
-		items := make([]list.Item, len(tasks))
-		for i := range tasks {
-			item := &tasks[i]
-			items[i] = item
-		}
-		return loadTasks{tasks: items}
-	}
-}
-
 func (m Model) Init() tea.Cmd {
 	return nil
 }
@@ -86,17 +64,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	switch msg := msg.(type) {
-	case loadTasks:
-		// TODO split this setup into its own func
-		m.tasks = list.New(msg.tasks, taskDelegate{}, 50, 20)
-		m.tasks.SetShowStatusBar(false)
-		m.tasks.SetFilteringEnabled(false)
-		m.tasks.Title = "Tasks"
-		m.tasks.Styles.PaginationStyle = paginationStyle
-		m.tasks.Styles.Title = titleStyle
-		m.tasks.SetShowHelp(false)
-		m.tasks.KeyMap.Quit.Unbind()
-		m.ready = true
+	case router.GotoPageMsg:
+		if msg.Page == domain.TaskListPage {
+			tasks := msg.Parameter.([]domain.Task)
+			m.tasks = list.New(tasks, taskDelegate{}, 50, 20)
+			m.tasks.SetShowStatusBar(false)
+			m.tasks.SetFilteringEnabled(false)
+			m.tasks.Title = "Tasks"
+			m.tasks.Styles.PaginationStyle = paginationStyle
+			m.tasks.Styles.Title = titleStyle
+			m.tasks.SetShowHelp(false)
+			m.tasks.KeyMap.Quit.Unbind()
+			m.ready = true
+		}
 	case shared.SaveStateMsg:
 		m.showForm = false
 		if msg.Type == shared.TaskUpdate {
@@ -107,8 +87,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "enter":
 			if !m.showForm {
-				item := m.tasks.SelectedItem().(*domain.Task)
-				cmd = router.GotoPage(domain.TaskDetailedPage, item, item.Id)
+				task := m.tasks.SelectedItem().(*domain.Task)
+				cmd = router.GotoPage(domain.TaskDetailedPage, *task, "")
 				cmds = append(cmds, cmd)
 			}
 		case "a":
@@ -121,7 +101,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.showForm = true
 				m.activeForm = completeForm
 				selected := m.tasks.SelectedItem().(*domain.Task)
-				cmds = append(cmds, forms.AttachTask(selected.Id))
+				cmds = append(cmds, forms.AttachTask(*selected))
 			}
 			// I want the accomplishment to refer to the task completed
 			// so I need to send the task down to the accomplishment form

@@ -80,8 +80,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case shared.SaveStateMsg:
 		m.updateState(msg)
 	case router.GotoPageMsg:
-		cmd = m.refreshState(msg)
-		cmds = append(cmds, cmd)
+		msg = m.attachState(msg)
 		m.page = msg.Page
 	}
 
@@ -107,32 +106,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-func (m Model) refreshState(msg router.GotoPageMsg) tea.Cmd {
-	var cmd tea.Cmd
+func (m Model) attachState(msg router.GotoPageMsg) router.GotoPageMsg {
 	switch msg.Page {
 	case domain.TaskListPage:
-		cmd = tasklist.LoadTasks(m.repository.AllTasks())
-	case domain.TaskDetailedPage:
+		msg.Parameter = m.repository.AllTasks()
 	case domain.CyclesPage:
-		cmd = cycles.LoadCycles(m.repository.AllCycles())
-	case domain.AccomplishmentsPage:
-		cycle := m.repository.Cycle(msg.Id)
-		cmd = accomplishments.LoadAccomplishments(msg.Id, cycle.Accomplishments)
-	case domain.AccomplishmentPage:
-		accomplishment := m.repository.Cycle(msg.Id)
-	//case domain.MenuPage:
+		msg.Parameter = m.repository.AllCycles()
 	default:
 
 	}
-	//if msg.Page == domain.TaskListPage {
-	//	cmd = tasklist.LoadTasks(m.repository.AllTasks())
-	//} else if msg.Page == domain.CyclesPage {
-	//	cmd = cycles.LoadCycles(m.repository.AllCycles())
-	} else if msg.Page == domain.AccomplishmentsPage {
-		cycle := msg.Parameter.(*domain.Cycle)
-		cmd = accomplishments.LoadAccomplishments(msg.Id, cycle.Accomplishments)
-	}
-	return cmd
+	return msg
 }
 
 // updateState should only worry about updating the repository
