@@ -1,6 +1,9 @@
 package domain
 
-import "github.com/google/uuid"
+import (
+	"github.com/google/uuid"
+	"time"
+)
 
 // TODO rename to be more accurate
 const (
@@ -20,7 +23,7 @@ type Priority int
 type Task struct {
 	Id        string     `json:"id"`
 	Title     string     `json:"title"`
-	Due       string     `json:"due"`
+	Due       time.Time  `json:"due"`
 	Priority  Priority   `json:"priority"`
 	Active    bool       `json:"active"`
 	Complete  bool       `json:"complete"`
@@ -29,7 +32,7 @@ type Task struct {
 	Steps     []Step     `json:"steps"`
 }
 
-func NewTask(title, due string, priority Priority) Task {
+func NewTask(title string, due time.Time, priority Priority) Task {
 	id, err := uuid.NewRandom()
 	if err != nil {
 		return Task{}
@@ -41,6 +44,10 @@ func NewTask(title, due string, priority Priority) Task {
 		Due:      due,
 		Priority: priority,
 	}
+}
+
+func (t *Task) ToggleComplete() {
+	t.Complete = !t.Complete
 }
 
 func (t *Task) RemoveResource(i int) {

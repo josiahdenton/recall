@@ -26,9 +26,9 @@ func NewInMemoryStorage() *InMemoryStorage {
 
 	return &InMemoryStorage{
 		tasks: []domain.Task{
-			domain.NewTask("wash dishes", "01/04/2024", domain.TaskPriorityLow),
-			domain.NewTask("take out trash", "01/04/2024", domain.TaskPriorityLow),
-			domain.NewTask("release ee decider", "01/05/2024", domain.TaskPriorityLow),
+			//domain.NewTask("wash dishes", "01/04/2024", domain.TaskPriorityLow),
+			//domain.NewTask("take out trash", "01/04/2024", domain.TaskPriorityLow),
+			//domain.NewTask("release ee decider", "01/05/2024", domain.TaskPriorityLow),
 		},
 		cycles: []domain.Cycle{
 			cycle,

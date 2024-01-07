@@ -5,6 +5,8 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/josiahdenton/recall/internal/domain"
+	"github.com/josiahdenton/recall/internal/ui/router"
+	"github.com/josiahdenton/recall/internal/ui/shared"
 	"github.com/josiahdenton/recall/internal/ui/styles"
 	"strings"
 	"time"
@@ -15,10 +17,6 @@ var (
 	formLabelStyle = styles.SecondaryGray.Copy()
 	errorStyle     = styles.PrimaryColor.Copy()
 )
-
-type CycleFormMsg struct {
-	Cycle domain.Cycle
-}
 
 const (
 	title = iota
@@ -113,6 +111,7 @@ func (m CycleFormModel) Update(msg tea.Msg) (CycleFormModel, tea.Cmd) {
 				cmds = append(cmds, addCycle(m.inputs[title].Value(), mustParseDate(m.inputs[startDate].Value())))
 				m.inputs[title].Reset()
 				m.inputs[startDate].Reset()
+				cmds = append(cmds, router.GotoPage(domain.CyclesPage, ""))
 			}
 		case tea.KeyTab:
 			m.inputs[m.active%len(m.inputs)].Blur()
@@ -144,8 +143,9 @@ func mustParseDate(date string) time.Time {
 
 func addCycle(title string, start time.Time) tea.Cmd {
 	return func() tea.Msg {
-		return CycleFormMsg{
-			Cycle: domain.NewCycle(title, start),
+		return shared.SaveStateMsg{
+			Update: domain.NewCycle(title, start),
+			Type:   shared.CycleUpdate,
 		}
 	}
 }

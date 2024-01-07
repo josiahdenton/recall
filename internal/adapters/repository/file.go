@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"github.com/josiahdenton/recall/internal/domain"
 	"io/fs"
+	"log"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 const (
@@ -19,6 +21,7 @@ const (
 type Feature = int
 
 func NewFileStorage(path string) *FileStorage {
+	log.Printf("adding path as: %v", path)
 	// use to track when changes are made
 	changes := make(map[Feature]bool)
 	changes[tasksChanged] = false
@@ -64,7 +67,17 @@ func (fl *FileStorage) Accomplishment(id string) *domain.Accomplishment {
 }
 
 func (fl *FileStorage) SaveAccomplishment(accomplishment domain.Accomplishment) {
+	fl.changes[accomplishmentsChanged] = true
 	fl.accomplishments[accomplishment.Id] = accomplishment
+	// mark all tasks as Completed
+	// TODO - this doesn't belong here... only here for now to work
+	for _, taskId := range accomplishment.AssociatedTaskIds {
+		if task, ok := fl.tasks[taskId]; ok {
+			task.Complete = true
+			fl.tasks[taskId] = task // TODO - may need this...
+		}
+	}
+	fl.changes[tasksChanged] = true
 }
 
 func (fl *FileStorage) AllAccomplishments(ids []string) []domain.Accomplishment {
@@ -79,32 +92,54 @@ func (fl *FileStorage) AllAccomplishments(ids []string) []domain.Accomplishment 
 }
 
 func (fl *FileStorage) SaveTask(task domain.Task) {
+	fl.changes[tasksChanged] = true
 	fl.tasks[task.Id] = task
 }
 
-func (fl *FileStorage) AllTasks() []domain.Task {
-	tasks := make([]domain.Task, len(fl.tasks))
+func (fl *FileStorage) AllTasks(includeCompleted bool) []domain.Task {
+	tasks := make([]domain.Task, 0)
 	i := 0
 	for _, task := range fl.tasks {
-		tasks[i] = task
+		if includeCompleted && task.Complete {
+			tasks = append(tasks, task)
+		} else if !task.Complete {
+			tasks = append(tasks, task)
+		}
 		i++
 	}
 	return tasks
 }
 
-func (fl *FileStorage) SaveCycle(cycle domain.Cycle) {
+func (fl *FileStorage) SaveCycle(updated domain.Cycle) {
+	fl.changes[cyclesChanged] = true
 	// replace the cycle with the matching ID...
 	replaced := false
 	for i, cycle := range fl.cycles {
-		if cycle.Id == cycle.Id {
-			fl.cycles[i] = cycle
+		if cycle.Id == updated.Id {
+			fl.cycles[i] = updated
 			replaced = true
 		}
 	}
 	if !replaced {
 		// this is a new cycle
-		fl.cycles = append(fl.cycles, cycle)
+		fl.cycles = append(fl.cycles, updated)
 	}
+	// any update to a cycle should trigger this check
+	fl.setActiveCycle()
+}
+
+func (fl *FileStorage) setActiveCycle() {
+	// find the cycle with the most recent date in the past
+	if len(fl.cycles) < 1 {
+		return
+	}
+	mostRecentPastTime := &fl.cycles[0]
+	for _, cycle := range fl.cycles {
+		if mostRecentPastTime.StartDate.Before(cycle.StartDate) && cycle.StartDate.Before(time.Now()) {
+			mostRecentPastTime = &cycle
+		}
+	}
+	mostRecentPastTime.Active = true
 }
 
 func (fl *FileStorage) AllCycles() []domain.Cycle {
@@ -120,39 +155,38 @@ func (fl *FileStorage) SaveChanges() error {
 			}
 		}
 	}
+	for feature := range fl.changes {
+		fl.changes[feature] = false
+	}
 	return nil
 }
 
 func (fl *FileStorage) saveFeatureChanges(feature Feature) error {
 	switch feature {
 	case accomplishmentsChanged:
-		f, err := os.OpenFile(fl.featureFilePath(feature), os.O_WRONLY, 0644)
-		err = fl.writeToFile(f, accomplishmentsLayout{Accomplishments: fl.accomplishments})
+		f, err := os.OpenFile(fl.featureFilePath(feature), os.O_WRONLY|os.O_TRUNC, 0644)
 		if err != nil {
 			return err
 		}
-		return f.Close()
+		return fl.writeToFile(f, accomplishmentsLayout{Accomplishments: fl.accomplishments})
 	case cyclesChanged:
-		f, err := os.OpenFile(fl.featureFilePath(feature), os.O_WRONLY, 0644)
-		err = fl.writeToFile(f, cyclesLayout{Cycles: fl.cycles})
+		f, err := os.OpenFile(fl.featureFilePath(feature), os.O_WRONLY|os.O_TRUNC, 0644)
 		if err != nil {
 			return err
 		}
-		return f.Close()
+		return fl.writeToFile(f, cyclesLayout{Cycles: fl.cycles})
 	case tasksChanged:
-		f, err := os.OpenFile(fl.featureFilePath(feature), os.O_WRONLY, 0644)
-		err = fl.writeToFile(f, tasksLayout{Tasks: fl.tasks})
+		f, err := os.OpenFile(fl.featureFilePath(feature), os.O_WRONLY|os.O_TRUNC, 0644)
 		if err != nil {
 			return err
 		}
-		return f.Close()
+		return fl.writeToFile(f, tasksLayout{Tasks: fl.tasks})
 	case settingsChanged:
-		f, err := os.OpenFile(fl.featureFilePath(feature), os.O_WRONLY, 0644)
-		err = fl.writeToFile(f, settingsLayout{Settings: fl.settings})
+		f, err := os.OpenFile(fl.featureFilePath(feature), os.O_WRONLY|os.O_TRUNC, 0644)
 		if err != nil {
 			return err
 		}
-		return f.Close()
+		return fl.writeToFile(f, settingsLayout{Settings: fl.settings})
 	}
 	return nil
 }
@@ -172,6 +206,7 @@ func (fl *FileStorage) featureFilePath(feature Feature) string {
 }
 
 func (fl *FileStorage) SaveSettings(settings domain.Settings) {
+	fl.changes[settingsChanged] = true
 	fl.settings = settings
 }
 
@@ -259,7 +294,7 @@ func (fl *FileStorage) createMissing() error {
 	if !existingFiles[domain.AccomplishmentsFileName] {
 		var layout accomplishmentsLayout
 		layout.Accomplishments = make(map[string]domain.Accomplishment)
-		f, err := os.Create(fmt.Sprintf("%s/%s", fl.path, fmt.Sprintf("%s/%s", fl.path, domain.AccomplishmentsFileName)))
+		f, err := os.Create(fmt.Sprintf("%s/%s", fl.path, domain.AccomplishmentsFileName))
 		if err != nil {
 			return err
 		}
@@ -272,7 +307,7 @@ func (fl *FileStorage) createMissing() error {
 	if !existingFiles[domain.CyclesFileName] {
 		var layout cyclesLayout
 		layout.Cycles = make([]domain.Cycle, 0)
-		f, err := os.Create(fmt.Sprintf("%s/%s", fl.path, fmt.Sprintf("%s/%s", fl.path, domain.CyclesFileName)))
+		f, err := os.Create(fmt.Sprintf("%s/%s", fl.path, domain.CyclesFileName))
 		if err != nil {
 			return err
 		}
@@ -284,7 +319,7 @@ func (fl *FileStorage) createMissing() error {
 
 	if !existingFiles[domain.SettingsFileName] {
 		var layout settingsLayout
-		f, err := os.Create(fmt.Sprintf("%s/%s", fl.path, fmt.Sprintf("%s/%s", fl.path, domain.SettingsFileName)))
+		f, err := os.Create(fmt.Sprintf("%s/%s", fl.path, domain.SettingsFileName))
 		if err != nil {
 			return err
 		}

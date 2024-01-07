@@ -7,6 +7,7 @@ import (
 	"github.com/josiahdenton/recall/internal/domain"
 	"github.com/josiahdenton/recall/internal/ui/shared"
 	"github.com/josiahdenton/recall/internal/ui/styles"
+	"log"
 	"strings"
 )
 
@@ -164,7 +165,9 @@ func (m AccomplishmentFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func addAccomplishment(description, impact, strength string, task domain.Task) tea.Cmd {
 	return func() tea.Msg {
 		accomplishment := domain.NewAccomplishment(description, impact, strength)
+		log.Printf("task in add func: %+v", task)
 		accomplishment.AssociatedTaskIds = append(accomplishment.AssociatedTaskIds, task.Id)
+		log.Printf("%+v", accomplishment)
 		return shared.SaveStateMsg{
 			Update: accomplishment,
 			Type:   shared.AccomplishmentUpdate,

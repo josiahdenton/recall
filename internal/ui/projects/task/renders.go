@@ -62,6 +62,6 @@ func renderHeader(task *domain.Task, headerActive bool) string {
 
 	var b strings.Builder
 	b.WriteString(style.Render(task.Title) + "\n")
-	b.WriteString(fmt.Sprintf("%s  %s\n\n", metaTitleStyle.Render("Due"), titleStyle.Render(task.Due)))
+	b.WriteString(fmt.Sprintf("%s  %s\n\n", metaTitleStyle.Render("Due"), titleStyle.Render(task.Due.Format("2006/01/02"))))
 	return b.String()
 }

@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/josiahdenton/recall/internal/adapters/repository"
@@ -13,6 +14,7 @@ import (
 	"github.com/josiahdenton/recall/internal/ui/router"
 	"github.com/josiahdenton/recall/internal/ui/shared"
 	"log"
+	"os"
 )
 
 var (
@@ -20,6 +22,13 @@ var (
 )
 
 func New() Model {
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		log.Printf("failed to get home dir: %v", err)
+		os.Exit(1)
+	}
+
 	return Model{
 		taskList:        tasklist.New(),
 		taskDetailed:    taskdetailed.New(),
@@ -27,7 +36,7 @@ func New() Model {
 		cycles:          cycles.New(),
 		accomplishments: accomplishments.Model{},
 		page:            domain.MenuPage,
-		repository:      repository.NewFileStorage("~/recall-notes"),
+		repository:      repository.NewFileStorage(fmt.Sprintf("%s/%s", home, "recall-notes")),
 	}
 }
 
@@ -44,7 +53,7 @@ type Model struct {
 }
 
 func (m Model) Init() tea.Cmd {
-	return tea.Batch(tea.EnterAltScreen)
+	return tea.Batch(tea.EnterAltScreen, loadRepository())
 }
 
 func (m Model) View() string {
@@ -77,8 +86,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.height = msg.Height
 		m.width = msg.Width
+	case shared.LoadRepositoryMsg:
+		err := m.repository.LoadRepository()
+		// TODO - have err message go to global status message handler
+		if err != nil {
+			log.Printf("failed to LoadRepository: %v", err)
+		}
 	case shared.SaveStateMsg:
 		m.updateState(msg)
+		err := m.repository.SaveChanges()
+		if err != nil {
+			log.Printf("failed saving changes: %v", err)
+		}
 	case router.GotoPageMsg:
 		cmds = append(cmds, m.loadPage(msg))
 	case router.LoadPageMsg:
@@ -113,7 +132,7 @@ func (m Model) loadPage(msg router.GotoPageMsg) tea.Cmd {
 		var state any
 		switch msg.Page {
 		case domain.TaskListPage:
-			state = m.repository.AllTasks()
+			state = m.repository.AllTasks(false)
 		case domain.CyclesPage:
 			state = m.repository.AllCycles()
 		case domain.TaskDetailedPage:
@@ -138,6 +157,9 @@ func (m Model) loadPage(msg router.GotoPageMsg) tea.Cmd {
 // updateState should only worry about updating the repository
 func (m Model) updateState(msg shared.SaveStateMsg) {
 	switch msg.Type {
+	case shared.CycleUpdate:
+		update := msg.Update.(domain.Cycle)
+		m.repository.SaveCycle(update)
 	case shared.SettingsUpdate:
 		update := msg.Update.(domain.Settings)
 		m.repository.SaveSettings(update)
@@ -152,6 +174,7 @@ func (m Model) updateState(msg shared.SaveStateMsg) {
 		for _, cycle := range allCycles {
 			if cycle.Id == msg.ParentId || (msg.ParentId == "" && cycle.Active) {
 				cycle.AccomplishmentIds = append(cycle.AccomplishmentIds, update.Id)
+				log.Printf("appended stuff, haha: %+v", update)
 				cycle.AttachAccomplishments(append(cycle.Accomplishments(), update)) // TODO is this necessary?
 				m.repository.SaveCycle(cycle)
 				m.repository.SaveAccomplishment(update)
@@ -161,10 +184,11 @@ func (m Model) updateState(msg shared.SaveStateMsg) {
 	case shared.StepUpdate:
 	case shared.ResourceUpdate:
 	case shared.StatusUpdate:
-	case shared.CycleUpdate:
 	}
 }
 
-// TODO I should have a tick for auto saving my changes every 1 minute
-
-// I am currently working on getting the repository to load
+func loadRepository() tea.Cmd {
+	return func() tea.Msg {
+		return shared.LoadRepositoryMsg{}
+	}
+}

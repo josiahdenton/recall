@@ -185,6 +185,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.showForm = true
 			}
 		case MoveFocus:
+			if m.showForm {
+				break
+			}
+
 			if m.active < header {
 				m.lists[m.active].Styles.Title = listTitleStyle
 			}

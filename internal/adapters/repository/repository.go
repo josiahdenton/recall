@@ -11,7 +11,7 @@ type Repository interface {
 	SaveAccomplishment(domain.Accomplishment)
 	AllAccomplishments([]string) []domain.Accomplishment
 	SaveTask(domain.Task)
-	AllTasks() []domain.Task
+	AllTasks(includeCompleted bool) []domain.Task
 	SaveCycle(domain.Cycle)
 	AllCycles() []domain.Cycle
 	SaveChanges() error

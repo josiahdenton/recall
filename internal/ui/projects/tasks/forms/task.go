@@ -5,8 +5,8 @@ import (
 	"github.com/josiahdenton/recall/internal/domain"
 	"github.com/josiahdenton/recall/internal/ui/shared"
 	"github.com/josiahdenton/recall/internal/ui/styles"
-	"regexp"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -18,11 +18,10 @@ const (
 	priority
 )
 
+const longDateForm = "Jan 2, 2006 at 3:04pm (MST)"
+
 var (
-	dateRe                = regexp.MustCompile(`\d{1,2}/\d{1,2}/\d{2,4}`)
-	priorityKeys          = []string{"None", "Low", "High"}
-	selectedPriorityStyle = styles.PrimaryColor.Copy()
-	priorityStyle         = styles.SecondaryGray.Copy()
+	priorityKeys = []string{"None", "Low", "High"}
 )
 
 type TaskFormModel struct {
@@ -54,7 +53,7 @@ func NewTaskForm() TaskFormModel {
 	inputDue.CharLimit = 120
 	inputDue.Prompt = "Due: "
 	inputDue.PromptStyle = styles.FormLabelStyle
-	inputDue.Placeholder = "mm/dd/yyyy"
+	inputDue.Placeholder = "Jan 5, 2013"
 
 	inputDue.Validate = func(s string) error {
 		if len(strings.Trim(s, " \n")) < 1 {
@@ -137,11 +136,14 @@ func (m TaskFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.inputs[title].Err != nil || m.inputs[due].Err != nil {
 				m.status = fmt.Sprintf("%v, %v", m.inputs[title].Err, m.inputs[due].Err)
 			} else {
-				cmds = append(cmds, addTask(m.inputs[title].Value(), m.inputs[due].Value(), m.priorityMap[priorityKeys[m.priorityCursor]]))
+				date := m.inputs[due].Value()
+				t := mustParseDate(date)
+				cmds = append(cmds, addTask(m.inputs[title].Value(), t, m.priorityMap[priorityKeys[m.priorityCursor]]))
 				m.inputs[title].Reset()
 				m.inputs[due].Reset()
 				m.priorityCursor = -1
 				m.active = 0
+				m.inputs[m.active].Focus()
 			}
 		case tea.KeyTab:
 			if m.active < priority {
@@ -153,9 +155,13 @@ func (m TaskFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		case tea.KeyShiftTab:
 			if m.active > 0 {
-				m.inputs[m.active].Blur()
+				if m.active < priority {
+					m.inputs[m.active].Blur()
+				}
 				m.active--
-				m.inputs[m.active].Focus()
+				if m.active < priority {
+					m.inputs[m.active].Focus()
+				}
 			}
 		}
 		if len(m.inputs[title].Value()) > 0 || len(m.inputs[due].Value()) > 0 {
@@ -179,11 +185,22 @@ func (m TaskFormModel) nextInput(current int) int {
 
 }
 
-func addTask(title, due string, priority domain.Priority) tea.Cmd {
+func addTask(title string, due time.Time, priority domain.Priority) tea.Cmd {
 	return func() tea.Msg {
 		return shared.SaveStateMsg{
 			Type:   shared.TaskUpdate,
 			Update: domain.NewTask(title, due, priority),
 		}
 	}
+}
+
+// TODO - no longer have any "musts", have it go to a global notify service
+
+func mustParseDate(date string) time.Time {
+	input := fmt.Sprintf("%s at 10:00pm (EST)", date)
+	t, err := time.Parse(longDateForm, input)
+	if err != nil {
+		return time.Time{}
+	}
+	return t
 }

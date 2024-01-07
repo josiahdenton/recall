@@ -55,7 +55,7 @@ func renderTask(t *domain.Task, selected bool) string {
 	}
 
 	content := style.Width(30).Render(activeMarker, t.Title)
-	date := style.Width(10).Italic(true).Render(t.Due)
+	date := style.Width(10).Italic(true).Render(t.Due.Format("2006/01/02"))
 	priority := priorityStyle.Width(5).Render(priorityMarker)
 	return lipgloss.JoinHorizontal(lipgloss.Top, content, priority, date)
 }
