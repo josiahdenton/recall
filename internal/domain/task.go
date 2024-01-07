@@ -12,13 +12,14 @@ const (
 type Priority int
 
 type Task struct {
-	Id        string
-	Title     string
+	Id    string
+	Title string
+	// Due TODO should be changed to a time.Time
 	Due       string
 	Priority  Priority
 	Active    bool
 	Complete  bool
-	Resources []Resource
+	Resources []Resource // TODO this should be a list of Resource Ids
 	Status    []Status
 	Steps     []Step
 }

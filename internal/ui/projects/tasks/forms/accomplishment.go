@@ -94,7 +94,7 @@ func (m AccomplishmentFormModel) Init() tea.Cmd {
 
 func (m AccomplishmentFormModel) View() string {
 	var b strings.Builder
-	b.WriteString(styles.FormTitleStyle.Render("Complete Task"))
+	b.WriteString(styles.FormTitleStyle.Render("When you completed " + m.task.Title))
 	b.WriteString("\n\n")
 	for _, input := range m.inputs {
 		b.WriteString(input.View())
@@ -164,7 +164,7 @@ func (m AccomplishmentFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func addAccomplishment(description, impact, strength string, task domain.Task) tea.Cmd {
 	return func() tea.Msg {
 		accomplishment := domain.NewAccomplishment(description, impact, strength)
-		accomplishment.AssociatedTasks = append(accomplishment.AssociatedTasks, task)
+		accomplishment.AssociatedTaskIds = append(accomplishment.AssociatedTaskIds, task.Id)
 		return shared.SaveStateMsg{
 			Update: accomplishment,
 			Type:   shared.AccomplishmentUpdate,

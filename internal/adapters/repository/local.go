@@ -6,16 +6,22 @@ import (
 )
 
 type LocalStorage struct {
-	tasks  []domain.Task
-	cycles []domain.Cycle
+	tasks           []domain.Task
+	cycles          []domain.Cycle
+	accomplishments map[string]domain.Accomplishment
 }
 
 func NewLocalStorage() *LocalStorage {
 	cycle := domain.NewCycle("EOY 2023", time.Now())
-	cycle.Accomplishments = []domain.Accomplishment{
-		domain.NewAccomplishment("Created a new cli tool", "it's epic", "Job Skills"),
-		domain.NewAccomplishment("Became tech lead", "kinda scary", "Teamwork"),
-	}
+
+	acc1 := domain.NewAccomplishment("Created a new cli tool", "it's epic", "Job Skills")
+	acc2 := domain.NewAccomplishment("Became tech lead", "kinda scary", "Teamwork")
+	accomplishments := make(map[string]domain.Accomplishment)
+	accomplishments[acc1.Id] = acc1
+	accomplishments[acc2.Id] = acc2
+
+	cycle.AccomplishmentIds = make([]string, 0)
+	cycle.AccomplishmentIds = append(cycle.AccomplishmentIds, acc1.Id, acc2.Id)
 	cycle.Active = true
 
 	return &LocalStorage{
@@ -27,16 +33,17 @@ func NewLocalStorage() *LocalStorage {
 		cycles: []domain.Cycle{
 			cycle,
 		},
+		accomplishments: accomplishments,
 	}
 }
 
-func (l *LocalStorage) Task(id string) domain.Task {
+func (l *LocalStorage) Task(id string) *domain.Task {
 	for _, task := range l.tasks {
 		if task.Id == id {
-			return task
+			return &task
 		}
 	}
-	return domain.Task{}
+	return &domain.Task{}
 }
 
 func (l *LocalStorage) SaveTask(task domain.Task) {
@@ -65,13 +72,13 @@ func (l *LocalStorage) AllTasks() []domain.Task {
 	return l.tasks
 }
 
-func (l *LocalStorage) Cycle(id string) domain.Cycle {
+func (l *LocalStorage) Cycle(id string) *domain.Cycle {
 	for _, cycle := range l.cycles {
 		if cycle.Id == id {
-			return cycle
+			return &cycle
 		}
 	}
-	return domain.Cycle{}
+	return &domain.Cycle{}
 }
 
 func (l *LocalStorage) SaveCycle(cycle domain.Cycle) {
@@ -99,15 +106,26 @@ func (l *LocalStorage) AllCycles() []domain.Cycle {
 	return l.cycles
 }
 
-func (l *LocalStorage) Accomplishment(id string) domain.Accomplishment {
-	for _, cycle := range l.cycles {
-		for _, accomplishment := range cycle.Accomplishments {
-			if accomplishment.Id == id {
-				return accomplishment
-			}
-		}
+func (l *LocalStorage) AllAccomplishments(ids []string) []domain.Accomplishment {
+	accomplishments := make([]domain.Accomplishment, len(ids))
+	for i, id := range ids {
+		accomplishments[i] = l.accomplishments[id]
 	}
-	return domain.Accomplishment{}
+	return accomplishments
+}
+
+func (l *LocalStorage) Accomplishment(id string) *domain.Accomplishment {
+	accomplishment, ok := l.accomplishments[id]
+	if !ok {
+		return nil
+	}
+	return &accomplishment
+}
+
+func (l *LocalStorage) SaveAccomplishment(accomplishment domain.Accomplishment) {
+	if _, ok := l.accomplishments[accomplishment.Id]; !ok {
+		l.accomplishments[accomplishment.Id] = accomplishment
+	}
 }
 
 func (l *LocalStorage) SaveChanges() {

@@ -20,10 +20,10 @@ func NewStep(description string) Step {
 	}
 }
 
-func (s *Step) FilterValue() string {
-	return s.Description
-}
-
 func (s *Step) ToggleStatus() {
 	s.Complete = !s.Complete
+}
+
+func (s *Step) FilterValue() string {
+	return s.Description
 }

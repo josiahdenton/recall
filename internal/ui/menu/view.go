@@ -38,17 +38,8 @@ var (
 	paginationStyle = list.DefaultStyles().PaginationStyle
 )
 
-func pageItems() []list.Item {
-	items := make([]list.Item, len(pageOptions))
-	for i := range pageOptions {
-		item := &pageOptions[i]
-		items[i] = item
-	}
-	return items
-}
-
 func New() Model {
-	pages := list.New(pageItems(), menuDelegate{}, 50, 20)
+	pages := list.New(toItemList(pageOptions), menuDelegate{}, 50, 20)
 	pages.SetShowStatusBar(false)
 	pages.SetFilteringEnabled(false)
 	pages.Title = "Recall"
@@ -85,10 +76,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyEnter:
 			// TODO go to page
 			option := m.pages.SelectedItem().(*domain.MenuOption)
-			cmd = router.GotoPage(option.Page, nil, "")
+			cmd = router.GotoPage(option.Page, "")
 			cmds = append(cmds, cmd)
 		}
 	}
 
 	return m, cmd
+}
+
+func toItemList(options []domain.MenuOption) []list.Item {
+	items := make([]list.Item, len(options))
+	for i := range options {
+		item := &options[i]
+		items[i] = item
+	}
+	return items
 }

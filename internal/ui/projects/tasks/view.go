@@ -64,19 +64,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	switch msg := msg.(type) {
-	case router.GotoPageMsg:
-		if msg.Page == domain.TaskListPage {
-			tasks := msg.Parameter.([]domain.Task)
-			m.tasks = list.New(tasks, taskDelegate{}, 50, 20)
-			m.tasks.SetShowStatusBar(false)
-			m.tasks.SetFilteringEnabled(false)
-			m.tasks.Title = "Tasks"
-			m.tasks.Styles.PaginationStyle = paginationStyle
-			m.tasks.Styles.Title = titleStyle
-			m.tasks.SetShowHelp(false)
-			m.tasks.KeyMap.Quit.Unbind()
-			m.ready = true
-		}
+	case router.LoadPageMsg:
+		tasks := msg.State.([]domain.Task)
+		m.tasks = list.New(toItemList(tasks), taskDelegate{}, 50, 20)
+		// TODO - cool, but I need to make no action input during filter
+		//m.tasks.SetShowStatusBar(false)
+		//m.tasks.SetFilteringEnabled(false)
+		m.tasks.Title = "Tasks"
+		m.tasks.Styles.PaginationStyle = paginationStyle
+		m.tasks.Styles.Title = titleStyle
+		m.tasks.SetShowHelp(false)
+		m.tasks.KeyMap.Quit.Unbind()
+		m.ready = true
 	case shared.SaveStateMsg:
 		m.showForm = false
 		if msg.Type == shared.TaskUpdate {
@@ -88,7 +87,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "enter":
 			if !m.showForm {
 				task := m.tasks.SelectedItem().(*domain.Task)
-				cmd = router.GotoPage(domain.TaskDetailedPage, *task, "")
+				cmd = router.GotoPage(domain.TaskDetailedPage, task.Id)
 				cmds = append(cmds, cmd)
 			}
 		case "a":
@@ -109,7 +108,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.showForm {
 				m.showForm = false
 			} else {
-				cmd = router.GotoPage(domain.MenuPage, nil, "")
+				cmd = router.GotoPage(domain.MenuPage, "")
 				cmds = append(cmds, cmd)
 			}
 		}
@@ -120,4 +119,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, cmd)
 	}
 	return m, tea.Batch(cmds...)
+}
+
+func toItemList(tasks []domain.Task) []list.Item {
+	items := make([]list.Item, len(tasks))
+	for i := range tasks {
+		item := &tasks[i]
+		items[i] = item
+	}
+	return items
 }

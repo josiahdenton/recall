@@ -6,15 +6,24 @@ import (
 )
 
 type Cycle struct {
-	Id              string
-	Title           string
-	Accomplishments []Accomplishment
-	Active          bool
-	StartDate       time.Time
+	Id                string
+	Title             string
+	AccomplishmentIds []string
+	Active            bool
+	StartDate         time.Time
+	accomplishments   []Accomplishment
 }
 
 func (c *Cycle) FilterValue() string {
 	return c.Title
+}
+
+func (c *Cycle) Accomplishments() []Accomplishment {
+	return c.accomplishments
+}
+
+func (c *Cycle) AttachAccomplishments(accomplishments []Accomplishment) {
+	c.accomplishments = accomplishments
 }
 
 func NewCycle(title string, startDate time.Time) Cycle {
@@ -24,10 +33,10 @@ func NewCycle(title string, startDate time.Time) Cycle {
 	}
 
 	return Cycle{
-		Id:              id.String(),
-		Title:           title,
-		Accomplishments: make([]Accomplishment, 0),
-		StartDate:       startDate,
+		Id:                id.String(),
+		Title:             title,
+		AccomplishmentIds: make([]string, 0),
+		StartDate:         startDate,
 	}
 
 }

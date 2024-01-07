@@ -8,13 +8,17 @@ import (
 // TODO increase the utility of this package
 
 type GotoPageMsg struct {
-	Page      domain.Page
-	ParentId  string // the requested ID of the page / the parent ID??
-	Parameter any    // any data needed for that page, attached from core
+	Page            domain.Page
+	RequestedItemId string // the requested ID of the page / the parent ID??
 }
 
-func GotoPage(page domain.Page, parameter any, id string) tea.Cmd {
+type LoadPageMsg struct {
+	Page  domain.Page
+	State any // any data needed for that page, attached from core
+}
+
+func GotoPage(page domain.Page, id string) tea.Cmd {
 	return func() tea.Msg {
-		return GotoPageMsg{Page: page, Parameter: parameter, ParentId: id}
+		return GotoPageMsg{Page: page, RequestedItemId: id}
 	}
 }

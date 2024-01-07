@@ -40,7 +40,7 @@ type Model struct {
 	headerActive  bool
 	forms         []tea.Model
 	statusMessage string
-	task          domain.Task
+	task          *domain.Task
 	lists         []list.Model
 	active        int
 	commands      Commands
@@ -90,9 +90,19 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, cmd)
 	}
 
+	// TODO - have the task form do something like this for due date
+	//func mustParseDate(date string) time.Time {
+	//	input := fmt.Sprintf("%s at 7:00am (EST)", date)
+	//	t, err := time.Parse(longDateForm, input)
+	//	if err != nil {
+	//	return time.Time{}
+	//}
+	//	return t
+	//}
+
 	switch msg := msg.(type) {
-	case router.GotoPageMsg:
-		m.task = msg.Parameter.(domain.Task)
+	case router.LoadPageMsg:
+		m.task = msg.State.(*domain.Task)
 		m.lists = setupLists(m.task)
 		m.ready = true
 	case clearStatusMessage:
@@ -119,7 +129,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.showForm {
 				m.showForm = false
 			} else {
-				cmds = append(cmds, router.GotoPage(domain.TaskListPage, nil, ""))
+				cmds = append(cmds, router.GotoPage(domain.TaskListPage, ""))
 				// TODO - add a Reset method
 				m.active = header
 			}
@@ -128,13 +138,12 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case steps:
 				step := m.lists[steps].SelectedItem().(*domain.Step)
 				step.ToggleStatus()
-				cmds = append(cmds, updateTask(m.task))
 				if step.Complete {
 					m.statusMessage = "completed step!"
 				} else {
 					m.statusMessage = "reset step!"
 				}
-				cmds = append(cmds, clearStatus())
+				cmds = append(cmds, clearStatus(), updateTask(m.task))
 			case resources:
 				resource := m.lists[resources].SelectedItem().(*domain.Resource)
 				if resource.Type == domain.WebLinkType {
@@ -161,22 +170,21 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				index := m.lists[m.active].Index()
 				switch m.active {
 				case steps:
-					m.task.RemoveStep(index)
+					m.task.Steps = append(m.task.Steps[:index], m.task.Steps[index+1:]...)
 				case resources:
-					m.task.RemoveResource(index)
+					m.task.Resources = append(m.task.Resources[:index], m.task.Resources[index+1:]...)
 				case status:
-					m.task.RemoveStatus(index)
+					m.task.Status = append(m.task.Status[:index], m.task.Status[index+1:]...)
 				}
 				m.lists[m.active].RemoveItem(index)
 				m.statusMessage = "removed item!"
-				cmds = append(cmds, clearStatus())
+				cmds = append(cmds, clearStatus(), updateTask(m.task))
 			}
 		case Add:
 			if !m.showForm && m.active < header {
 				m.showForm = true
 			}
 		case MoveFocus:
-			// tabbing across
 			if m.active < header {
 				m.lists[m.active].Styles.Title = listTitleStyle
 			}
@@ -194,17 +202,25 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-func updateTask(task domain.Task) tea.Cmd {
+func updateTask(task *domain.Task) tea.Cmd {
 	return func() tea.Msg {
 		return shared.SaveStateMsg{
-			Update:   task,
+			Update:   *task,
 			Type:     shared.TaskUpdate,
 			ParentId: "",
 		}
 	}
 }
 
-func setupLists(task domain.Task) []list.Model {
+type clearStatusMessage struct{}
+
+func clearStatus() tea.Cmd {
+	return tea.Tick(time.Second*5, func(_ time.Time) tea.Msg {
+		return clearStatusMessage{}
+	})
+}
+
+func setupLists(task *domain.Task) []list.Model {
 	_steps := make([]list.Item, len(task.Steps))
 	_resources := make([]list.Item, len(task.Resources))
 	_status := make([]list.Item, len(task.Status))
@@ -265,14 +281,6 @@ func nextSection(active int) int {
 		return header
 	}
 	return header
-}
-
-type clearStatusMessage struct{}
-
-func clearStatus() tea.Cmd {
-	return tea.Tick(time.Second*5, func(_ time.Time) tea.Msg {
-		return clearStatusMessage{}
-	})
 }
 
 func openLink(url string) bool {

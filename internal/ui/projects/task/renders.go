@@ -54,7 +54,7 @@ func renderItem(s string, selected bool) string {
 	return fmt.Sprintf("%s %s", cursorStyle.Render(selectedMarker), itemStyle.Render(s))
 }
 
-func renderHeader(task domain.Task, headerActive bool) string {
+func renderHeader(task *domain.Task, headerActive bool) string {
 	style := titleStyle
 	if headerActive {
 		style = activeTitleStyle

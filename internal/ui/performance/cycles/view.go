@@ -69,8 +69,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	switch msg := msg.(type) {
-	case loadCycles:
-		m.cycles = list.New(msg.cycles, cycleDelegate{}, 50, 20)
+	case router.LoadPageMsg:
+		cycles := msg.State.([]domain.Cycle)
+		m.cycles = list.New(toItemList(cycles), cycleDelegate{}, 50, 20)
 		m.cycles.SetShowStatusBar(false)
 		m.cycles.SetFilteringEnabled(false)
 		m.cycles.Title = "Performance Cycles"
@@ -85,13 +86,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.showForm {
 				m.showForm = false
 			} else {
-				cmd = router.GotoPage(domain.MenuPage, nil, "")
+				cmd = router.GotoPage(domain.MenuPage, "")
 				cmds = append(cmds, cmd)
 			}
 		case tea.KeyEnter:
 			if !m.showForm {
 				cycle := m.cycles.SelectedItem().(*domain.Cycle)
-				cmd = router.GotoPage(domain.AccomplishmentsPage, cycle, "")
+				cmd = router.GotoPage(domain.AccomplishmentsPage, cycle.Id)
 				cmds = append(cmds, cmd)
 			}
 		}
@@ -109,4 +110,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	return m, tea.Batch(cmds...)
+}
+
+func toItemList(cycles []domain.Cycle) []list.Item {
+	items := make([]list.Item, len(cycles))
+	for i := range cycles {
+		item := &cycles[i]
+		items[i] = item
+	}
+	return items
 }

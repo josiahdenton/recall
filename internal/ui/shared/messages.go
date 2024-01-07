@@ -13,19 +13,8 @@ const (
 
 // SaveStateMsg should be sent anytime any state is modified
 type SaveStateMsg struct {
+	// Update always has a value, not a pointer
 	Update   any
 	Type     UpdateType
 	ParentId string
-}
-
-type SelectedType = int
-
-const (
-	TaskSelected SelectedType = iota
-)
-
-// SelectedItemMsg is for passing down selected items to forms
-type SelectedItemMsg struct {
-	Item any
-	Type SelectedType
 }

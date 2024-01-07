@@ -15,26 +15,6 @@ var (
 	titleStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("#3a3b5b"))
 )
 
-type loadAccomplishments struct {
-	cycleId         string // TODO may use this for deleting accomplishments...
-	accomplishments []list.Item
-}
-
-func LoadAccomplishments(cycleId string, accomplishments []domain.Accomplishment) tea.Cmd {
-	items := make([]list.Item, len(accomplishments))
-	for i := range accomplishments {
-		item := &accomplishments[i]
-		items[i] = item
-	}
-
-	return func() tea.Msg {
-		return loadAccomplishments{
-			cycleId:         cycleId,
-			accomplishments: items,
-		}
-	}
-}
-
 type Model struct {
 	ready           bool
 	accomplishments list.Model
@@ -55,8 +35,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	var cmds []tea.Cmd
 	switch msg := msg.(type) {
-	case loadAccomplishments:
-		m.accomplishments = list.New(msg.accomplishments, accomplishmentDelegate{}, 50, 20)
+	case router.LoadPageMsg:
+		cycle := msg.State.(*domain.Cycle)
+		m.accomplishments = list.New(toItemList(cycle.Accomplishments()), accomplishmentDelegate{}, 50, 20)
 		m.accomplishments.SetShowStatusBar(false)
 		m.accomplishments.SetFilteringEnabled(false)
 		m.accomplishments.Title = "Accomplishments"
@@ -70,10 +51,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyEnter:
 			// go into accomplishment details
 			accomplishment := m.accomplishments.SelectedItem().(*domain.Accomplishment)
-			cmds = append(cmds, router.GotoPage(domain.AccomplishmentPage, *accomplishment, ""))
+			cmds = append(cmds, router.GotoPage(domain.AccomplishmentPage, accomplishment.Id))
 		case tea.KeyEsc:
 			log.Printf("tea esc")
-			cmd = router.GotoPage(domain.CyclesPage, nil, "")
+			cmd = router.GotoPage(domain.CyclesPage, "")
 			cmds = append(cmds, cmd)
 		}
 	}
@@ -84,4 +65,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	return m, tea.Batch(cmds...)
+}
+
+func toItemList(accomplishments []domain.Accomplishment) []list.Item {
+	items := make([]list.Item, len(accomplishments))
+	for i := range accomplishments {
+		item := &accomplishments[i]
+		items[i] = item
+	}
+	return items
 }

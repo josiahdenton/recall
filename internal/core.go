@@ -80,7 +80,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case shared.SaveStateMsg:
 		m.updateState(msg)
 	case router.GotoPageMsg:
-		msg = m.attachState(msg)
+		cmds = append(cmds, m.loadPage(msg))
+	case router.LoadPageMsg:
 		m.page = msg.Page
 	}
 
@@ -101,21 +102,37 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case domain.AccomplishmentsPage:
 		m.accomplishments, cmd = m.accomplishments.Update(msg)
 		cmds = append(cmds, cmd)
+	case domain.AccomplishmentPage:
 	}
 
 	return m, tea.Batch(cmds...)
 }
 
-func (m Model) attachState(msg router.GotoPageMsg) router.GotoPageMsg {
-	switch msg.Page {
-	case domain.TaskListPage:
-		msg.Parameter = m.repository.AllTasks()
-	case domain.CyclesPage:
-		msg.Parameter = m.repository.AllCycles()
-	default:
-
+func (m Model) loadPage(msg router.GotoPageMsg) tea.Cmd {
+	return func() tea.Msg {
+		var state any
+		switch msg.Page {
+		case domain.TaskListPage:
+			state = m.repository.AllTasks()
+		case domain.CyclesPage:
+			state = m.repository.AllCycles()
+		case domain.TaskDetailedPage:
+			state = m.repository.Task(msg.RequestedItemId)
+		case domain.AccomplishmentsPage:
+			cycle := m.repository.Cycle(msg.RequestedItemId)
+			cycle.AttachAccomplishments(m.repository.AllAccomplishments(cycle.AccomplishmentIds))
+			state = cycle
+		case domain.AccomplishmentPage:
+			state = m.repository.Accomplishment(msg.RequestedItemId)
+		case domain.MenuPage:
+			// no state attached...
+			// TODO - have the repository read the settings file to determine this
+		}
+		return router.LoadPageMsg{
+			Page:  msg.Page,
+			State: state,
+		}
 	}
-	return msg
 }
 
 // updateState should only worry about updating the repository
@@ -125,13 +142,16 @@ func (m Model) updateState(msg shared.SaveStateMsg) {
 		update := msg.Update.(domain.Task)
 		m.repository.SaveTask(update)
 	case shared.AccomplishmentUpdate:
+		// TODO - this does not handle the replace case
 		allCycles := m.repository.AllCycles()
 		update := msg.Update.(domain.Accomplishment)
 		log.Printf("accomplishment added %+v", update)
 		for _, cycle := range allCycles {
 			if cycle.Id == msg.ParentId || (msg.ParentId == "" && cycle.Active) {
-				cycle.Accomplishments = append(cycle.Accomplishments, update)
+				cycle.AccomplishmentIds = append(cycle.AccomplishmentIds, update.Id)
+				cycle.AttachAccomplishments(append(cycle.Accomplishments(), update)) // TODO is this necessary?
 				m.repository.SaveCycle(cycle)
+				m.repository.SaveAccomplishment(update)
 				break
 			}
 		}
@@ -139,4 +159,3 @@ func (m Model) updateState(msg shared.SaveStateMsg) {
 }
 
 // TODO I should have a tick for auto saving my changes
-// run after every 5 minutes or something like that
