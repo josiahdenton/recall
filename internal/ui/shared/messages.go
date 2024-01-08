@@ -9,6 +9,7 @@ const (
 	StatusUpdate
 	CycleUpdate
 	AccomplishmentUpdate
+	SettingsUpdate
 )
 
 // SaveStateMsg should be sent anytime any state is modified
@@ -18,3 +19,5 @@ type SaveStateMsg struct {
 	Type     UpdateType
 	ParentId string
 }
+
+type LoadRepositoryMsg struct{}

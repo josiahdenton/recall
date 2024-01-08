@@ -3,8 +3,8 @@ package domain
 import "github.com/google/uuid"
 
 type Status struct {
-	Id          string
-	Description string
+	Id          string `json:"id"`
+	Description string `json:"description"`
 }
 
 func NewStatus(description string) Status {

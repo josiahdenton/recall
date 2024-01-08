@@ -3,11 +3,11 @@ package domain
 import "github.com/google/uuid"
 
 type Accomplishment struct {
-	Id                string
-	Description       string
-	Impact            string
-	Strength          string
-	AssociatedTaskIds []string
+	Id                string   `json:"id"`
+	Description       string   `json:"description"`
+	Impact            string   `json:"impact"`
+	Strength          string   `json:"strength"`
+	AssociatedTaskIds []string `json:"associated_task_ids"`
 	associatedTasks   []Task
 }
 

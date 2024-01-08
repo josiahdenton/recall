@@ -11,17 +11,22 @@ const (
 
 type Priority int
 
+// Due TODO should be changed to a time.Time
+// TODO this should be a list of Resource Ids
+// TODO tasks can be recurring
+// TODO tasks have a difficulty rating
+// avg Task completion time is tracked
+
 type Task struct {
-	Id    string
-	Title string
-	// Due TODO should be changed to a time.Time
-	Due       string
-	Priority  Priority
-	Active    bool
-	Complete  bool
-	Resources []Resource // TODO this should be a list of Resource Ids
-	Status    []Status
-	Steps     []Step
+	Id        string     `json:"id"`
+	Title     string     `json:"title"`
+	Due       string     `json:"due"`
+	Priority  Priority   `json:"priority"`
+	Active    bool       `json:"active"`
+	Complete  bool       `json:"complete"`
+	Resources []Resource `json:"resources"`
+	Status    []Status   `json:"status"`
+	Steps     []Step     `json:"steps"`
 }
 
 func NewTask(title, due string, priority Priority) Task {

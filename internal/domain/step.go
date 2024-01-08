@@ -3,9 +3,9 @@ package domain
 import "github.com/google/uuid"
 
 type Step struct {
-	Id          string
-	Description string
-	Complete    bool
+	Id          string `json:"id"`
+	Description string `json:"description"`
+	Complete    bool   `json:"complete"`
 }
 
 func NewStep(description string) Step {

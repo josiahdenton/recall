@@ -5,13 +5,13 @@ import (
 	"time"
 )
 
-type LocalStorage struct {
+type InMemoryStorage struct {
 	tasks           []domain.Task
 	cycles          []domain.Cycle
 	accomplishments map[string]domain.Accomplishment
 }
 
-func NewLocalStorage() *LocalStorage {
+func NewInMemoryStorage() *InMemoryStorage {
 	cycle := domain.NewCycle("EOY 2023", time.Now())
 
 	acc1 := domain.NewAccomplishment("Created a new cli tool", "it's epic", "Job Skills")
@@ -24,7 +24,7 @@ func NewLocalStorage() *LocalStorage {
 	cycle.AccomplishmentIds = append(cycle.AccomplishmentIds, acc1.Id, acc2.Id)
 	cycle.Active = true
 
-	return &LocalStorage{
+	return &InMemoryStorage{
 		tasks: []domain.Task{
 			domain.NewTask("wash dishes", "01/04/2024", domain.TaskPriorityLow),
 			domain.NewTask("take out trash", "01/04/2024", domain.TaskPriorityLow),
@@ -37,7 +37,7 @@ func NewLocalStorage() *LocalStorage {
 	}
 }
 
-func (l *LocalStorage) Task(id string) *domain.Task {
+func (l *InMemoryStorage) Task(id string) *domain.Task {
 	for _, task := range l.tasks {
 		if task.Id == id {
 			return &task
@@ -46,7 +46,7 @@ func (l *LocalStorage) Task(id string) *domain.Task {
 	return &domain.Task{}
 }
 
-func (l *LocalStorage) SaveTask(task domain.Task) {
+func (l *InMemoryStorage) SaveTask(task domain.Task) {
 	// if id exists, don't just append... replace
 	if l.taskExists(task.Id) {
 		for i := range l.tasks {
@@ -59,7 +59,7 @@ func (l *LocalStorage) SaveTask(task domain.Task) {
 	}
 }
 
-func (l *LocalStorage) taskExists(id string) bool {
+func (l *InMemoryStorage) taskExists(id string) bool {
 	for _, task := range l.tasks {
 		if task.Id == id {
 			return true
@@ -68,11 +68,11 @@ func (l *LocalStorage) taskExists(id string) bool {
 	return false
 }
 
-func (l *LocalStorage) AllTasks() []domain.Task {
+func (l *InMemoryStorage) AllTasks() []domain.Task {
 	return l.tasks
 }
 
-func (l *LocalStorage) Cycle(id string) *domain.Cycle {
+func (l *InMemoryStorage) Cycle(id string) *domain.Cycle {
 	for _, cycle := range l.cycles {
 		if cycle.Id == id {
 			return &cycle
@@ -81,7 +81,7 @@ func (l *LocalStorage) Cycle(id string) *domain.Cycle {
 	return &domain.Cycle{}
 }
 
-func (l *LocalStorage) SaveCycle(cycle domain.Cycle) {
+func (l *InMemoryStorage) SaveCycle(cycle domain.Cycle) {
 	if l.cycleExists(cycle.Id) {
 		for i := range l.cycles {
 			if l.cycles[i].Id == cycle.Id {
@@ -93,7 +93,7 @@ func (l *LocalStorage) SaveCycle(cycle domain.Cycle) {
 	}
 }
 
-func (l *LocalStorage) cycleExists(id string) bool {
+func (l *InMemoryStorage) cycleExists(id string) bool {
 	for _, cycle := range l.cycles {
 		if cycle.Id == id {
 			return true
@@ -102,11 +102,11 @@ func (l *LocalStorage) cycleExists(id string) bool {
 	return false
 }
 
-func (l *LocalStorage) AllCycles() []domain.Cycle {
+func (l *InMemoryStorage) AllCycles() []domain.Cycle {
 	return l.cycles
 }
 
-func (l *LocalStorage) AllAccomplishments(ids []string) []domain.Accomplishment {
+func (l *InMemoryStorage) AllAccomplishments(ids []string) []domain.Accomplishment {
 	accomplishments := make([]domain.Accomplishment, len(ids))
 	for i, id := range ids {
 		accomplishments[i] = l.accomplishments[id]
@@ -114,7 +114,7 @@ func (l *LocalStorage) AllAccomplishments(ids []string) []domain.Accomplishment 
 	return accomplishments
 }
 
-func (l *LocalStorage) Accomplishment(id string) *domain.Accomplishment {
+func (l *InMemoryStorage) Accomplishment(id string) *domain.Accomplishment {
 	accomplishment, ok := l.accomplishments[id]
 	if !ok {
 		return nil
@@ -122,12 +122,16 @@ func (l *LocalStorage) Accomplishment(id string) *domain.Accomplishment {
 	return &accomplishment
 }
 
-func (l *LocalStorage) SaveAccomplishment(accomplishment domain.Accomplishment) {
+func (l *InMemoryStorage) SaveAccomplishment(accomplishment domain.Accomplishment) {
 	if _, ok := l.accomplishments[accomplishment.Id]; !ok {
 		l.accomplishments[accomplishment.Id] = accomplishment
 	}
 }
 
-func (l *LocalStorage) SaveChanges() {
+func (l *InMemoryStorage) SaveChanges() {
+	return
+}
+
+func (l *InMemoryStorage) SaveSettings(settings domain.Settings) {
 	return
 }

@@ -27,7 +27,7 @@ func New() Model {
 		cycles:          cycles.New(),
 		accomplishments: accomplishments.Model{},
 		page:            domain.MenuPage,
-		repository:      repository.NewLocalStorage(),
+		repository:      repository.NewFileStorage("~/recall-notes"),
 	}
 }
 
@@ -44,7 +44,7 @@ type Model struct {
 }
 
 func (m Model) Init() tea.Cmd {
-	return tea.Batch(m.taskList.Init(), tea.EnterAltScreen)
+	return tea.Batch(tea.EnterAltScreen)
 }
 
 func (m Model) View() string {
@@ -138,6 +138,9 @@ func (m Model) loadPage(msg router.GotoPageMsg) tea.Cmd {
 // updateState should only worry about updating the repository
 func (m Model) updateState(msg shared.SaveStateMsg) {
 	switch msg.Type {
+	case shared.SettingsUpdate:
+		update := msg.Update.(domain.Settings)
+		m.repository.SaveSettings(update)
 	case shared.TaskUpdate:
 		update := msg.Update.(domain.Task)
 		m.repository.SaveTask(update)
@@ -155,7 +158,13 @@ func (m Model) updateState(msg shared.SaveStateMsg) {
 				break
 			}
 		}
+	case shared.StepUpdate:
+	case shared.ResourceUpdate:
+	case shared.StatusUpdate:
+	case shared.CycleUpdate:
 	}
 }
 
-// TODO I should have a tick for auto saving my changes
+// TODO I should have a tick for auto saving my changes every 1 minute
+
+// I am currently working on getting the repository to load

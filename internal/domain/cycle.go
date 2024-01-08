@@ -6,11 +6,11 @@ import (
 )
 
 type Cycle struct {
-	Id                string
-	Title             string
-	AccomplishmentIds []string
-	Active            bool
-	StartDate         time.Time
+	Id                string    `json:"id"`
+	Title             string    `json:"title"`
+	AccomplishmentIds []string  `json:"accomplishment_ids"`
+	Active            bool      `json:"active"`
+	StartDate         time.Time `json:"start_date"`
 	accomplishments   []Accomplishment
 }
 

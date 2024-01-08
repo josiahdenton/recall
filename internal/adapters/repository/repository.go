@@ -1,6 +1,8 @@
 package repository
 
-import "github.com/josiahdenton/recall/internal/domain"
+import (
+	"github.com/josiahdenton/recall/internal/domain"
+)
 
 type Repository interface {
 	Task(string) *domain.Task
@@ -12,7 +14,9 @@ type Repository interface {
 	AllTasks() []domain.Task
 	SaveCycle(domain.Cycle)
 	AllCycles() []domain.Cycle
-	SaveChanges()
+	SaveChanges() error
+	SaveSettings(domain.Settings)
+	LoadRepository() error
 	// Add the following
 	// - Zettel
 	// - Release

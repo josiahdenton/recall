@@ -146,7 +146,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				cmds = append(cmds, clearStatus(), updateTask(m.task))
 			case resources:
 				resource := m.lists[resources].SelectedItem().(*domain.Resource)
-				if resource.Type == domain.WebLinkType {
+				if resource.Type == domain.WebResource {
 					openLink(resource.Source)
 					m.statusMessage = "opened web link!"
 				} else {
