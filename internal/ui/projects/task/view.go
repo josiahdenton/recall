@@ -134,6 +134,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.active = header
 			}
 		case Interact:
+			if m.showForm {
+				break
+			}
+
 			switch m.active {
 			case steps:
 				step := m.lists[steps].SelectedItem().(*domain.Step)

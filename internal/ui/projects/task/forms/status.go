@@ -21,7 +21,8 @@ type StatusModel struct {
 func NewStatusForm() StatusModel {
 	input := textarea.New()
 	input.Focus()
-	input.MaxWidth = 60
+	input.MaxWidth = 80
+	input.SetWidth(80)
 
 	return StatusModel{
 		input: input,
