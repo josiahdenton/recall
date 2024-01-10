@@ -26,7 +26,7 @@ type Task struct {
 	Due       time.Time  `json:"due"`
 	Priority  Priority   `json:"priority"`
 	Active    bool       `json:"active"`
-	Complete  bool       `json:"complete"`
+	Archive   bool       `json:"archive"`
 	Resources []Resource `json:"resources"`
 	Status    []Status   `json:"status"`
 	Steps     []Step     `json:"steps"`
@@ -44,10 +44,6 @@ func NewTask(title string, due time.Time, priority Priority) Task {
 		Due:      due,
 		Priority: priority,
 	}
-}
-
-func (t *Task) ToggleComplete() {
-	t.Complete = !t.Complete
 }
 
 func (t *Task) RemoveResource(i int) {

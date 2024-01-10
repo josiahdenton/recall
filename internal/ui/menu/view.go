@@ -19,6 +19,10 @@ var (
 			Page:  domain.CyclesPage,
 		},
 		{
+			Title: "Resources",
+			Page:  domain.ResourcesPage,
+		},
+		{
 			Title: "Performance Cycles",
 			Page:  domain.CyclesPage,
 		},

@@ -46,9 +46,9 @@ func (m Model) Init() tea.Cmd {
 
 func (m Model) View() string {
 	var s string
-	if m.showForm {
+	if m.showForm && m.ready {
 		s = styles.WindowStyle.Render(m.forms[m.activeForm].View())
-	} else {
+	} else if m.ready {
 		s = styles.WindowStyle.Render(m.tasks.View())
 	}
 	return s
@@ -102,8 +102,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				selected := m.tasks.SelectedItem().(*domain.Task)
 				cmds = append(cmds, forms.AttachTask(*selected))
 			}
-			// I want the accomplishment to refer to the task completed
-			// so I need to send the task down to the accomplishment form
 		case "esc":
 			if m.showForm {
 				m.showForm = false

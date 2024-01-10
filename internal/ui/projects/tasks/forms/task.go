@@ -74,7 +74,7 @@ func NewTaskForm() TaskFormModel {
 	return TaskFormModel{
 		inputs:         inputs,
 		priorityMap:    priority,
-		priorityCursor: -1,
+		priorityCursor: 0,
 	}
 }
 

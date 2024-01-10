@@ -7,10 +7,12 @@ import (
 	"github.com/josiahdenton/recall/internal/adapters/repository"
 	"github.com/josiahdenton/recall/internal/domain"
 	"github.com/josiahdenton/recall/internal/ui/menu"
+	"github.com/josiahdenton/recall/internal/ui/performance/accomplishment"
 	"github.com/josiahdenton/recall/internal/ui/performance/accomplishments"
 	"github.com/josiahdenton/recall/internal/ui/performance/cycles"
 	taskdetailed "github.com/josiahdenton/recall/internal/ui/projects/task"
 	tasklist "github.com/josiahdenton/recall/internal/ui/projects/tasks"
+	"github.com/josiahdenton/recall/internal/ui/resources"
 	"github.com/josiahdenton/recall/internal/ui/router"
 	"github.com/josiahdenton/recall/internal/ui/shared"
 	"log"
@@ -35,6 +37,8 @@ func New() Model {
 		menu:            menu.New(),
 		cycles:          cycles.New(),
 		accomplishments: accomplishments.Model{},
+		resources:       resources.New(),
+		accomplishment:  accomplishment.Model{},
 		page:            domain.MenuPage,
 		repository:      repository.NewFileStorage(fmt.Sprintf("%s/%s", home, "recall-notes")),
 	}
@@ -46,6 +50,8 @@ type Model struct {
 	cycles          tea.Model
 	menu            tea.Model
 	accomplishments tea.Model
+	accomplishment  tea.Model
+	resources       tea.Model
 	repository      repository.Repository
 	page            domain.Page
 	width           int
@@ -69,6 +75,10 @@ func (m Model) View() string {
 		pageModel = m.menu
 	case domain.AccomplishmentsPage:
 		pageModel = m.accomplishments
+	case domain.ResourcesPage:
+		pageModel = m.resources
+	case domain.AccomplishmentPage:
+		pageModel = m.accomplishment
 	}
 	return windowStyle.Width(m.width).Height(m.height).Render(pageModel.View())
 }
@@ -122,6 +132,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.accomplishments, cmd = m.accomplishments.Update(msg)
 		cmds = append(cmds, cmd)
 	case domain.AccomplishmentPage:
+		m.accomplishment, cmd = m.accomplishment.Update(msg)
+		cmds = append(cmds, cmd)
+	case domain.ResourcesPage:
+		m.resources, cmd = m.resources.Update(msg)
+		cmds = append(cmds, cmd)
 	}
 
 	return m, tea.Batch(cmds...)
@@ -132,20 +147,25 @@ func (m Model) loadPage(msg router.GotoPageMsg) tea.Cmd {
 		var state any
 		switch msg.Page {
 		case domain.TaskListPage:
-			state = m.repository.AllTasks(false)
+			state = m.repository.AllTasks()
+		// TODO add a page for task archive
 		case domain.CyclesPage:
 			state = m.repository.AllCycles()
 		case domain.TaskDetailedPage:
 			state = m.repository.Task(msg.RequestedItemId)
 		case domain.AccomplishmentsPage:
-			cycle := m.repository.Cycle(msg.RequestedItemId)
-			cycle.AttachAccomplishments(m.repository.AllAccomplishments(cycle.AccomplishmentIds))
-			state = cycle
+			c := m.repository.Cycle(msg.RequestedItemId)
+			c.AttachAccomplishments(m.repository.LinkedAccomplishments(c.AccomplishmentIds))
+			state = c
 		case domain.AccomplishmentPage:
-			state = m.repository.Accomplishment(msg.RequestedItemId)
+			a := m.repository.Accomplishment(msg.RequestedItemId)
+			a.AttachAssociatedTasks(m.repository.LinkedTasks(a.AssociatedTaskIds))
+			state = a
 		case domain.MenuPage:
 			// no state attached...
 			// TODO - have the repository read the settings file to determine this
+		case domain.ResourcesPage:
+			state = m.repository.AllResources()
 		}
 		return router.LoadPageMsg{
 			Page:  msg.Page,
@@ -183,6 +203,9 @@ func (m Model) updateState(msg shared.SaveStateMsg) {
 		}
 	case shared.StepUpdate:
 	case shared.ResourceUpdate:
+		update := msg.Update.(domain.Resource)
+		log.Printf("saving resource: %+v", update)
+		m.repository.SaveResource(update)
 	case shared.StatusUpdate:
 	}
 }

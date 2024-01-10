@@ -10,8 +10,6 @@ import (
 	"github.com/josiahdenton/recall/internal/ui/shared"
 	"github.com/josiahdenton/recall/internal/ui/styles"
 	"log"
-	"os/exec"
-	"runtime"
 	"strings"
 	"time"
 )
@@ -151,7 +149,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case resources:
 				resource := m.lists[resources].SelectedItem().(*domain.Resource)
 				if resource.Type == domain.WebResource {
-					openLink(resource.Source)
+					resource.OpenLink()
 					m.statusMessage = "opened web link!"
 				} else {
 					m.statusMessage = "unsupported type!"
@@ -170,6 +168,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// nothing for now
 			}
 		case Delete:
+			if m.showForm {
+				break
+			}
+
 			if m.active < header && len(m.lists[m.active].Items()) > 0 {
 				index := m.lists[m.active].Index()
 				switch m.active {
@@ -289,18 +291,4 @@ func nextSection(active int) int {
 		return header
 	}
 	return header
-}
-
-func openLink(url string) bool {
-	var args []string
-	switch runtime.GOOS {
-	case "darwin":
-		args = []string{"open"}
-	case "windows":
-		args = []string{"cmd", "/c", "start"}
-	default:
-		args = []string{"xdg-open"}
-	}
-	cmd := exec.Command(args[0], append(args[1:], url)...)
-	return cmd.Start() == nil
 }

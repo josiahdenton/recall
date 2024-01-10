@@ -17,3 +17,7 @@ type tasksLayout struct {
 type settingsLayout struct {
 	Settings domain.Settings
 }
+
+type resourcesLayout struct {
+	Resources map[string]domain.Resource `json:"resources"`
+}

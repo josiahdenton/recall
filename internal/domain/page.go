@@ -9,4 +9,5 @@ const (
 	MenuPage
 	AccomplishmentsPage
 	AccomplishmentPage
+	ResourcesPage
 )

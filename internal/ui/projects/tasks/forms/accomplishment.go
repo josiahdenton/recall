@@ -5,6 +5,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/josiahdenton/recall/internal/domain"
+	"github.com/josiahdenton/recall/internal/ui/router"
 	"github.com/josiahdenton/recall/internal/ui/shared"
 	"github.com/josiahdenton/recall/internal/ui/styles"
 	"log"
@@ -95,7 +96,8 @@ func (m AccomplishmentFormModel) Init() tea.Cmd {
 
 func (m AccomplishmentFormModel) View() string {
 	var b strings.Builder
-	b.WriteString(styles.FormTitleStyle.Render("When you completed " + m.task.Title))
+	b.WriteString(styles.FormLabelStyle.Render("When you completed "))
+	b.WriteString(styles.FormTitleStyle.Render(m.task.Title))
 	b.WriteString("\n\n")
 	for _, input := range m.inputs {
 		b.WriteString(input.View())
@@ -137,7 +139,10 @@ func (m AccomplishmentFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.inputs[description].Err != nil || m.inputs[impact].Err != nil {
 				m.status = fmt.Sprintf("%v, %v", m.inputs[title].Err, m.inputs[due].Err)
 			} else {
-				cmds = append(cmds, addAccomplishment(m.inputs[description].Value(), m.inputs[impact].Value(), m.inputs[strength].Value(), m.task))
+				cmds = append(cmds,
+					addAccomplishment(m.inputs[description].Value(), m.inputs[impact].Value(), m.inputs[strength].Value(), m.task),
+					archiveTask(m.task),
+					router.GotoPage(domain.MenuPage, ""))
 				m.inputs[description].Reset()
 				m.inputs[impact].Reset()
 				m.inputs[strength].Reset()
@@ -160,6 +165,16 @@ func (m AccomplishmentFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	return m, tea.Batch(cmds...)
+}
+
+func archiveTask(task domain.Task) tea.Cmd {
+	return func() tea.Msg {
+		task.Archive = true
+		return shared.SaveStateMsg{
+			Update: task,
+			Type:   shared.TaskUpdate,
+		}
+	}
 }
 
 func addAccomplishment(description, impact, strength string, task domain.Task) tea.Cmd {

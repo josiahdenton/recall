@@ -5,6 +5,7 @@ const (
 	TasksFileName           = "tasks.json"
 	CyclesFileName          = "cycles.json"
 	SettingsFileName        = "settings.json"
+	ResourcesFileName       = "resources.json"
 )
 
 type Settings struct {
