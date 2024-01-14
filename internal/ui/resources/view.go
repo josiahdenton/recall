@@ -36,7 +36,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case router.LoadPageMsg:
 		resources := msg.State.([]domain.Resource)
-		m.resources = list.New(toItemList(resources), resourceDelegate{}, 50, 20)
+		m.resources = list.New(toItemList(resources), resourceDelegate{}, 50, 30)
 		m.resources.Title = "Resources"
 		m.resources.Styles.PaginationStyle = paginationStyle
 		m.resources.Styles.Title = styles.SecondaryGray.Copy()
@@ -62,7 +62,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// unsupported
 			}
 		} else if msg.Type == tea.KeyEsc {
-			cmds = append(cmds, router.GotoPage(domain.MenuPage, ""))
+			cmds = append(cmds, router.GotoPage(domain.MenuPage, 0))
 		}
 	}
 	return m, tea.Batch(cmds...)

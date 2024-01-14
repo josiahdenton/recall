@@ -1,22 +1,13 @@
 package domain
 
-import "github.com/google/uuid"
+import (
+	"gorm.io/gorm"
+)
 
 type Status struct {
-	Id          string `json:"id"`
-	Description string `json:"description"`
-}
-
-func NewStatus(description string) Status {
-	id, err := uuid.NewRandom()
-	if err != nil {
-		return Status{}
-	}
-
-	return Status{
-		Id:          id.String(),
-		Description: description,
-	}
+	gorm.Model
+	Description string
+	TaskID      uint
 }
 
 func (s *Status) FilterValue() string {

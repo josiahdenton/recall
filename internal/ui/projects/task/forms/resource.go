@@ -5,7 +5,6 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/josiahdenton/recall/internal/domain"
-	"github.com/josiahdenton/recall/internal/ui/shared"
 	"github.com/josiahdenton/recall/internal/ui/styles"
 	"io"
 	"strings"
@@ -186,8 +185,11 @@ func (m ResourceModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if m.inputs[name].Err != nil || m.inputs[source].Err != nil {
 					m.status = errorStyle.Render(fmt.Sprintf("%v, %v", m.inputs[name].Err, m.inputs[source].Err))
 				} else {
-					resource := domain.NewResource(m.inputs[name].Value(), m.inputs[source].Value(), m.choice)
-					cmds = append(cmds, addResourceToTask(resource), addResourceToState(resource))
+					cmds = append(cmds, addResourceToTask(domain.Resource{
+						Name:   m.inputs[name].Value(),
+						Source: m.inputs[source].Value(),
+						Type:   m.choice,
+					}))
 
 					m.inputs[name].Reset()
 					m.inputs[source].Reset()
@@ -228,15 +230,6 @@ func addResourceToTask(resource domain.Resource) tea.Cmd {
 	return func() tea.Msg {
 		return ResourceFormMsg{
 			Resource: resource,
-		}
-	}
-}
-
-func addResourceToState(resource domain.Resource) tea.Cmd {
-	return func() tea.Msg {
-		return shared.SaveStateMsg{
-			Update: resource,
-			Type:   shared.ResourceUpdate,
 		}
 	}
 }

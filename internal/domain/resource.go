@@ -1,7 +1,7 @@
 package domain
 
 import (
-	"github.com/google/uuid"
+	"gorm.io/gorm"
 	"os/exec"
 	"runtime"
 )
@@ -17,24 +17,11 @@ const (
 type ResourceType = int
 
 type Resource struct {
-	Id     string       `json:"id"`
-	Name   string       `json:"name"`
-	Source string       `json:"source"`
-	Type   ResourceType `json:"type"`
-}
-
-func NewResource(name, source string, resourceType ResourceType) Resource {
-	id, err := uuid.NewRandom()
-	if err != nil {
-		return Resource{}
-	}
-
-	return Resource{
-		Id:     id.String(),
-		Name:   name,
-		Source: source,
-		Type:   resourceType,
-	}
+	gorm.Model
+	Name   string
+	Source string
+	Type   ResourceType
+	TaskID uint
 }
 
 func (r *Resource) StringType() string {

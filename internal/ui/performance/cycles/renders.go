@@ -17,6 +17,9 @@ func renderCycleOption(cycle *domain.Cycle, selected bool) string {
 	style := defaultCycleStyle
 	if selected {
 		selectedMarker = ">"
+	}
+
+	if cycle.Active {
 		style = activeCycleStyle
 	}
 

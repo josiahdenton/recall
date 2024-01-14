@@ -80,7 +80,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyEnter:
 			// TODO go to page
 			option := m.pages.SelectedItem().(*domain.MenuOption)
-			cmd = router.GotoPage(option.Page, "")
+			cmd = router.GotoPage(option.Page, 0)
 			cmds = append(cmds, cmd)
 		}
 	}

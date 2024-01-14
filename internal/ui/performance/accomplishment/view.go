@@ -34,7 +34,7 @@ func (m Model) View() string {
 	b.WriteString(fadedTitleStyle.Render("Impact: "))
 	b.WriteString(titleStyle.Render(m.accomplishment.Impact))
 	b.WriteString("\n\n")
-	b.WriteString(fadedTitleStyle.Render("Strength"))
+	b.WriteString(fadedTitleStyle.Render("Strength: "))
 	b.WriteString(titleStyle.Render(m.accomplishment.Strength))
 	b.WriteString(m.tasks.View())
 	return styles.WindowStyle.Render(b.String())
@@ -53,7 +53,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case router.LoadPageMsg:
 		accomplishment := msg.State.(*domain.Accomplishment)
 		m.accomplishment = accomplishment
-		m.tasks = list.New(toItemList(m.accomplishment.AssociatedTasks()), shortTaskDelegate{}, 50, 10)
+		m.tasks = list.New(toItemList(m.accomplishment.Tasks), shortTaskDelegate{}, 50, 10)
 		m.tasks.SetShowStatusBar(false)
 		m.tasks.SetFilteringEnabled(false)
 		m.tasks.Title = "Related Tasks"
@@ -66,10 +66,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.Type {
 		case tea.KeyEnter:
 			task := m.tasks.SelectedItem().(*domain.Task)
-			cmds = append(cmds, router.GotoPage(domain.TaskDetailedPage, task.Id))
+			cmds = append(cmds, router.GotoPage(domain.TaskDetailedPage, task.ID))
 		case tea.KeyEsc:
 			// TODO - have this go to the Cycle Page we want... not all cycles
-			cmds = append(cmds, router.GotoPage(domain.CyclesPage, ""))
+			cmds = append(cmds, router.GotoPage(domain.CyclesPage, 0))
 		}
 	}
 

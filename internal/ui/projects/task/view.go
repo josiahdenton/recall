@@ -107,17 +107,17 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.statusMessage = ""
 	case forms.StepFormMsg:
 		m.task.Steps = append(m.task.Steps, msg.Step)
-		m.lists[steps].InsertItem(len(m.task.Steps)-1, &m.task.Steps[len(m.task.Steps)-1])
+		m.lists[steps].InsertItem(len(m.task.Steps), &m.task.Steps[len(m.task.Steps)-1])
 		m.showForm = false
 		cmds = append(cmds, updateTask(m.task))
 	case forms.ResourceFormMsg:
 		m.task.Resources = append(m.task.Resources, msg.Resource)
-		m.lists[resources].InsertItem(len(m.task.Resources)-1, &m.task.Resources[len(m.task.Resources)-1])
+		m.lists[resources].InsertItem(len(m.task.Resources), &m.task.Resources[len(m.task.Resources)-1])
 		m.showForm = false
 		cmds = append(cmds, updateTask(m.task))
 	case forms.StatusFormMsg:
 		m.task.Status = append(m.task.Status, msg.Status)
-		m.lists[status].InsertItem(len(m.task.Status)-1, &m.task.Status[len(m.task.Status)-1])
+		m.lists[status].InsertItem(len(m.task.Status), &m.task.Status[len(m.task.Status)-1])
 		m.showForm = false
 		cmds = append(cmds, updateTask(m.task))
 	case tea.KeyMsg:
@@ -127,7 +127,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.showForm {
 				m.showForm = false
 			} else {
-				cmds = append(cmds, router.GotoPage(domain.TaskListPage, ""))
+				cmds = append(cmds, router.GotoPage(domain.TaskListPage, 0))
 				// TODO - add a Reset method
 				m.active = header
 			}
@@ -215,9 +215,8 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func updateTask(task *domain.Task) tea.Cmd {
 	return func() tea.Msg {
 		return shared.SaveStateMsg{
-			Update:   *task,
-			Type:     shared.TaskUpdate,
-			ParentId: "",
+			Update: *task,
+			Type:   shared.ModifyTask,
 		}
 	}
 }
@@ -248,7 +247,7 @@ func setupLists(task *domain.Task) []list.Model {
 	}
 	lists := make([]list.Model, formCount)
 
-	lists[steps] = list.New(_steps, stepDelegate{}, 50, 7)
+	lists[steps] = list.New(_steps, stepDelegate{}, 80, 9)
 	lists[steps].Title = "Steps"
 	lists[steps].SetFilteringEnabled(false)
 	lists[steps].Styles.Title = listTitleStyle
@@ -257,7 +256,7 @@ func setupLists(task *domain.Task) []list.Model {
 	lists[steps].SetShowStatusBar(false)
 	lists[steps].KeyMap.Quit.Unbind()
 
-	lists[resources] = list.New(_resources, resourceDelegate{}, 50, 7)
+	lists[resources] = list.New(_resources, resourceDelegate{}, 80, 7)
 	lists[resources].Title = "Resources"
 	lists[resources].SetFilteringEnabled(false)
 	lists[resources].Styles.Title = listTitleStyle
@@ -266,7 +265,7 @@ func setupLists(task *domain.Task) []list.Model {
 	lists[resources].SetShowStatusBar(false)
 	lists[resources].KeyMap.Quit.Unbind()
 
-	lists[status] = list.New(_status, statusDelegate{}, 50, 5)
+	lists[status] = list.New(_status, statusDelegate{}, 80, 5)
 	lists[status].Title = "Status"
 	lists[status].SetFilteringEnabled(false)
 	lists[status].Styles.Title = listTitleStyle

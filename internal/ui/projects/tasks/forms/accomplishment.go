@@ -8,7 +8,6 @@ import (
 	"github.com/josiahdenton/recall/internal/ui/router"
 	"github.com/josiahdenton/recall/internal/ui/shared"
 	"github.com/josiahdenton/recall/internal/ui/styles"
-	"log"
 	"strings"
 )
 
@@ -142,7 +141,7 @@ func (m AccomplishmentFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				cmds = append(cmds,
 					addAccomplishment(m.inputs[description].Value(), m.inputs[impact].Value(), m.inputs[strength].Value(), m.task),
 					archiveTask(m.task),
-					router.GotoPage(domain.MenuPage, ""))
+					router.GotoPage(domain.MenuPage, 0))
 				m.inputs[description].Reset()
 				m.inputs[impact].Reset()
 				m.inputs[strength].Reset()
@@ -172,20 +171,22 @@ func archiveTask(task domain.Task) tea.Cmd {
 		task.Archive = true
 		return shared.SaveStateMsg{
 			Update: task,
-			Type:   shared.TaskUpdate,
+			Type:   shared.ModifyTask,
 		}
 	}
 }
 
 func addAccomplishment(description, impact, strength string, task domain.Task) tea.Cmd {
 	return func() tea.Msg {
-		accomplishment := domain.NewAccomplishment(description, impact, strength)
-		log.Printf("task in add func: %+v", task)
-		accomplishment.AssociatedTaskIds = append(accomplishment.AssociatedTaskIds, task.Id)
-		log.Printf("%+v", accomplishment)
+		accomplishment := domain.Accomplishment{
+			Description: description,
+			Impact:      impact,
+			Strength:    strength,
+			Tasks:       []domain.Task{task},
+		}
 		return shared.SaveStateMsg{
 			Update: accomplishment,
-			Type:   shared.AccomplishmentUpdate,
+			Type:   shared.ModifyAccomplishment,
 		}
 	}
 }

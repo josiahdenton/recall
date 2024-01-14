@@ -68,7 +68,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyEnter:
-			cmds = append(cmds, saveSettings(*m.settings), router.GotoPage(domain.MenuPage, ""))
+			cmds = append(cmds, saveSettings(*m.settings), router.GotoPage(domain.MenuPage, 0))
 		}
 	}
 
@@ -79,7 +79,7 @@ func saveSettings(settings domain.Settings) tea.Cmd {
 	return func() tea.Msg {
 		return shared.SaveStateMsg{
 			Update: settings,
-			Type:   shared.SettingsUpdate,
+			Type:   shared.ModifySettings,
 		}
 	}
 }

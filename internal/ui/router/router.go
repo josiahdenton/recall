@@ -9,7 +9,7 @@ import (
 
 type GotoPageMsg struct {
 	Page            domain.Page
-	RequestedItemId string // the requested ID of the page / the parent ID??
+	RequestedItemId uint // the requested ID of the page / the parent ID??
 }
 
 type LoadPageMsg struct {
@@ -17,7 +17,7 @@ type LoadPageMsg struct {
 	State any // any data needed for that page, attached from core
 }
 
-func GotoPage(page domain.Page, id string) tea.Cmd {
+func GotoPage(page domain.Page, id uint) tea.Cmd {
 	return func() tea.Msg {
 		return GotoPageMsg{Page: page, RequestedItemId: id}
 	}

@@ -1,5 +1,7 @@
 package domain
 
+import "gorm.io/gorm"
+
 const (
 	AccomplishmentsFileName = "accomplishments.json"
 	TasksFileName           = "tasks.json"
@@ -9,5 +11,6 @@ const (
 )
 
 type Settings struct {
-	Location string `json:"location"`
+	gorm.Model
+	Location string
 }
