@@ -1,7 +1,7 @@
 package domain
 
 import (
-	"github.com/google/uuid"
+	"gorm.io/gorm"
 	"time"
 )
 
@@ -21,33 +21,16 @@ type Priority int
 // avg Task completion time is tracked
 
 type Task struct {
-	Id        string     `json:"id"`
-	Title     string     `json:"title"`
-	Due       time.Time  `json:"due"`
-	Priority  Priority   `json:"priority"`
-	Active    bool       `json:"active"`
-	Complete  bool       `json:"complete"`
-	Resources []Resource `json:"resources"`
-	Status    []Status   `json:"status"`
-	Steps     []Step     `json:"steps"`
-}
-
-func NewTask(title string, due time.Time, priority Priority) Task {
-	id, err := uuid.NewRandom()
-	if err != nil {
-		return Task{}
-	}
-
-	return Task{
-		Id:       id.String(),
-		Title:    title,
-		Due:      due,
-		Priority: priority,
-	}
-}
-
-func (t *Task) ToggleComplete() {
-	t.Complete = !t.Complete
+	gorm.Model
+	Title            string
+	Due              time.Time
+	Priority         Priority
+	Active           bool
+	Archive          bool
+	Resources        []Resource
+	Status           []Status
+	Steps            []Step
+	AccomplishmentID uint
 }
 
 func (t *Task) RemoveResource(i int) {

@@ -16,14 +16,20 @@ func main() {
 }
 
 func Run() error {
-	f, err := os.OpenFile("log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+	f, err := os.OpenFile(fmt.Sprintf("%s/%s", home, ".recall-log"), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 
+	// on non debug mode, set out to null dest?
 	log.SetOutput(f)
-	log.Println(">>>>>>>>>>>>>>>>> STARTING LOGGER!")
+	log.Println("--------------- Recall! ---------------")
 	p := tea.NewProgram(internal.New())
 	if _, err := p.Run(); err != nil {
 		return err

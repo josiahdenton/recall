@@ -3,6 +3,7 @@ package forms
 import (
 	"fmt"
 	"github.com/josiahdenton/recall/internal/domain"
+	"github.com/josiahdenton/recall/internal/ui/router"
 	"github.com/josiahdenton/recall/internal/ui/shared"
 	"github.com/josiahdenton/recall/internal/ui/styles"
 	"strings"
@@ -43,7 +44,7 @@ func NewTaskForm() TaskFormModel {
 
 	inputTitle.Validate = func(s string) error {
 		if len(strings.Trim(s, " \n")) < 1 {
-			return fmt.Errorf("step description missing")
+			return fmt.Errorf("task title missing")
 		}
 		return nil
 	}
@@ -53,12 +54,9 @@ func NewTaskForm() TaskFormModel {
 	inputDue.CharLimit = 120
 	inputDue.Prompt = "Due: "
 	inputDue.PromptStyle = styles.FormLabelStyle
-	inputDue.Placeholder = "Jan 5, 2013"
+	inputDue.Placeholder = "Jan 5, 2013 (optional)"
 
 	inputDue.Validate = func(s string) error {
-		if len(strings.Trim(s, " \n")) < 1 {
-			return fmt.Errorf("step description missing")
-		}
 		return nil
 	}
 
@@ -74,7 +72,7 @@ func NewTaskForm() TaskFormModel {
 	return TaskFormModel{
 		inputs:         inputs,
 		priorityMap:    priority,
-		priorityCursor: -1,
+		priorityCursor: 0,
 	}
 }
 
@@ -137,8 +135,11 @@ func (m TaskFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.status = fmt.Sprintf("%v, %v", m.inputs[title].Err, m.inputs[due].Err)
 			} else {
 				date := m.inputs[due].Value()
-				t := mustParseDate(date)
-				cmds = append(cmds, addTask(m.inputs[title].Value(), t, m.priorityMap[priorityKeys[m.priorityCursor]]))
+				t := parseDate(date)
+				cmds = append(
+					cmds,
+					addTask(m.inputs[title].Value(), t, m.priorityMap[priorityKeys[m.priorityCursor]]),
+					router.GotoPage(domain.MenuPage, 0))
 				m.inputs[title].Reset()
 				m.inputs[due].Reset()
 				m.priorityCursor = -1
@@ -188,15 +189,19 @@ func (m TaskFormModel) nextInput(current int) int {
 func addTask(title string, due time.Time, priority domain.Priority) tea.Cmd {
 	return func() tea.Msg {
 		return shared.SaveStateMsg{
-			Type:   shared.TaskUpdate,
-			Update: domain.NewTask(title, due, priority),
+			Type: shared.ModifyTask,
+			Update: domain.Task{
+				Title:    title,
+				Due:      due,
+				Priority: priority,
+			},
 		}
 	}
 }
 
 // TODO - no longer have any "musts", have it go to a global notify service
 
-func mustParseDate(date string) time.Time {
+func parseDate(date string) time.Time {
 	input := fmt.Sprintf("%s at 10:00pm (EST)", date)
 	t, err := time.Parse(longDateForm, input)
 	if err != nil {

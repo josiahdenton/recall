@@ -111,7 +111,7 @@ func (m CycleFormModel) Update(msg tea.Msg) (CycleFormModel, tea.Cmd) {
 				cmds = append(cmds, addCycle(m.inputs[title].Value(), mustParseDate(m.inputs[startDate].Value())))
 				m.inputs[title].Reset()
 				m.inputs[startDate].Reset()
-				cmds = append(cmds, router.GotoPage(domain.CyclesPage, ""))
+				cmds = append(cmds, router.GotoPage(domain.CyclesPage, 0))
 			}
 		case tea.KeyTab:
 			m.inputs[m.active%len(m.inputs)].Blur()
@@ -144,8 +144,11 @@ func mustParseDate(date string) time.Time {
 func addCycle(title string, start time.Time) tea.Cmd {
 	return func() tea.Msg {
 		return shared.SaveStateMsg{
-			Update: domain.NewCycle(title, start),
-			Type:   shared.CycleUpdate,
+			Update: domain.Cycle{
+				Title:     title,
+				StartDate: start,
+			},
+			Type: shared.ModifyCycle,
 		}
 	}
 }

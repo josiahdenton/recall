@@ -7,10 +7,12 @@ import (
 	"github.com/josiahdenton/recall/internal/adapters/repository"
 	"github.com/josiahdenton/recall/internal/domain"
 	"github.com/josiahdenton/recall/internal/ui/menu"
+	"github.com/josiahdenton/recall/internal/ui/performance/accomplishment"
 	"github.com/josiahdenton/recall/internal/ui/performance/accomplishments"
 	"github.com/josiahdenton/recall/internal/ui/performance/cycles"
 	taskdetailed "github.com/josiahdenton/recall/internal/ui/projects/task"
 	tasklist "github.com/josiahdenton/recall/internal/ui/projects/tasks"
+	"github.com/josiahdenton/recall/internal/ui/resources"
 	"github.com/josiahdenton/recall/internal/ui/router"
 	"github.com/josiahdenton/recall/internal/ui/shared"
 	"log"
@@ -29,14 +31,25 @@ func New() Model {
 		os.Exit(1)
 	}
 
+	// zettels will still be files within recall-notes...
+	path := fmt.Sprintf("%s/%s/%s", home, "recall-notes", ".recall.db")
+
+	instance, err := repository.NewGormInstance(fmt.Sprintf(path))
+	if err != nil {
+		log.Printf("failed to create sqlite connection")
+		os.Exit(1)
+	}
+
 	return Model{
 		taskList:        tasklist.New(),
 		taskDetailed:    taskdetailed.New(),
 		menu:            menu.New(),
 		cycles:          cycles.New(),
 		accomplishments: accomplishments.Model{},
+		resources:       resources.New(),
+		accomplishment:  accomplishment.Model{},
 		page:            domain.MenuPage,
-		repository:      repository.NewFileStorage(fmt.Sprintf("%s/%s", home, "recall-notes")),
+		repository:      instance,
 	}
 }
 
@@ -46,6 +59,8 @@ type Model struct {
 	cycles          tea.Model
 	menu            tea.Model
 	accomplishments tea.Model
+	accomplishment  tea.Model
+	resources       tea.Model
 	repository      repository.Repository
 	page            domain.Page
 	width           int
@@ -69,6 +84,10 @@ func (m Model) View() string {
 		pageModel = m.menu
 	case domain.AccomplishmentsPage:
 		pageModel = m.accomplishments
+	case domain.ResourcesPage:
+		pageModel = m.resources
+	case domain.AccomplishmentPage:
+		pageModel = m.accomplishment
 	}
 	return windowStyle.Width(m.width).Height(m.height).Render(pageModel.View())
 }
@@ -94,10 +113,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case shared.SaveStateMsg:
 		m.updateState(msg)
-		err := m.repository.SaveChanges()
-		if err != nil {
-			log.Printf("failed saving changes: %v", err)
-		}
+	case shared.DeleteStateMsg:
+		m.deleteState(msg)
 	case router.GotoPageMsg:
 		cmds = append(cmds, m.loadPage(msg))
 	case router.LoadPageMsg:
@@ -122,6 +139,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.accomplishments, cmd = m.accomplishments.Update(msg)
 		cmds = append(cmds, cmd)
 	case domain.AccomplishmentPage:
+		m.accomplishment, cmd = m.accomplishment.Update(msg)
+		cmds = append(cmds, cmd)
+	case domain.ResourcesPage:
+		m.resources, cmd = m.resources.Update(msg)
+		cmds = append(cmds, cmd)
 	}
 
 	return m, tea.Batch(cmds...)
@@ -132,20 +154,21 @@ func (m Model) loadPage(msg router.GotoPageMsg) tea.Cmd {
 		var state any
 		switch msg.Page {
 		case domain.TaskListPage:
-			state = m.repository.AllTasks(false)
+			state = m.repository.AllTasks()
+		// TODO add a page for task archive
 		case domain.CyclesPage:
 			state = m.repository.AllCycles()
 		case domain.TaskDetailedPage:
 			state = m.repository.Task(msg.RequestedItemId)
 		case domain.AccomplishmentsPage:
-			cycle := m.repository.Cycle(msg.RequestedItemId)
-			cycle.AttachAccomplishments(m.repository.AllAccomplishments(cycle.AccomplishmentIds))
-			state = cycle
+			state = m.repository.Cycle(msg.RequestedItemId)
 		case domain.AccomplishmentPage:
 			state = m.repository.Accomplishment(msg.RequestedItemId)
 		case domain.MenuPage:
 			// no state attached...
 			// TODO - have the repository read the settings file to determine this
+		case domain.ResourcesPage:
+			state = m.repository.AllResources()
 		}
 		return router.LoadPageMsg{
 			Page:  msg.Page,
@@ -157,33 +180,40 @@ func (m Model) loadPage(msg router.GotoPageMsg) tea.Cmd {
 // updateState should only worry about updating the repository
 func (m Model) updateState(msg shared.SaveStateMsg) {
 	switch msg.Type {
-	case shared.CycleUpdate:
+	case shared.ModifyCycle:
 		update := msg.Update.(domain.Cycle)
-		m.repository.SaveCycle(update)
-	case shared.SettingsUpdate:
+		m.repository.ModifyCycle(update)
+	case shared.ModifySettings:
 		update := msg.Update.(domain.Settings)
-		m.repository.SaveSettings(update)
-	case shared.TaskUpdate:
+		m.repository.ModifySettings(update)
+	case shared.ModifyTask:
 		update := msg.Update.(domain.Task)
-		m.repository.SaveTask(update)
-	case shared.AccomplishmentUpdate:
-		// TODO - this does not handle the replace case
+		m.repository.ModifyTask(update)
+	case shared.ModifyAccomplishment:
 		allCycles := m.repository.AllCycles()
 		update := msg.Update.(domain.Accomplishment)
-		log.Printf("accomplishment added %+v", update)
+		activeSet := false
 		for _, cycle := range allCycles {
-			if cycle.Id == msg.ParentId || (msg.ParentId == "" && cycle.Active) {
-				cycle.AccomplishmentIds = append(cycle.AccomplishmentIds, update.Id)
-				log.Printf("appended stuff, haha: %+v", update)
-				cycle.AttachAccomplishments(append(cycle.Accomplishments(), update)) // TODO is this necessary?
-				m.repository.SaveCycle(cycle)
-				m.repository.SaveAccomplishment(update)
+			if cycle.Active {
+				cycle.Accomplishments = append(cycle.Accomplishments, update)
+				m.repository.ModifyCycle(cycle)
+				activeSet = true
 				break
 			}
 		}
-	case shared.StepUpdate:
-	case shared.ResourceUpdate:
-	case shared.StatusUpdate:
+		if !activeSet {
+			m.repository.ModifyAccomplishment(update)
+		}
+	case shared.ModifyStep:
+	case shared.ModifyResource:
+	case shared.ModifyStatus:
+	}
+}
+
+func (m Model) deleteState(msg shared.DeleteStateMsg) {
+	switch msg.Type {
+	case shared.ModifyTask:
+		m.repository.DeleteTask(msg.ID)
 	}
 }
 

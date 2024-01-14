@@ -7,6 +7,7 @@ import (
 	"github.com/josiahdenton/recall/internal/domain"
 	"github.com/josiahdenton/recall/internal/ui/performance/cycles/forms"
 	"github.com/josiahdenton/recall/internal/ui/router"
+	"github.com/josiahdenton/recall/internal/ui/shared"
 	"github.com/josiahdenton/recall/internal/ui/styles"
 )
 
@@ -25,23 +26,6 @@ type Model struct {
 func New() Model {
 	return Model{
 		form: forms.NewCycleForm(),
-	}
-}
-
-type loadCycles struct {
-	cycles []list.Item
-}
-
-// LoadCycles must be called before this Model is ready
-// core is responsible for this call
-func LoadCycles(cycles []domain.Cycle) tea.Cmd {
-	return func() tea.Msg {
-		items := make([]list.Item, len(cycles))
-		for i := range cycles {
-			cycle := &cycles[i]
-			items[i] = cycle
-		}
-		return loadCycles{cycles: items}
 	}
 }
 
@@ -86,14 +70,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.showForm {
 				m.showForm = false
 			} else {
-				cmd = router.GotoPage(domain.MenuPage, "")
+				cmd = router.GotoPage(domain.MenuPage, 0)
 				cmds = append(cmds, cmd)
 			}
 		case tea.KeyEnter:
 			if !m.showForm {
 				cycle := m.cycles.SelectedItem().(*domain.Cycle)
-				cmd = router.GotoPage(domain.AccomplishmentsPage, cycle.Id)
+				cmd = router.GotoPage(domain.AccomplishmentsPage, cycle.ID)
 				cmds = append(cmds, cmd)
+			}
+		case tea.KeySpace:
+			if !m.showForm {
+				cycle := m.cycles.SelectedItem().(*domain.Cycle)
+				cmds = append(cmds, toggleCycleActive(cycle))
 			}
 		}
 		if !m.showForm {
@@ -119,4 +108,14 @@ func toItemList(cycles []domain.Cycle) []list.Item {
 		items[i] = item
 	}
 	return items
+}
+
+func toggleCycleActive(cycle *domain.Cycle) tea.Cmd {
+	cycle.Active = !cycle.Active
+	return func() tea.Msg {
+		return shared.SaveStateMsg{
+			Update: *cycle,
+			Type:   shared.ModifyCycle,
+		}
+	}
 }

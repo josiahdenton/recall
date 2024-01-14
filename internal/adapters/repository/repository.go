@@ -5,18 +5,21 @@ import (
 )
 
 type Repository interface {
-	Task(string) *domain.Task
-	Cycle(string) *domain.Cycle // etc...
-	Accomplishment(string) *domain.Accomplishment
-	SaveAccomplishment(domain.Accomplishment)
-	AllAccomplishments([]string) []domain.Accomplishment
-	SaveTask(domain.Task)
-	AllTasks(includeCompleted bool) []domain.Task
-	SaveCycle(domain.Cycle)
+	Task(uint) *domain.Task
+	DeleteTask(uint)
+	Cycle(uint) *domain.Cycle // etc...
+	Accomplishment(uint) *domain.Accomplishment
+	ModifyAccomplishment(domain.Accomplishment)
+	ModifyTask(domain.Task)
+	AllTasks() []domain.Task
+	ArchivedTasks() []domain.Task
+	ModifyCycle(domain.Cycle)
 	AllCycles() []domain.Cycle
-	SaveChanges() error
-	SaveSettings(domain.Settings)
+	ModifyResource(domain.Resource)
+	AllResources() []domain.Resource
+	ModifySettings(domain.Settings)
 	LoadRepository() error
+	//Resource(string) domain.Resource // I don't think I ever would need to get a single resource
 	// Add the following
 	// - Zettel
 	// - Release

@@ -37,7 +37,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case router.LoadPageMsg:
 		cycle := msg.State.(*domain.Cycle)
-		m.accomplishments = list.New(toItemList(cycle.Accomplishments()), accomplishmentDelegate{}, 50, 20)
+		m.accomplishments = list.New(toItemList(cycle.Accomplishments), accomplishmentDelegate{}, 50, 20)
 		m.accomplishments.SetShowStatusBar(false)
 		m.accomplishments.SetFilteringEnabled(false)
 		m.accomplishments.Title = "Accomplishments"
@@ -51,10 +51,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyEnter:
 			// go into accomplishment details
 			accomplishment := m.accomplishments.SelectedItem().(*domain.Accomplishment)
-			cmds = append(cmds, router.GotoPage(domain.AccomplishmentPage, accomplishment.Id))
+			log.Printf("go to %+v", accomplishment)
+			cmds = append(cmds, router.GotoPage(domain.AccomplishmentPage, accomplishment.ID))
 		case tea.KeyEsc:
 			log.Printf("tea esc")
-			cmd = router.GotoPage(domain.CyclesPage, "")
+			cmd = router.GotoPage(domain.CyclesPage, 0)
 			cmds = append(cmds, cmd)
 		}
 	}

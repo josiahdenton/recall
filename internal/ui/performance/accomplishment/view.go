@@ -3,15 +3,17 @@ package accomplishment
 import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 	"github.com/josiahdenton/recall/internal/domain"
 	"github.com/josiahdenton/recall/internal/ui/router"
+	"github.com/josiahdenton/recall/internal/ui/styles"
+	"strings"
 )
 
 var (
 	// TODO make these std across the whole app...
 	paginationStyle = list.DefaultStyles().PaginationStyle
-	titleStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("#3a3b5b"))
+	titleStyle      = styles.PrimaryColor.Copy()
+	fadedTitleStyle = styles.SecondaryGray.Copy()
 )
 
 type Model struct {
@@ -25,7 +27,17 @@ func (m Model) Init() tea.Cmd {
 }
 
 func (m Model) View() string {
-	return ""
+	var b strings.Builder
+	b.WriteString(fadedTitleStyle.Render("What: "))
+	b.WriteString(titleStyle.Render(m.accomplishment.Description))
+	b.WriteString("\n\n")
+	b.WriteString(fadedTitleStyle.Render("Impact: "))
+	b.WriteString(titleStyle.Render(m.accomplishment.Impact))
+	b.WriteString("\n\n")
+	b.WriteString(fadedTitleStyle.Render("Strength: "))
+	b.WriteString(titleStyle.Render(m.accomplishment.Strength))
+	b.WriteString(m.tasks.View())
+	return styles.WindowStyle.Render(b.String())
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -41,7 +53,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case router.LoadPageMsg:
 		accomplishment := msg.State.(*domain.Accomplishment)
 		m.accomplishment = accomplishment
-		m.tasks = list.New(toItemList(m.accomplishment.AssociatedTasks()), shortTaskDelegate{}, 50, 10)
+		m.tasks = list.New(toItemList(m.accomplishment.Tasks), shortTaskDelegate{}, 50, 10)
 		m.tasks.SetShowStatusBar(false)
 		m.tasks.SetFilteringEnabled(false)
 		m.tasks.Title = "Related Tasks"
@@ -54,7 +66,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.Type {
 		case tea.KeyEnter:
 			task := m.tasks.SelectedItem().(*domain.Task)
-			cmds = append(cmds, router.GotoPage(domain.TaskDetailedPage, task.Id))
+			cmds = append(cmds, router.GotoPage(domain.TaskDetailedPage, task.ID))
+		case tea.KeyEsc:
+			// TODO - have this go to the Cycle Page we want... not all cycles
+			cmds = append(cmds, router.GotoPage(domain.CyclesPage, 0))
 		}
 	}
 

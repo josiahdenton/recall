@@ -10,8 +10,6 @@ import (
 	"github.com/josiahdenton/recall/internal/ui/shared"
 	"github.com/josiahdenton/recall/internal/ui/styles"
 	"log"
-	"os/exec"
-	"runtime"
 	"strings"
 	"time"
 )
@@ -109,17 +107,17 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.statusMessage = ""
 	case forms.StepFormMsg:
 		m.task.Steps = append(m.task.Steps, msg.Step)
-		m.lists[steps].InsertItem(len(m.task.Steps)-1, &m.task.Steps[len(m.task.Steps)-1])
+		m.lists[steps].InsertItem(len(m.task.Steps), &m.task.Steps[len(m.task.Steps)-1])
 		m.showForm = false
 		cmds = append(cmds, updateTask(m.task))
 	case forms.ResourceFormMsg:
 		m.task.Resources = append(m.task.Resources, msg.Resource)
-		m.lists[resources].InsertItem(len(m.task.Resources)-1, &m.task.Resources[len(m.task.Resources)-1])
+		m.lists[resources].InsertItem(len(m.task.Resources), &m.task.Resources[len(m.task.Resources)-1])
 		m.showForm = false
 		cmds = append(cmds, updateTask(m.task))
 	case forms.StatusFormMsg:
 		m.task.Status = append(m.task.Status, msg.Status)
-		m.lists[status].InsertItem(len(m.task.Status)-1, &m.task.Status[len(m.task.Status)-1])
+		m.lists[status].InsertItem(len(m.task.Status), &m.task.Status[len(m.task.Status)-1])
 		m.showForm = false
 		cmds = append(cmds, updateTask(m.task))
 	case tea.KeyMsg:
@@ -129,11 +127,15 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.showForm {
 				m.showForm = false
 			} else {
-				cmds = append(cmds, router.GotoPage(domain.TaskListPage, ""))
+				cmds = append(cmds, router.GotoPage(domain.TaskListPage, 0))
 				// TODO - add a Reset method
 				m.active = header
 			}
 		case Interact:
+			if m.showForm {
+				break
+			}
+
 			switch m.active {
 			case steps:
 				step := m.lists[steps].SelectedItem().(*domain.Step)
@@ -147,7 +149,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case resources:
 				resource := m.lists[resources].SelectedItem().(*domain.Resource)
 				if resource.Type == domain.WebResource {
-					openLink(resource.Source)
+					resource.OpenLink()
 					m.statusMessage = "opened web link!"
 				} else {
 					m.statusMessage = "unsupported type!"
@@ -166,6 +168,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// nothing for now
 			}
 		case Delete:
+			if m.showForm {
+				break
+			}
+
 			if m.active < header && len(m.lists[m.active].Items()) > 0 {
 				index := m.lists[m.active].Index()
 				switch m.active {
@@ -209,9 +215,8 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func updateTask(task *domain.Task) tea.Cmd {
 	return func() tea.Msg {
 		return shared.SaveStateMsg{
-			Update:   *task,
-			Type:     shared.TaskUpdate,
-			ParentId: "",
+			Update: *task,
+			Type:   shared.ModifyTask,
 		}
 	}
 }
@@ -242,7 +247,7 @@ func setupLists(task *domain.Task) []list.Model {
 	}
 	lists := make([]list.Model, formCount)
 
-	lists[steps] = list.New(_steps, stepDelegate{}, 50, 7)
+	lists[steps] = list.New(_steps, stepDelegate{}, 80, 9)
 	lists[steps].Title = "Steps"
 	lists[steps].SetFilteringEnabled(false)
 	lists[steps].Styles.Title = listTitleStyle
@@ -251,7 +256,7 @@ func setupLists(task *domain.Task) []list.Model {
 	lists[steps].SetShowStatusBar(false)
 	lists[steps].KeyMap.Quit.Unbind()
 
-	lists[resources] = list.New(_resources, resourceDelegate{}, 50, 7)
+	lists[resources] = list.New(_resources, resourceDelegate{}, 80, 7)
 	lists[resources].Title = "Resources"
 	lists[resources].SetFilteringEnabled(false)
 	lists[resources].Styles.Title = listTitleStyle
@@ -260,7 +265,7 @@ func setupLists(task *domain.Task) []list.Model {
 	lists[resources].SetShowStatusBar(false)
 	lists[resources].KeyMap.Quit.Unbind()
 
-	lists[status] = list.New(_status, statusDelegate{}, 50, 5)
+	lists[status] = list.New(_status, statusDelegate{}, 80, 5)
 	lists[status].Title = "Status"
 	lists[status].SetFilteringEnabled(false)
 	lists[status].Styles.Title = listTitleStyle
@@ -285,18 +290,4 @@ func nextSection(active int) int {
 		return header
 	}
 	return header
-}
-
-func openLink(url string) bool {
-	var args []string
-	switch runtime.GOOS {
-	case "darwin":
-		args = []string{"open"}
-	case "windows":
-		args = []string{"cmd", "/c", "start"}
-	default:
-		args = []string{"xdg-open"}
-	}
-	cmd := exec.Command(args[0], append(args[1:], url)...)
-	return cmd.Start() == nil
 }
