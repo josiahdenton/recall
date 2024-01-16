@@ -16,7 +16,7 @@ var (
 		},
 		{
 			Title: "Zettels",
-			Page:  domain.CyclesPage,
+			Page:  domain.ZettelPage,
 		},
 		{
 			Title: "Resources",
@@ -80,7 +80,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyEnter:
 			// TODO go to page
 			option := m.pages.SelectedItem().(*domain.MenuOption)
-			cmd = router.GotoPage(option.Page, 0)
+			if option.Page == domain.ZettelPage { // this kinda sucks...
+				cmd = router.GotoPage(option.Page, 1)
+			} else {
+				cmd = router.GotoPage(option.Page, 0)
+			}
 			cmds = append(cmds, cmd)
 		}
 	}

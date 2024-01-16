@@ -18,6 +18,9 @@ type Repository interface {
 	ModifyResource(domain.Resource)
 	AllResources() []domain.Resource
 	ModifySettings(domain.Settings)
+	AllZettels() []domain.Zettel
+	Zettel(uint) *domain.Zettel
+	ModifyZettel(domain.Zettel)
 	LoadRepository() error
 	//Resource(string) domain.Resource // I don't think I ever would need to get a single resource
 	// Add the following

@@ -24,11 +24,36 @@ type GormInstance struct {
 	db *gorm.DB
 }
 
+func (g GormInstance) ModifyZettel(zettel domain.Zettel) {
+	err := g.db.Save(&zettel).Commit().Error
+	if err != nil {
+		log.Printf("failed to save zettel: %v", err)
+	}
+}
+
+func (g GormInstance) AllZettels() []domain.Zettel {
+	var zettels []domain.Zettel
+	err := g.db.Find(&zettels).Error
+	if err != nil {
+		log.Printf("failed to find all zettels: %v", err)
+	}
+	return zettels
+}
+
+func (g GormInstance) Zettel(id uint) *domain.Zettel {
+	zettel := &domain.Zettel{}
+	err := &g.db.Preload(clause.Associations).First(zettel, id).Error
+	if err != nil {
+		log.Printf("failed to get zettel (%d): %v", id, err)
+	}
+	return zettel
+}
+
 func (g GormInstance) Task(id uint) *domain.Task {
 	task := &domain.Task{}
 	err := g.db.Preload(clause.Associations).First(task, id).Error
 	if err != nil {
-		log.Printf("failed to get task: %v", err)
+		log.Printf("failed to get task (%d): %v", id, err)
 	}
 	return task
 }
@@ -164,7 +189,11 @@ func (g GormInstance) LoadRepository() error {
 	}
 	err = g.db.AutoMigrate(&domain.Task{})
 	if err != nil {
-		return fmt.Errorf("failed to migrate step: %w", err)
+		return fmt.Errorf("failed to migrate task: %w", err)
+	}
+	err = g.db.AutoMigrate(&domain.Zettel{})
+	if err != nil {
+		return fmt.Errorf("failed to migrate zettel: %w", err)
 	}
 
 	return nil
