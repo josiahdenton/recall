@@ -7,21 +7,12 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/josiahdenton/recall/internal/domain"
 	"github.com/josiahdenton/recall/internal/ui/shared"
-	"github.com/josiahdenton/recall/internal/ui/styles"
 	"strings"
 )
 
-type ZettelFormMsg struct {
+type LinkFormMsg struct {
 	Zettel domain.Zettel
 }
-
-var (
-	titleStyle      = styles.PrimaryColor.Copy()
-	formLabelStyle  = styles.SecondaryGray.Copy()
-	errorStyle      = styles.PrimaryColor.Copy()
-	paginationStyle = list.DefaultStyles().PaginationStyle
-	fadedTitleStyle = styles.SecondaryGray.Copy()
-)
 
 const (
 	none = iota
@@ -29,18 +20,18 @@ const (
 	existingZettel
 )
 
-type zettelType = int
+type linkType = int
 
-type createZettelOption struct {
+type linkZettelOption struct {
 	DisplayName string
-	TypeOption  zettelType
+	TypeOption  linkType
 }
 
-func (r *createZettelOption) FilterValue() string {
+func (r *linkZettelOption) FilterValue() string {
 	return ""
 }
 
-func NewZettelForm() ZettelFormModel {
+func NewLinkForm() LinkFormModel {
 	inputName := textinput.New()
 	inputName.Focus()
 	inputName.Width = 60
@@ -56,7 +47,7 @@ func NewZettelForm() ZettelFormModel {
 		return nil
 	}
 
-	options := []createZettelOption{
+	options := []linkZettelOption{
 		{
 			DisplayName: "New Zettel",
 			TypeOption:  newZettel,
@@ -82,28 +73,28 @@ func NewZettelForm() ZettelFormModel {
 	createOptions.SetShowHelp(false)
 	createOptions.KeyMap.Quit.Unbind()
 
-	return ZettelFormModel{
+	return LinkFormModel{
 		nameInput:     inputName,
-		choice:        createZettelOption{},
+		choice:        linkZettelOption{},
 		createOptions: createOptions,
 	}
 
 }
 
-type ZettelFormModel struct {
+type LinkFormModel struct {
 	nameInput     textinput.Model
-	choice        createZettelOption
+	choice        linkZettelOption
 	createOptions list.Model
 	existing      list.Model // populate this depending on choice
 	status        string
 	existingReady bool
 }
 
-func (m ZettelFormModel) Init() tea.Cmd {
+func (m LinkFormModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m ZettelFormModel) View() string {
+func (m LinkFormModel) View() string {
 	var b strings.Builder
 	b.WriteString(titleStyle.Render("Link a Zettel"))
 	b.WriteString("\n")
@@ -121,7 +112,7 @@ func (m ZettelFormModel) View() string {
 	return b.String()
 }
 
-func (m ZettelFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m LinkFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	var cmds []tea.Cmd
 
@@ -149,13 +140,13 @@ func (m ZettelFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.Type {
 		case tea.KeyEsc:
 			// reset
-			m.choice = createZettelOption{}
+			m.choice = linkZettelOption{}
 			m.nameInput.Reset()
 		case tea.KeyEnter:
 			// depends on which model is active...
 			switch m.choice.TypeOption {
 			case none:
-				selected := m.createOptions.SelectedItem().(*createZettelOption)
+				selected := m.createOptions.SelectedItem().(*linkZettelOption)
 				m.choice = *selected
 				if m.choice.TypeOption == existingZettel {
 					cmds = append(cmds, shared.RequestState(shared.LoadZettel, 0))
@@ -166,7 +157,7 @@ func (m ZettelFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					// TODO - clear status
 					break
 				}
-				cmds = append(cmds, linkZettel(domain.NewZettel(m.nameInput.Value())))
+				cmds = append(cmds, linkZettel(domain.Zettel{Name: m.nameInput.Value()}))
 			case existingZettel:
 				selected := m.existing.SelectedItem().(*domain.Zettel)
 				cmds = append(cmds, linkZettel(*selected))
@@ -195,6 +186,6 @@ func toItemList(zettels []domain.Zettel) []list.Item {
 
 func linkZettel(zettel domain.Zettel) tea.Cmd {
 	return func() tea.Msg {
-		return ZettelFormMsg{Zettel: zettel}
+		return LinkFormMsg{Zettel: zettel}
 	}
 }

@@ -1,81 +1,51 @@
 package zettel
 
 import (
-	"fmt"
 	"github.com/charmbracelet/bubbles/list"
-	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/josiahdenton/recall/internal/adapters/editors"
-	"github.com/josiahdenton/recall/internal/adapters/editors/nvim"
 	"github.com/josiahdenton/recall/internal/domain"
+	forms2 "github.com/josiahdenton/recall/internal/ui/forms"
 	"github.com/josiahdenton/recall/internal/ui/router"
 	"github.com/josiahdenton/recall/internal/ui/shared"
 	"github.com/josiahdenton/recall/internal/ui/styles"
-	"github.com/josiahdenton/recall/internal/ui/zettel/forms"
-	"log"
-	"os"
-	"os/exec"
 	"strings"
 )
 
 var (
-	paginationStyle = list.DefaultStyles().PaginationStyle
-	viewportStyle   = lipgloss.NewStyle().
-			Padding(2).
-			Width(80).
-			Height(20).
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("#3a3b5b"))
-	alignCenterStyle    = lipgloss.NewStyle().Align(lipgloss.Center)
-	activeViewportStyle = viewportStyle.Copy().BorderForeground(lipgloss.Color("#D120AF"))
-	titleStyle          = styles.PrimaryColor.Copy().Align(lipgloss.Center)
-	defaultLinksTitle   = styles.SecondaryGray.Copy()
-	activeLinksTitle    = styles.PrimaryColor.Copy()
+	paginationStyle  = list.DefaultStyles().PaginationStyle
+	titleStyle       = styles.PrimaryColor.Copy().Align(lipgloss.Center)
+	defaultListTitle = styles.SecondaryGray.Copy()
+	activeListTitle  = styles.PrimaryColor.Copy()
+	// windows for zettel concepts
+	defaultConceptWindowStyle = lipgloss.NewStyle().Padding(2).Width(80).Height(20).Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#3a3b5b"))
+	activeConceptWindowStyle  = lipgloss.NewStyle().Padding(2).Width(80).Height(20).Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#D120AF"))
 )
 
 const (
 	content = iota
 	links
+	resources
 )
 
 type section = int
 
 func New() Model {
-	vp := viewport.New(80, 20)
-	vp.Style = activeViewportStyle
-
-	renderer, err := glamour.NewTermRenderer(
-		glamour.WithAutoStyle(),
-		glamour.WithWordWrap(50),
-	)
-	if err != nil {
-		log.Printf("failed to create glamour renderer: %v", err)
-		os.Exit(1)
-	}
-
-	vp.SetContent("no content")
-
 	return Model{
-		form:     forms.NewZettelForm(),
-		editor:   nvim.New(),
-		vp:       vp,
-		renderer: renderer,
+		zettelForm:  forms2.NewLinkForm(),
+		conceptForm: forms2.NewConceptForm(),
 	}
 }
 
 type Model struct {
-	zettel     *domain.Zettel
-	form       tea.Model
-	links      list.Model
-	showForm   bool
-	ready      bool
-	active     section
-	editActive bool
-	editor     editors.Editor // not needed anymore
-	vp         viewport.Model
-	renderer   *glamour.TermRenderer
+	zettel      *domain.Zettel
+	zettelForm  tea.Model
+	conceptForm tea.Model
+	links       list.Model
+	resources   list.Model
+	showForm    bool
+	ready       bool
+	active      section
 }
 
 func (m Model) Init() tea.Cmd {
@@ -86,11 +56,15 @@ func (m Model) View() string {
 	// TODO - tie in glamour for displaying the content
 	var b strings.Builder
 	if m.showForm {
-		b.WriteString(m.form.View())
+		b.WriteString(m.zettelForm.View())
 	} else {
 		b.WriteString(titleStyle.Render(m.zettel.Name))
 		b.WriteString("\n")
-		b.WriteString(alignCenterStyle.Render(m.vp.View()))
+		if m.active == content {
+			b.WriteString(activeConceptWindowStyle.Render(m.zettel.Concept))
+		} else {
+			b.WriteString(defaultConceptWindowStyle.Render(m.zettel.Concept))
+		}
 		b.WriteString("\n")
 		b.WriteString(m.links.View())
 	}
@@ -100,31 +74,39 @@ func (m Model) View() string {
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	var cmds []tea.Cmd
+	focusMoved := false
 
 	switch msg := msg.(type) {
 	case router.LoadPageMsg:
 		zettel := msg.State.(*domain.Zettel)
 		m.zettel = zettel
-		m.links = list.New(toItemList(m.zettel.Links), zettelDelegate{}, 80, 30)
+		m.links = list.New(linksToItemList(m.zettel.Links), zettelDelegate{}, 80, 7)
 		m.links.Title = "Links"
 		m.links.Styles.PaginationStyle = paginationStyle
-		m.links.Styles.Title = defaultLinksTitle
+		m.links.Styles.Title = defaultListTitle
 		m.links.SetShowHelp(false)
+		m.links.SetFilteringEnabled(false)
+		m.links.SetShowStatusBar(false)
 		m.links.KeyMap.Quit.Unbind()
-		cmds = append(cmds, loadContent(m.zettel))
-	case zettelContentMsg:
-		content, err := m.renderer.Render(msg.content)
-		if err != nil {
-			log.Printf("failed render content: %v", err)
-		} else {
-			m.vp.SetContent(content)
-			m.ready = true
-		}
-	case forms.ZettelFormMsg:
+
+		m.resources = list.New(resourcesToItemList(m.zettel.Resources), zettelDelegate{}, 80, 5)
+		m.resources.Title = "Resources"
+		m.resources.Styles.PaginationStyle = paginationStyle
+		m.resources.Styles.Title = defaultListTitle
+		m.resources.SetShowHelp(false)
+		m.resources.SetFilteringEnabled(false)
+		m.resources.SetShowStatusBar(false)
+		m.resources.KeyMap.Quit.Unbind()
+		m.ready = true
+
+	case forms2.ConceptFormMsg:
+		m.zettel.Concept = msg.Concept
+		cmds = append(cmds, modifyZettel(*m.zettel))
+	case forms2.LinkFormMsg:
 		// save this zettel with new link...
 		m.zettel.Links = append(m.zettel.Links, &msg.Zettel)
 		m.links.InsertItem(len(m.zettel.Links), m.zettel.Links[len(m.zettel.Links)-1])
-		cmds = append(cmds, modifyLinks(*m.zettel))
+		cmds = append(cmds, modifyZettel(*m.zettel))
 	case tea.KeyMsg:
 		if msg.Type == tea.KeyEsc && m.showForm {
 			m.showForm = false
@@ -137,17 +119,21 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Batch(cmds...)
 	}
 
-	if m.showForm {
-		m.form, cmd = m.form.Update(msg)
+	if m.showForm && m.active == links {
+		m.zettelForm, cmd = m.zettelForm.Update(msg)
+		cmds = append(cmds, cmd)
+		return m, tea.Batch(cmds...)
+	} else if m.showForm && m.active == content {
+		m.conceptForm, cmd = m.conceptForm.Update(msg)
 		cmds = append(cmds, cmd)
 		return m, tea.Batch(cmds...)
 	}
 
-	if m.active == content {
-		m.vp, cmd = m.vp.Update(msg)
-		cmds = append(cmds, cmd)
-	} else if m.active == links {
+	if m.active == links {
 		m.links, cmd = m.links.Update(msg)
+		cmds = append(cmds, cmd)
+	} else if m.active == resources {
+		m.resources, cmd = m.resources.Update(msg)
 		cmds = append(cmds, cmd)
 	}
 
@@ -156,25 +142,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.Type {
 		case tea.KeyTab:
 			m.active = nextSection(m.active)
-			if m.active == content {
-				m.vp.Style = activeViewportStyle
-				m.links.Styles.Title = defaultLinksTitle
-			} else if m.active == links {
-				m.vp.Style = viewportStyle
-				m.links.Styles.Title = activeLinksTitle
-			}
+			focusMoved = true
 		case tea.KeyShiftTab:
 			m.active = nextSection(m.active)
-			if m.active == content {
-				m.vp.Style = activeViewportStyle
-				m.links.Styles.Title = defaultLinksTitle
-			} else if m.active == links {
-				m.vp.Style = viewportStyle
-				m.links.Styles.Title = activeLinksTitle
-			}
+			focusMoved = true
 		case tea.KeyEnter:
 			if m.active == content {
-				cmds = append(cmds, editZettelContent(m.zettel))
+				cmds = append(cmds, forms2.AttachConcept(m.zettel.Concept))
+				m.showForm = true
 			} else if m.active == links {
 				selected := m.links.SelectedItem().(*domain.Zettel)
 				cmds = append(cmds, router.GotoPage(domain.ZettelPage, selected.ID))
@@ -189,62 +164,24 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
+	if focusMoved {
+		switch m.active {
+		case content:
+			m.links.Styles.Title = defaultListTitle
+			m.resources.Styles.Title = defaultListTitle
+		case links:
+			m.links.Styles.Title = activeListTitle
+			m.resources.Styles.Title = defaultListTitle
+		case resources:
+			m.links.Styles.Title = defaultListTitle
+			m.resources.Styles.Title = activeListTitle
+		}
+	}
+
 	return m, tea.Batch(cmds...)
 }
 
-func editZettelContent(zettel *domain.Zettel) tea.Cmd {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		log.Printf("editZettelContent: failed to get user home dir: %v", err)
-	}
-	// need to make this a setting...
-	path := fmt.Sprintf("%s/%s/%s", home, "recall-notes", zettel.ContentLocation)
-	// TODO - add err handling
-	cmd := exec.Command("nvim")
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Args = append(cmd.Args, path)
-	return tea.ExecProcess(cmd, func(err error) tea.Msg {
-		return loadContent(zettel)
-	})
-}
-
-type zettelContentMsg struct {
-	content string
-}
-
-func loadContent(zettel *domain.Zettel) tea.Cmd {
-	return func() tea.Msg {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			log.Printf("editZettelContent: failed to get user home dir: %v", err)
-			return zettelContentMsg{}
-		}
-		// need to make this a setting...
-		path := fmt.Sprintf("%s/%s/%s", home, "recall-notes", zettel.ContentLocation)
-		// what if the path does not exist? then the file needs to be created...
-		var bytes []byte
-		for {
-			bytes, err = os.ReadFile(path)
-			if os.IsNotExist(err) {
-				f, err := os.Create(path)
-				if err != nil {
-					log.Printf("failed creating file (%s) for reason: %v", path, err)
-				}
-				f.Close()
-			} else if err != nil {
-				log.Printf("failed openinng file (%s) for reason: %v", path, err)
-				return zettelContentMsg{}
-			} else {
-				break
-			}
-		}
-		log.Printf("content: %v", string(bytes))
-		return zettelContentMsg{content: string(bytes)}
-	}
-}
-
-func modifyLinks(zettel domain.Zettel) tea.Cmd {
+func modifyZettel(zettel domain.Zettel) tea.Cmd {
 	return func() tea.Msg {
 		return shared.SaveStateMsg{
 			Update: zettel,
@@ -260,10 +197,19 @@ func nextSection(section section) section {
 	return content
 }
 
-func toItemList(links []*domain.Zettel) []list.Item {
+func linksToItemList(links []*domain.Zettel) []list.Item {
 	items := make([]list.Item, len(links))
 	for i := range links {
 		items[i] = links[i]
+	}
+	return items
+}
+
+func resourcesToItemList(resources []domain.Resource) []list.Item {
+	items := make([]list.Item, len(resources))
+	for i := range resources {
+		item := &resources[i]
+		items[i] = item
 	}
 	return items
 }

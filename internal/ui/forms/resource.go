@@ -183,7 +183,7 @@ func (m ResourceModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				// TODO fix the <nil>
 				if m.inputs[name].Err != nil || m.inputs[source].Err != nil {
-					m.status = errorStyle.Render(fmt.Sprintf("%v, %v", m.inputs[name].Err, m.inputs[source].Err))
+					m.status = fmt.Sprintf("%v, %v", m.inputs[name].Err, m.inputs[source].Err)
 				} else {
 					cmds = append(cmds, addResourceToTask(domain.Resource{
 						Name:   m.inputs[name].Value(),

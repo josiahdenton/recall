@@ -11,4 +11,5 @@ const (
 	AccomplishmentPage
 	ResourcesPage
 	ZettelPage
+	ZettelsPage
 )

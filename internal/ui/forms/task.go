@@ -19,8 +19,6 @@ const (
 	priority
 )
 
-const longDateForm = "Jan 2, 2006 at 3:04pm (MST)"
-
 var (
 	priorityKeys = []string{"None", "Low", "High"}
 )

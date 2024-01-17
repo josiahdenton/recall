@@ -5,7 +5,7 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/josiahdenton/recall/internal/domain"
-	"github.com/josiahdenton/recall/internal/ui/projects/task/forms"
+	"github.com/josiahdenton/recall/internal/ui/forms"
 	"github.com/josiahdenton/recall/internal/ui/router"
 	"github.com/josiahdenton/recall/internal/ui/shared"
 	"github.com/josiahdenton/recall/internal/ui/styles"
@@ -149,7 +149,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case resources:
 				resource := m.lists[resources].SelectedItem().(*domain.Resource)
 				if resource.Type == domain.WebResource {
-					resource.OpenLink()
+					resource.Open()
 					m.statusMessage = "opened web link!"
 				} else {
 					m.statusMessage = "unsupported type!"

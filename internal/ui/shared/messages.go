@@ -19,8 +19,6 @@ type SaveStateMsg struct {
 	Type   ModifyType
 }
 
-type LoadRepositoryMsg struct{}
-
 type DeleteStateMsg struct {
 	Type ModifyType
 	ID   uint

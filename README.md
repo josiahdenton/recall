@@ -18,6 +18,7 @@ will add demos soon...
 - [ ] standardize patterns, document them
 - [ ] make the forms their own pages
 - [ ] global status messages for errors / forms
+- [ ] consolidate forms, no need to have them separated
 - [ ] add releases
 - [ ] add settings
 - [ ] refinish accomplishments design

@@ -16,11 +16,11 @@ func (d createZettelOptionDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd {
 	return nil
 }
 func (d createZettelOptionDelegate) Render(w io.Writer, m list.Model, index int, item list.Item) {
-	option, ok := item.(*createZettelOption)
+	option, ok := item.(*linkZettelOption)
 	if !ok {
 		return
 	}
-	fmt.Fprintf(w, renderOption(option, index == m.Index()))
+	fmt.Fprintf(w, renderLinkOption(option, index == m.Index()))
 }
 
 type zettelDelegate struct{}

@@ -27,6 +27,7 @@ type Task struct {
 	Priority         Priority
 	Active           bool
 	Archive          bool
+	Favorite         bool
 	Resources        []Resource
 	Status           []Status
 	Steps            []Step

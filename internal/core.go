@@ -10,12 +10,13 @@ import (
 	"github.com/josiahdenton/recall/internal/ui/performance/accomplishment"
 	"github.com/josiahdenton/recall/internal/ui/performance/accomplishments"
 	"github.com/josiahdenton/recall/internal/ui/performance/cycles"
-	taskdetailed "github.com/josiahdenton/recall/internal/ui/projects/task"
-	tasklist "github.com/josiahdenton/recall/internal/ui/projects/tasks"
 	"github.com/josiahdenton/recall/internal/ui/resources"
 	"github.com/josiahdenton/recall/internal/ui/router"
 	"github.com/josiahdenton/recall/internal/ui/shared"
+	taskdetailed "github.com/josiahdenton/recall/internal/ui/task"
+	tasklist "github.com/josiahdenton/recall/internal/ui/tasks"
 	"github.com/josiahdenton/recall/internal/ui/zettel"
+	"github.com/josiahdenton/recall/internal/ui/zettels"
 	"log"
 	"os"
 )
@@ -47,7 +48,6 @@ func New() Model {
 		log.Printf("failed to load repository %v", err)
 		os.Exit(1)
 	}
-	setupRootZettel(instance)
 
 	return Model{
 		taskList:        tasklist.New(),
@@ -58,15 +58,9 @@ func New() Model {
 		resources:       resources.New(),
 		accomplishment:  accomplishment.Model{},
 		zettel:          zettel.New(),
+		zettels:         zettels.New(),
 		page:            domain.MenuPage,
 		repository:      instance,
-	}
-}
-
-func setupRootZettel(repository repository.Repository) {
-	if len(repository.AllZettels()) == 0 {
-		// save a new zettel
-		repository.ModifyZettel(domain.NewZettel("root"))
 	}
 }
 
@@ -79,6 +73,7 @@ type Model struct {
 	accomplishment  tea.Model
 	resources       tea.Model
 	zettel          tea.Model
+	zettels         tea.Model
 	repository      repository.Repository
 	history         router.History
 	page            domain.Page
@@ -110,6 +105,8 @@ func (m Model) View() string {
 		pageModel = m.accomplishment
 	case domain.ZettelPage:
 		pageModel = m.zettel
+	case domain.ZettelsPage:
+		pageModel = m.zettels
 	}
 	return windowStyle.Width(m.width).Height(m.height).Render(pageModel.View())
 }
@@ -121,18 +118,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyCtrlC:
-			// TODO may have to "pause" when I open another app inside the terminal
 			return m, tea.Quit
 		}
 	case tea.WindowSizeMsg:
 		m.height = msg.Height
 		m.width = msg.Width
-	case shared.LoadRepositoryMsg:
-		err := m.repository.LoadRepository()
-		// TODO - have err message go to global status message handler
-		if err != nil {
-			log.Printf("failed to LoadRepository: %v", err)
-		}
 	case shared.SaveStateMsg:
 		m.updateState(msg)
 	case shared.DeleteStateMsg:
@@ -142,7 +132,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case router.GotoPageMsg:
 		m.history.Pages = append(m.history.Pages, msg)
 		cmds = append(cmds, m.loadPage(msg))
-	case router.PreviousPageMsg:
+	case router.PreviousPageMsg: // TODO - implement history for zettels to work correctly
 		// previous page is 1 page before current
 		//if len(m.history.Pages) > 1 {
 		//	last := m.history.Pages[len(m.history.Pages)-2]
@@ -180,6 +170,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, cmd)
 	case domain.ZettelPage:
 		m.zettel, cmd = m.zettel.Update(msg)
+		cmds = append(cmds, cmd)
+	case domain.ZettelsPage:
+		m.zettels, cmd = m.zettels.Update(msg)
 		cmds = append(cmds, cmd)
 	}
 
@@ -224,6 +217,8 @@ func (m Model) loadPage(msg router.GotoPageMsg) tea.Cmd {
 			state = m.repository.AllResources()
 		case domain.ZettelPage:
 			state = m.repository.Zettel(msg.RequestedItemId)
+		case domain.ZettelsPage:
+			state = m.repository.AllZettels()
 		}
 		return router.LoadPageMsg{
 			Page:  msg.Page,
@@ -272,5 +267,12 @@ func (m Model) deleteState(msg shared.DeleteStateMsg) {
 	switch msg.Type {
 	case shared.ModifyTask:
 		m.repository.DeleteTask(msg.ID)
+	case shared.ModifyStep:
+	case shared.ModifyResource:
+	case shared.ModifyStatus:
+	case shared.ModifyCycle:
+	case shared.ModifyZettel:
+	case shared.ModifyAccomplishment:
+	case shared.ModifySettings:
 	}
 }
