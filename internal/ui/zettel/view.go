@@ -5,7 +5,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/josiahdenton/recall/internal/domain"
-	forms2 "github.com/josiahdenton/recall/internal/ui/forms"
+	"github.com/josiahdenton/recall/internal/ui/forms"
 	"github.com/josiahdenton/recall/internal/ui/router"
 	"github.com/josiahdenton/recall/internal/ui/shared"
 	"github.com/josiahdenton/recall/internal/ui/styles"
@@ -14,12 +14,14 @@ import (
 
 var (
 	paginationStyle  = list.DefaultStyles().PaginationStyle
-	titleStyle       = styles.PrimaryColor.Copy().Align(lipgloss.Center)
+	titleStyle       = styles.SecondaryColor.Copy().PaddingLeft(8)
 	defaultListTitle = styles.SecondaryGray.Copy()
 	activeListTitle  = styles.PrimaryColor.Copy()
-	// windows for zettel concepts
-	defaultConceptWindowStyle = lipgloss.NewStyle().Padding(2).Width(80).Height(20).Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#3a3b5b"))
-	activeConceptWindowStyle  = lipgloss.NewStyle().Padding(2).Width(80).Height(20).Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#D120AF"))
+	// windows for zettel
+	alignContent              = lipgloss.NewStyle().Width(100).Align(lipgloss.Center).PaddingRight(4)
+	leftPad                   = lipgloss.NewStyle().PaddingLeft(8)
+	defaultConceptWindowStyle = lipgloss.NewStyle().Padding(1).Width(80).Height(20).Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#3a3b5b"))
+	activeConceptWindowStyle  = lipgloss.NewStyle().Padding(1).Width(80).Height(20).Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#D120AF"))
 )
 
 const (
@@ -32,20 +34,22 @@ type section = int
 
 func New() Model {
 	return Model{
-		zettelForm:  forms2.NewLinkForm(),
-		conceptForm: forms2.NewConceptForm(),
+		linkZettelForm: forms.NewLinkForm(),
+		conceptForm:    forms.NewConceptForm(),
+		resourceForm:   forms.NewResourceForm(),
 	}
 }
 
 type Model struct {
-	zettel      *domain.Zettel
-	zettelForm  tea.Model
-	conceptForm tea.Model
-	links       list.Model
-	resources   list.Model
-	showForm    bool
-	ready       bool
-	active      section
+	zettel         *domain.Zettel
+	linkZettelForm tea.Model
+	conceptForm    tea.Model
+	resourceForm   tea.Model
+	links          list.Model
+	resources      list.Model
+	showForm       bool
+	ready          bool
+	active         section
 }
 
 func (m Model) Init() tea.Cmd {
@@ -55,18 +59,24 @@ func (m Model) Init() tea.Cmd {
 func (m Model) View() string {
 	// TODO - tie in glamour for displaying the content
 	var b strings.Builder
-	if m.showForm {
-		b.WriteString(m.zettelForm.View())
+	if m.showForm && m.active == links {
+		b.WriteString(m.linkZettelForm.View())
+	} else if m.showForm && m.active == resources {
+		b.WriteString(m.resourceForm.View())
+	} else if m.showForm && m.active == content {
+		b.WriteString(m.conceptForm.View())
 	} else {
 		b.WriteString(titleStyle.Render(m.zettel.Name))
 		b.WriteString("\n")
 		if m.active == content {
-			b.WriteString(activeConceptWindowStyle.Render(m.zettel.Concept))
-		} else {
-			b.WriteString(defaultConceptWindowStyle.Render(m.zettel.Concept))
+			b.WriteString(alignContent.Render(activeConceptWindowStyle.Render(m.zettel.Concept)))
+		} else if m.active != content {
+			b.WriteString(alignContent.Render(defaultConceptWindowStyle.Render(m.zettel.Concept)))
 		}
+		b.WriteString("\n\n")
+		b.WriteString(leftPad.Render(m.links.View()))
 		b.WriteString("\n")
-		b.WriteString(m.links.View())
+		b.WriteString(leftPad.Render(m.resources.View()))
 	}
 	return styles.WindowStyle.Render(b.String())
 }
@@ -89,7 +99,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.links.SetShowStatusBar(false)
 		m.links.KeyMap.Quit.Unbind()
 
-		m.resources = list.New(resourcesToItemList(m.zettel.Resources), zettelDelegate{}, 80, 5)
+		m.resources = list.New(resourcesToItemList(m.zettel.Resources), resourceDelegate{}, 80, 5)
 		m.resources.Title = "Resources"
 		m.resources.Styles.PaginationStyle = paginationStyle
 		m.resources.Styles.Title = defaultListTitle
@@ -99,19 +109,25 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.resources.KeyMap.Quit.Unbind()
 		m.ready = true
 
-	case forms2.ConceptFormMsg:
+	case forms.ConceptFormMsg:
 		m.zettel.Concept = msg.Concept
 		cmds = append(cmds, modifyZettel(*m.zettel))
-	case forms2.LinkFormMsg:
-		// save this zettel with new link...
+		m.showForm = false
+	case forms.ResourceFormMsg:
+		m.zettel.Resources = append(m.zettel.Resources, msg.Resource)
+		m.resources.InsertItem(len(m.zettel.Resources), &m.zettel.Resources[len(m.zettel.Resources)-1])
+		cmds = append(cmds, modifyZettel(*m.zettel))
+		m.showForm = false
+	case forms.LinkFormMsg:
 		m.zettel.Links = append(m.zettel.Links, &msg.Zettel)
 		m.links.InsertItem(len(m.zettel.Links), m.zettel.Links[len(m.zettel.Links)-1])
 		cmds = append(cmds, modifyZettel(*m.zettel))
+		m.showForm = false
 	case tea.KeyMsg:
 		if msg.Type == tea.KeyEsc && m.showForm {
 			m.showForm = false
 		} else if msg.Type == tea.KeyEsc {
-			cmds = append(cmds, router.GotoPage(domain.MenuPage, 0))
+			cmds = append(cmds, router.GotoPage(domain.ZettelsPage, 0))
 		}
 	}
 
@@ -120,11 +136,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	if m.showForm && m.active == links {
-		m.zettelForm, cmd = m.zettelForm.Update(msg)
+		m.linkZettelForm, cmd = m.linkZettelForm.Update(msg)
 		cmds = append(cmds, cmd)
 		return m, tea.Batch(cmds...)
 	} else if m.showForm && m.active == content {
 		m.conceptForm, cmd = m.conceptForm.Update(msg)
+		cmds = append(cmds, cmd)
+		return m, tea.Batch(cmds...)
+	} else if m.showForm && m.active == resources {
+		m.resourceForm, cmd = m.resourceForm.Update(msg)
 		cmds = append(cmds, cmd)
 		return m, tea.Batch(cmds...)
 	}
@@ -141,24 +161,27 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyTab:
-			m.active = nextSection(m.active)
+			m.active = nextSection(m.active, true)
 			focusMoved = true
 		case tea.KeyShiftTab:
-			m.active = nextSection(m.active)
+			m.active = nextSection(m.active, false)
 			focusMoved = true
 		case tea.KeyEnter:
 			if m.active == content {
-				cmds = append(cmds, forms2.AttachConcept(m.zettel.Concept))
+				cmds = append(cmds, forms.AttachConcept(m.zettel.Concept))
 				m.showForm = true
 			} else if m.active == links {
 				selected := m.links.SelectedItem().(*domain.Zettel)
 				cmds = append(cmds, router.GotoPage(domain.ZettelPage, selected.ID))
+			} else if m.active == resources {
+				selected := m.resources.SelectedItem().(*domain.Resource)
+				selected.Open()
 			}
 		}
 
 		switch msg.String() {
 		case "a": // add zettel
-			if m.active == links {
+			if m.active == links || m.active == resources {
 				m.showForm = true
 			}
 		}
@@ -190,8 +213,18 @@ func modifyZettel(zettel domain.Zettel) tea.Cmd {
 	}
 }
 
-func nextSection(section section) section {
-	if section == content {
+func nextSection(section section, forward bool) section {
+	if section == content && forward {
+		return links
+	} else if section == content && !forward {
+		return resources
+	} else if section == links && forward {
+		return resources
+	} else if section == links && !forward {
+		return content
+	} else if section == resources && forward {
+		return content
+	} else if section == resources && !forward {
 		return links
 	}
 	return content

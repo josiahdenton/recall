@@ -22,3 +22,18 @@ func (d zettelDelegate) Render(w io.Writer, m list.Model, index int, item list.I
 	}
 	fmt.Fprintf(w, renderZettel(zettel, index == m.Index()))
 }
+
+type resourceDelegate struct{}
+
+func (d resourceDelegate) Height() int  { return 1 }
+func (d resourceDelegate) Spacing() int { return 1 }
+func (d resourceDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd {
+	return nil
+}
+func (d resourceDelegate) Render(w io.Writer, m list.Model, index int, item list.Item) {
+	zettel, ok := item.(*domain.Resource)
+	if !ok {
+		return
+	}
+	fmt.Fprintf(w, renderResource(zettel, index == m.Index()))
+}

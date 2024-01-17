@@ -189,6 +189,8 @@ func (m Model) fetchState(msg shared.RequestStateMsg) tea.Cmd {
 			} else {
 				state = m.repository.AllZettels()
 			}
+		case shared.LoadResource:
+			state = m.repository.AllResources()
 		}
 
 		return shared.LoadedStateMsg{State: state}
@@ -255,6 +257,8 @@ func (m Model) updateState(msg shared.SaveStateMsg) {
 			m.repository.ModifyAccomplishment(update)
 		}
 	case shared.ModifyStep:
+		update := msg.Update.(domain.Step)
+		m.repository.ModifyStep(update)
 	case shared.ModifyResource:
 	case shared.ModifyStatus:
 	case shared.ModifyZettel:
@@ -268,8 +272,11 @@ func (m Model) deleteState(msg shared.DeleteStateMsg) {
 	case shared.ModifyTask:
 		m.repository.DeleteTask(msg.ID)
 	case shared.ModifyStep:
+		m.repository.DeleteTaskStep(msg.Parent.(*domain.Task), msg.Child.(*domain.Step))
 	case shared.ModifyResource:
+		m.repository.DeleteTaskResource(msg.Parent.(*domain.Task), msg.Child.(*domain.Resource))
 	case shared.ModifyStatus:
+		m.repository.DeleteTaskStatus(msg.Parent.(*domain.Task), msg.Child.(*domain.Status))
 	case shared.ModifyCycle:
 	case shared.ModifyZettel:
 	case shared.ModifyAccomplishment:

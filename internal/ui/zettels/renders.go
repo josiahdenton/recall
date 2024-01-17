@@ -7,13 +7,13 @@ import (
 )
 
 var (
-	selectedZettelStyle = styles.SecondaryColor.Copy().PaddingLeft(2)
-	defaultZettelStyle  = styles.PrimaryGray.Copy().PaddingLeft(2)
-	cursorStyle         = styles.PrimaryColor.Copy().PaddingLeft(2)
+	selectedZettelStyle = styles.SecondaryColor.Copy()
+	defaultZettelStyle  = styles.PrimaryGray.Copy()
+	cursorStyle         = styles.PrimaryColor.Copy().PaddingRight(1)
 )
 
 func renderZettel(zettel *domain.Zettel, selected bool) string {
-	cursor := ""
+	cursor := " "
 	style := defaultZettelStyle
 	if selected {
 		style = selectedZettelStyle

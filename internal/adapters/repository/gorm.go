@@ -24,6 +24,34 @@ type GormInstance struct {
 	db *gorm.DB
 }
 
+func (g GormInstance) DeleteTaskResource(task *domain.Task, resource *domain.Resource) {
+	err := g.db.Model(task).Association("Resources").Delete(resource)
+	if err != nil {
+		log.Printf("failed to delete resource (%d) associated with task (%d) due to: %+v", task.ID, resource.ID, err)
+	}
+}
+
+func (g GormInstance) DeleteTaskStep(task *domain.Task, step *domain.Step) {
+	err := g.db.Model(task).Association("Steps").Delete(step)
+	if err != nil {
+		log.Printf("failed to delete resource (%d) associated with task (%d) due to: %+v", task.ID, step.ID, err)
+	}
+}
+
+func (g GormInstance) DeleteTaskStatus(task *domain.Task, status *domain.Status) {
+	err := g.db.Model(task).Association("Status").Delete(status)
+	if err != nil {
+		log.Printf("failed to delete resource (%d) associated with task (%d) due to: %+v", task.ID, status.ID, err)
+	}
+}
+
+func (g GormInstance) ModifyStep(step domain.Step) {
+	err := g.db.Save(&step).Commit().Error
+	if err != nil {
+		log.Printf("failed to save step: %v", err)
+	}
+}
+
 func (g GormInstance) ModifyZettel(zettel domain.Zettel) {
 	err := g.db.Save(&zettel).Commit().Error
 	if err != nil {
@@ -44,7 +72,7 @@ func (g GormInstance) Zettel(id uint) *domain.Zettel {
 	zettel := &domain.Zettel{}
 	err := &g.db.Preload(clause.Associations).First(zettel, id).Error
 	if err != nil {
-		log.Printf("failed to get zettel (%d): %v", id, err)
+		log.Printf("failed to get zettel (%d): %+v", id, err)
 	}
 	return zettel
 }
@@ -99,7 +127,7 @@ func (g GormInstance) ModifyTask(task domain.Task) {
 
 func (g GormInstance) AllTasks() []domain.Task {
 	var tasks []domain.Task
-	err := g.db.Where("archive = ?", false).Find(&tasks)
+	err := g.db.Where("archive = ?", false).Find(&tasks).Error
 	if err != nil {
 		log.Printf("failed to get all tasks: %v", err)
 	}

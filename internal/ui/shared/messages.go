@@ -22,12 +22,17 @@ type SaveStateMsg struct {
 type DeleteStateMsg struct {
 	Type ModifyType
 	ID   uint
+	// Parent of the association removal
+	Parent any
+	// Child of the association removal
+	Child any
 }
 
 type LoadType = int
 
 const (
 	LoadZettel = iota
+	LoadResource
 )
 
 type RequestStateMsg struct {

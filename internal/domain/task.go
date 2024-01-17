@@ -28,7 +28,7 @@ type Task struct {
 	Active           bool
 	Archive          bool
 	Favorite         bool
-	Resources        []Resource
+	Resources        []Resource `gorm:"many2many:task_resources"`
 	Status           []Status
 	Steps            []Step
 	AccomplishmentID uint

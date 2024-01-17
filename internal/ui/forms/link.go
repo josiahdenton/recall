@@ -14,17 +14,9 @@ type LinkFormMsg struct {
 	Zettel domain.Zettel
 }
 
-const (
-	none = iota
-	newZettel
-	existingZettel
-)
-
-type linkType = int
-
 type linkZettelOption struct {
 	DisplayName string
-	TypeOption  linkType
+	AttachBy    attachMethod
 }
 
 func (r *linkZettelOption) FilterValue() string {
@@ -50,11 +42,11 @@ func NewLinkForm() LinkFormModel {
 	options := []linkZettelOption{
 		{
 			DisplayName: "New Zettel",
-			TypeOption:  newZettel,
+			AttachBy:    newItem,
 		},
 		{
 			DisplayName: "Existing Zettel",
-			TypeOption:  existingZettel,
+			AttachBy:    existingItem,
 		},
 	}
 
@@ -64,7 +56,7 @@ func NewLinkForm() LinkFormModel {
 		items[i] = item
 	}
 
-	createOptions := list.New(items, createZettelOptionDelegate{}, 50, 6)
+	createOptions := list.New(items, createZettelOptionDelegate{}, 50, 10)
 	createOptions.Title = "attach one of the following types"
 	createOptions.SetShowStatusBar(false)
 	createOptions.SetFilteringEnabled(false)
@@ -101,9 +93,9 @@ func (m LinkFormModel) View() string {
 	b.WriteString(m.createOptions.View())
 	b.WriteString("\n")
 	b.WriteString(titleStyle.Render(fmt.Sprintf("linking a zettel of type: %s", m.choice.DisplayName)))
-	if m.choice.TypeOption == existingZettel && m.existingReady {
+	if m.choice.AttachBy == existingItem && m.existingReady {
 		b.WriteString(m.existing.View())
-	} else if m.choice.TypeOption == newZettel {
+	} else if m.choice.AttachBy == newItem {
 		b.WriteString(m.nameInput.View())
 	}
 	b.WriteString("\n")
@@ -116,7 +108,7 @@ func (m LinkFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	var cmds []tea.Cmd
 
-	if m.choice.TypeOption == none {
+	if m.choice.AttachBy == none {
 		m.createOptions, cmd = m.createOptions.Update(msg)
 		cmds = append(cmds, cmd)
 	}
@@ -124,10 +116,8 @@ func (m LinkFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case shared.LoadedStateMsg:
 		zettels := msg.State.([]domain.Zettel)
-		m.existing = list.New(toItemList(zettels), createZettelOptionDelegate{}, 50, 10)
+		m.existing = list.New(linksToItemList(zettels), zettelDelegate{}, 50, 10)
 		m.existing.Title = "attach one of the following types"
-		m.existing.SetShowStatusBar(false)
-		m.existing.SetFilteringEnabled(false)
 		m.existing.Styles.PaginationStyle = paginationStyle
 		m.existing.Styles.Title = fadedTitleStyle
 		m.existing.SetShowHelp(false)
@@ -144,38 +134,38 @@ func (m LinkFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.nameInput.Reset()
 		case tea.KeyEnter:
 			// depends on which model is active...
-			switch m.choice.TypeOption {
+			switch m.choice.AttachBy {
 			case none:
 				selected := m.createOptions.SelectedItem().(*linkZettelOption)
 				m.choice = *selected
-				if m.choice.TypeOption == existingZettel {
+				if m.choice.AttachBy == existingItem {
 					cmds = append(cmds, shared.RequestState(shared.LoadZettel, 0))
 				}
-			case newZettel:
+			case newItem:
 				if m.nameInput.Err != nil {
 					m.status = "missing name for new zettel"
 					// TODO - clear status
 					break
 				}
 				cmds = append(cmds, linkZettel(domain.Zettel{Name: m.nameInput.Value()}))
-			case existingZettel:
+			case existingItem:
 				selected := m.existing.SelectedItem().(*domain.Zettel)
 				cmds = append(cmds, linkZettel(*selected))
 			}
 		}
 	}
 
-	if m.choice.TypeOption == newZettel {
+	if m.choice.AttachBy == newItem {
 		m.nameInput, cmd = m.nameInput.Update(msg)
 		cmds = append(cmds, cmd)
-	} else if m.choice.TypeOption == existingZettel {
+	} else if m.choice.AttachBy == existingItem && m.existingReady {
 		m.existing, cmd = m.existing.Update(msg)
 	}
 
 	return m, tea.Batch(cmds...)
 }
 
-func toItemList(zettels []domain.Zettel) []list.Item {
+func linksToItemList(zettels []domain.Zettel) []list.Item {
 	items := make([]list.Item, len(zettels))
 	for i := range zettels {
 		item := &zettels[i]

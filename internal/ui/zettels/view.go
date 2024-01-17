@@ -66,6 +66,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
+	if m.ready {
+		m.zettels, cmd = m.zettels.Update(msg)
+		cmds = append(cmds, cmd)
+	}
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		if msg.Type == tea.KeyEsc && m.showForm {
@@ -83,7 +88,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		if msg.Type == tea.KeyEnter && len(m.zettels.Items()) > 1 {
+		if msg.Type == tea.KeyEnter && len(m.zettels.Items()) > 0 {
 			selected := m.zettels.SelectedItem().(*domain.Zettel)
 			cmds = append(cmds, router.GotoPage(domain.ZettelPage, selected.ID))
 		}
