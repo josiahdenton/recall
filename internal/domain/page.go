@@ -10,4 +10,6 @@ const (
 	AccomplishmentsPage
 	AccomplishmentPage
 	ResourcesPage
+	ZettelPage
+	ZettelsPage
 )

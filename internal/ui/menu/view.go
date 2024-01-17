@@ -16,7 +16,7 @@ var (
 		},
 		{
 			Title: "Zettels",
-			Page:  domain.CyclesPage,
+			Page:  domain.ZettelsPage,
 		},
 		{
 			Title: "Resources",
@@ -76,16 +76,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch msg.Type {
-		case tea.KeyEnter:
-			// TODO go to page
+		if msg.Type == tea.KeyEnter {
 			option := m.pages.SelectedItem().(*domain.MenuOption)
-			cmd = router.GotoPage(option.Page, 0)
-			cmds = append(cmds, cmd)
+			cmds = append(cmds, router.GotoPage(option.Page, 0))
 		}
 	}
 
-	return m, cmd
+	return m, tea.Batch(cmds...)
 }
 
 func toItemList(options []domain.MenuOption) []list.Item {

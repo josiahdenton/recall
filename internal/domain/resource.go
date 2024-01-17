@@ -18,10 +18,11 @@ type ResourceType = int
 
 type Resource struct {
 	gorm.Model
-	Name   string
-	Source string
-	Type   ResourceType
-	TaskID uint
+	Name     string
+	Source   string
+	Type     ResourceType
+	TaskID   uint
+	ZettelID uint
 }
 
 func (r *Resource) StringType() string {
@@ -43,7 +44,7 @@ func (r *Resource) FilterValue() string {
 	return r.Name
 }
 
-func (r *Resource) OpenLink() bool {
+func (r *Resource) Open() bool {
 	if r.Type != WebResource {
 		return false
 	}

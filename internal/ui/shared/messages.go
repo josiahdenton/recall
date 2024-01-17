@@ -1,13 +1,14 @@
 package shared
 
-type UpdateType = int
+type ModifyType = int
 
 const (
-	ModifyTask UpdateType = iota
+	ModifyTask ModifyType = iota
 	ModifyStep
 	ModifyResource
 	ModifyStatus
 	ModifyCycle
+	ModifyZettel
 	ModifyAccomplishment
 	ModifySettings
 )
@@ -15,12 +16,30 @@ const (
 // SaveStateMsg should be sent anytime any state is modified
 type SaveStateMsg struct {
 	Update any
-	Type   UpdateType
+	Type   ModifyType
 }
 
-type LoadRepositoryMsg struct{}
-
 type DeleteStateMsg struct {
-	Type UpdateType
+	Type ModifyType
 	ID   uint
+	// Parent of the association removal
+	Parent any
+	// Child of the association removal
+	Child any
+}
+
+type LoadType = int
+
+const (
+	LoadZettel = iota
+	LoadResource
+)
+
+type RequestStateMsg struct {
+	Type LoadType
+	ID   uint // if 0, we load everything
+}
+
+type LoadedStateMsg struct {
+	State any
 }

@@ -18,7 +18,15 @@ type Repository interface {
 	ModifyResource(domain.Resource)
 	AllResources() []domain.Resource
 	ModifySettings(domain.Settings)
+	AllZettels() []domain.Zettel
+	Zettel(uint) *domain.Zettel
+	ModifyZettel(domain.Zettel)
 	LoadRepository() error
+	DeleteTaskResource(*domain.Task, *domain.Resource)
+	DeleteTaskStep(*domain.Task, *domain.Step)
+	DeleteTaskStatus(*domain.Task, *domain.Status)
+	ModifyStep(step domain.Step)
+	// Add Delete*FromTask for Resource, Status, Step
 	//Resource(string) domain.Resource // I don't think I ever would need to get a single resource
 	// Add the following
 	// - Zettel

@@ -5,8 +5,8 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/josiahdenton/recall/internal/domain"
+	"github.com/josiahdenton/recall/internal/ui/shared"
 	"github.com/josiahdenton/recall/internal/ui/styles"
-	"io"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textinput"
@@ -30,49 +30,26 @@ type ResourceFormMsg struct {
 }
 
 type ResourceModel struct {
-	inputs     []textinput.Model
-	options    []resourceTypeOption
-	selectFrom list.Model
-	choice     domain.ResourceType
-	active     int
-	status     string
+	inputs        []textinput.Model
+	options       []createResourceOption
+	selectFrom    list.Model
+	existing      list.Model
+	existingReady bool
+	choice        domain.ResourceType
+	active        int
+	status        string
 }
 
-type resourceTypeOption struct {
-	Title string
-	Type  domain.ResourceType
+type createResourceOption struct {
+	Title    string
+	AttachBy attachMethod
 }
 
-func (r *resourceTypeOption) FilterValue() string {
+func (r *createResourceOption) FilterValue() string {
 	return ""
 }
 
-type typeOptionDelegate struct{}
-
-func (d typeOptionDelegate) Height() int  { return 1 }
-func (d typeOptionDelegate) Spacing() int { return 1 }
-func (d typeOptionDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd {
-	return nil
-}
-func (d typeOptionDelegate) Render(w io.Writer, m list.Model, index int, item list.Item) {
-	option, ok := item.(*resourceTypeOption)
-	if !ok {
-		return
-	}
-	fmt.Fprintf(w, renderOption(option, index == m.Index()))
-}
-
-func renderOption(cycle *resourceTypeOption, selected bool) string {
-	var s string
-	if selected {
-		s = selectedOptionStyle.Render(cycle.Title)
-	} else {
-		s = defaultOptionStyle.Render(cycle.Title)
-	}
-	return s
-}
-
-func NewStepResourceForm() ResourceModel {
+func NewResourceForm() ResourceModel {
 	inputName := textinput.New()
 	inputName.Focus()
 	inputName.Width = 60
@@ -106,28 +83,23 @@ func NewStepResourceForm() ResourceModel {
 	inputs[name] = inputName
 	inputs[source] = inputSource
 
-	// TODO - for now, only web is supported
-	options := make([]resourceTypeOption, 1)
-	options[0] = resourceTypeOption{
-		Title: "Web",
-		Type:  domain.WebResource,
+	options := make([]createResourceOption, 2)
+	options[0] = createResourceOption{
+		Title:    "New",
+		AttachBy: newItem,
 	}
-	//options[1] = resourceTypeOption{
-	//	Title: "Zettel",
-	//	Type:  domain.ZettelResource,
-	//}
-	//options[2] = resourceTypeOption{
-	//	Title: "File",
-	//	Type:  domain.FilePathResource,
-	//}
-	items := make([]list.Item, 1)
+	options[1] = createResourceOption{
+		Title:    "Existing",
+		AttachBy: existingItem,
+	}
+	items := make([]list.Item, len(options))
 	for i := range options {
 		item := &options[i]
 		items[i] = item
 	}
 
-	selectFrom := list.New(items, typeOptionDelegate{}, 50, 20)
-	selectFrom.Title = "Resource Type"
+	selectFrom := list.New(items, createResourceOptionDelegate{}, 50, 20)
+	selectFrom.Title = "Resource AttachBy"
 	selectFrom.SetShowStatusBar(false)
 	selectFrom.SetFilteringEnabled(false)
 	selectFrom.Styles.PaginationStyle = paginationStyle
@@ -151,13 +123,15 @@ func (m ResourceModel) View() string {
 	var b strings.Builder
 	b.WriteString(titleStyle.Render("Add Resource"))
 	b.WriteString("\n\n")
-	if m.choice != domain.NoneType {
+	if m.choice == newItem {
 		b.WriteString(m.inputs[name].View())
 		b.WriteString("\n")
 		b.WriteString(m.inputs[source].View())
 		b.WriteString("\n\n")
 		b.WriteString(errorStyle.Render(m.status))
-	} else {
+	} else if m.choice == existingItem && m.existingReady {
+		b.WriteString(m.existing.View())
+	} else if m.choice == none {
 		b.WriteString(m.selectFrom.View())
 	}
 	return b.String()
@@ -167,7 +141,19 @@ func (m ResourceModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	var cmds []tea.Cmd
 
-	if m.choice != domain.NoneType {
+	switch msg := msg.(type) {
+	case shared.LoadedStateMsg:
+		resources := msg.State.([]domain.Resource)
+		m.existing = list.New(resourcesToItemList(resources), resourceDelegate{}, 50, 10)
+		m.existing.Title = "attach one of the following types"
+		m.existing.Styles.PaginationStyle = paginationStyle
+		m.existing.Styles.Title = fadedTitleStyle
+		m.existing.SetShowHelp(false)
+		m.existing.KeyMap.Quit.Unbind()
+		m.existingReady = true
+	}
+
+	if m.choice == newItem {
 		m.inputs[m.active%len(m.inputs)], cmd = m.inputs[m.active%len(m.inputs)].Update(msg)
 		cmds = append(cmds, cmd)
 		switch msg := msg.(type) {
@@ -183,16 +169,18 @@ func (m ResourceModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				// TODO fix the <nil>
 				if m.inputs[name].Err != nil || m.inputs[source].Err != nil {
-					m.status = errorStyle.Render(fmt.Sprintf("%v, %v", m.inputs[name].Err, m.inputs[source].Err))
+					m.status = fmt.Sprintf("%v, %v", m.inputs[name].Err, m.inputs[source].Err)
 				} else {
 					cmds = append(cmds, addResourceToTask(domain.Resource{
 						Name:   m.inputs[name].Value(),
 						Source: m.inputs[source].Value(),
-						Type:   m.choice,
+						Type:   domain.WebResource,
 					}))
 
 					m.inputs[name].Reset()
+					m.inputs[name].Focus()
 					m.inputs[source].Reset()
+					m.inputs[source].Blur()
 					m.active = name
 					m.choice = domain.NoneType
 				}
@@ -211,14 +199,27 @@ func (m ResourceModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.status = ""
 			}
 		}
-	} else {
+	} else if m.choice == existingItem && m.existingReady {
+		switch msg := msg.(type) {
+		case tea.KeyMsg:
+			if msg.Type == tea.KeyEnter {
+				selected := m.existing.SelectedItem().(*domain.Resource)
+				cmds = append(cmds, addResourceToTask(*selected))
+			}
+		}
+		m.existing, cmd = m.existing.Update(msg)
+		cmds = append(cmds, cmd)
+	} else if m.choice == none {
 		m.selectFrom, cmd = m.selectFrom.Update(msg)
 		cmds = append(cmds, cmd)
 		switch msg := msg.(type) {
 		case tea.KeyMsg:
 			if msg.Type == tea.KeyEnter {
-				choice := m.selectFrom.SelectedItem().(*resourceTypeOption)
-				m.choice = choice.Type
+				choice := m.selectFrom.SelectedItem().(*createResourceOption)
+				m.choice = choice.AttachBy
+				if m.choice == existingItem {
+					cmds = append(cmds, shared.RequestState(shared.LoadResource, 0))
+				}
 			}
 		}
 	}
@@ -232,4 +233,13 @@ func addResourceToTask(resource domain.Resource) tea.Cmd {
 			Resource: resource,
 		}
 	}
+}
+
+func resourcesToItemList(resources []domain.Resource) []list.Item {
+	items := make([]list.Item, len(resources))
+	for i := range resources {
+		item := &resources[i]
+		items[i] = item
+	}
+	return items
 }

@@ -10,11 +10,13 @@ import (
 	"github.com/josiahdenton/recall/internal/ui/performance/accomplishment"
 	"github.com/josiahdenton/recall/internal/ui/performance/accomplishments"
 	"github.com/josiahdenton/recall/internal/ui/performance/cycles"
-	taskdetailed "github.com/josiahdenton/recall/internal/ui/projects/task"
-	tasklist "github.com/josiahdenton/recall/internal/ui/projects/tasks"
 	"github.com/josiahdenton/recall/internal/ui/resources"
 	"github.com/josiahdenton/recall/internal/ui/router"
 	"github.com/josiahdenton/recall/internal/ui/shared"
+	taskdetailed "github.com/josiahdenton/recall/internal/ui/task"
+	tasklist "github.com/josiahdenton/recall/internal/ui/tasks"
+	"github.com/josiahdenton/recall/internal/ui/zettel"
+	"github.com/josiahdenton/recall/internal/ui/zettels"
 	"log"
 	"os"
 )
@@ -24,19 +26,26 @@ var (
 )
 
 func New() Model {
-
 	home, err := os.UserHomeDir()
 	if err != nil {
 		log.Printf("failed to get home dir: %v", err)
 		os.Exit(1)
 	}
 
-	// zettels will still be files within recall-notes...
-	path := fmt.Sprintf("%s/%s/%s", home, "recall-notes", ".recall.db")
+	// zettel will still be files within recall-notes...
+	parentPath := fmt.Sprintf("%s/%s", home, "recall-notes")
+	path := fmt.Sprintf("%s/%s", parentPath, ".recall.db")
 
 	instance, err := repository.NewGormInstance(fmt.Sprintf(path))
 	if err != nil {
 		log.Printf("failed to create sqlite connection")
+		os.Exit(1)
+	}
+
+	// check to make sure root zettel exists, if not, create the root
+	err = instance.LoadRepository()
+	if err != nil {
+		log.Printf("failed to load repository %v", err)
 		os.Exit(1)
 	}
 
@@ -48,6 +57,8 @@ func New() Model {
 		accomplishments: accomplishments.Model{},
 		resources:       resources.New(),
 		accomplishment:  accomplishment.Model{},
+		zettel:          zettel.New(),
+		zettels:         zettels.New(),
 		page:            domain.MenuPage,
 		repository:      instance,
 	}
@@ -61,14 +72,18 @@ type Model struct {
 	accomplishments tea.Model
 	accomplishment  tea.Model
 	resources       tea.Model
+	zettel          tea.Model
+	zettels         tea.Model
 	repository      repository.Repository
+	history         router.History
 	page            domain.Page
 	width           int
 	height          int
 }
 
 func (m Model) Init() tea.Cmd {
-	return tea.Batch(tea.EnterAltScreen, loadRepository())
+	// TODO - use tea.ExecProcess() to pause while editing in nvim
+	return tea.Batch(tea.EnterAltScreen)
 }
 
 func (m Model) View() string {
@@ -88,6 +103,10 @@ func (m Model) View() string {
 		pageModel = m.resources
 	case domain.AccomplishmentPage:
 		pageModel = m.accomplishment
+	case domain.ZettelPage:
+		pageModel = m.zettel
+	case domain.ZettelsPage:
+		pageModel = m.zettels
 	}
 	return windowStyle.Width(m.width).Height(m.height).Render(pageModel.View())
 }
@@ -99,24 +118,29 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyCtrlC:
-			// TODO before quitting repository will need to save all changes
 			return m, tea.Quit
 		}
 	case tea.WindowSizeMsg:
 		m.height = msg.Height
 		m.width = msg.Width
-	case shared.LoadRepositoryMsg:
-		err := m.repository.LoadRepository()
-		// TODO - have err message go to global status message handler
-		if err != nil {
-			log.Printf("failed to LoadRepository: %v", err)
-		}
 	case shared.SaveStateMsg:
 		m.updateState(msg)
 	case shared.DeleteStateMsg:
 		m.deleteState(msg)
+	case shared.RequestStateMsg:
+		cmds = append(cmds, m.fetchState(msg))
 	case router.GotoPageMsg:
+		m.history.Pages = append(m.history.Pages, msg)
 		cmds = append(cmds, m.loadPage(msg))
+	case router.PreviousPageMsg: // TODO - implement history for zettels to work correctly
+		// previous page is 1 page before current
+		//if len(m.history.Pages) > 1 {
+		//	last := m.history.Pages[len(m.history.Pages)-2]
+		//	m.history.Pages = m.history.Pages[:len(m.history.Pages)-1]
+		//	cmds = append(cmds, router.GotoPage(last.Page, last.RequestedItemId))
+		//} else {
+		//	cmds = append(cmds, router.GotoPage(domain.MenuPage, 0))
+		//}
 	case router.LoadPageMsg:
 		m.page = msg.Page
 	}
@@ -144,9 +168,33 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case domain.ResourcesPage:
 		m.resources, cmd = m.resources.Update(msg)
 		cmds = append(cmds, cmd)
+	case domain.ZettelPage:
+		m.zettel, cmd = m.zettel.Update(msg)
+		cmds = append(cmds, cmd)
+	case domain.ZettelsPage:
+		m.zettels, cmd = m.zettels.Update(msg)
+		cmds = append(cmds, cmd)
 	}
 
 	return m, tea.Batch(cmds...)
+}
+
+func (m Model) fetchState(msg shared.RequestStateMsg) tea.Cmd {
+	return func() tea.Msg {
+		var state any
+		switch msg.Type {
+		case shared.LoadZettel:
+			if msg.ID > 0 {
+				state = m.repository.Zettel(msg.ID)
+			} else {
+				state = m.repository.AllZettels()
+			}
+		case shared.LoadResource:
+			state = m.repository.AllResources()
+		}
+
+		return shared.LoadedStateMsg{State: state}
+	}
 }
 
 func (m Model) loadPage(msg router.GotoPageMsg) tea.Cmd {
@@ -169,6 +217,10 @@ func (m Model) loadPage(msg router.GotoPageMsg) tea.Cmd {
 			// TODO - have the repository read the settings file to determine this
 		case domain.ResourcesPage:
 			state = m.repository.AllResources()
+		case domain.ZettelPage:
+			state = m.repository.Zettel(msg.RequestedItemId)
+		case domain.ZettelsPage:
+			state = m.repository.AllZettels()
 		}
 		return router.LoadPageMsg{
 			Page:  msg.Page,
@@ -205,8 +257,13 @@ func (m Model) updateState(msg shared.SaveStateMsg) {
 			m.repository.ModifyAccomplishment(update)
 		}
 	case shared.ModifyStep:
+		update := msg.Update.(domain.Step)
+		m.repository.ModifyStep(update)
 	case shared.ModifyResource:
 	case shared.ModifyStatus:
+	case shared.ModifyZettel:
+		update := msg.Update.(domain.Zettel)
+		m.repository.ModifyZettel(update)
 	}
 }
 
@@ -214,11 +271,15 @@ func (m Model) deleteState(msg shared.DeleteStateMsg) {
 	switch msg.Type {
 	case shared.ModifyTask:
 		m.repository.DeleteTask(msg.ID)
-	}
-}
-
-func loadRepository() tea.Cmd {
-	return func() tea.Msg {
-		return shared.LoadRepositoryMsg{}
+	case shared.ModifyStep:
+		m.repository.DeleteTaskStep(msg.Parent.(*domain.Task), msg.Child.(*domain.Step))
+	case shared.ModifyResource:
+		m.repository.DeleteTaskResource(msg.Parent.(*domain.Task), msg.Child.(*domain.Resource))
+	case shared.ModifyStatus:
+		m.repository.DeleteTaskStatus(msg.Parent.(*domain.Task), msg.Child.(*domain.Status))
+	case shared.ModifyCycle:
+	case shared.ModifyZettel:
+	case shared.ModifyAccomplishment:
+	case shared.ModifySettings:
 	}
 }

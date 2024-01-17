@@ -27,7 +27,8 @@ type Task struct {
 	Priority         Priority
 	Active           bool
 	Archive          bool
-	Resources        []Resource
+	Favorite         bool
+	Resources        []Resource `gorm:"many2many:task_resources"`
 	Status           []Status
 	Steps            []Step
 	AccomplishmentID uint

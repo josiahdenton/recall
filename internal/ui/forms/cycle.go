@@ -7,23 +7,14 @@ import (
 	"github.com/josiahdenton/recall/internal/domain"
 	"github.com/josiahdenton/recall/internal/ui/router"
 	"github.com/josiahdenton/recall/internal/ui/shared"
-	"github.com/josiahdenton/recall/internal/ui/styles"
 	"strings"
 	"time"
 )
 
-var (
-	titleStyle     = styles.PrimaryColor.Copy()
-	formLabelStyle = styles.SecondaryGray.Copy()
-	errorStyle     = styles.PrimaryColor.Copy()
-)
-
 const (
-	title = iota
+	cycleTitle = iota
 	startDate
 )
-
-const longDateForm = "Jan 2, 2006 at 3:04pm (MST)"
 
 type CycleFormModel struct {
 	inputs []textinput.Model
@@ -62,7 +53,7 @@ func NewCycleForm() CycleFormModel {
 	}
 
 	inputs := make([]textinput.Model, 2)
-	inputs[title] = inputTitle
+	inputs[cycleTitle] = inputTitle
 	inputs[startDate] = inputStartDate
 
 	return CycleFormModel{
@@ -78,7 +69,7 @@ func (m CycleFormModel) View() string {
 	var b strings.Builder
 	b.WriteString(titleStyle.Render("Add Performance Cycle"))
 	b.WriteString("\n\n")
-	b.WriteString(m.inputs[title].View())
+	b.WriteString(m.inputs[cycleTitle].View())
 	b.WriteString("\n")
 	b.WriteString(m.inputs[startDate].View())
 	b.WriteString("\n\n")
@@ -97,7 +88,7 @@ func (m CycleFormModel) Update(msg tea.Msg) (CycleFormModel, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyEnter:
-			if m.active == title {
+			if m.active == cycleTitle {
 				m.inputs[m.active%len(m.inputs)].Blur()
 				m.active++
 				m.inputs[m.active%len(m.inputs)].Focus()
@@ -105,11 +96,11 @@ func (m CycleFormModel) Update(msg tea.Msg) (CycleFormModel, tea.Cmd) {
 			}
 
 			// TODO fix the <nil>
-			if m.inputs[title].Err != nil || m.inputs[startDate].Err != nil {
-				m.status = errorStyle.Render(fmt.Sprintf("%v, %v", m.inputs[title].Err, m.inputs[startDate].Err))
+			if m.inputs[cycleTitle].Err != nil || m.inputs[startDate].Err != nil {
+				m.status = errorStyle.Render(fmt.Sprintf("%v, %v", m.inputs[cycleTitle].Err, m.inputs[startDate].Err))
 			} else {
-				cmds = append(cmds, addCycle(m.inputs[title].Value(), mustParseDate(m.inputs[startDate].Value())))
-				m.inputs[title].Reset()
+				cmds = append(cmds, addCycle(m.inputs[cycleTitle].Value(), mustParseDate(m.inputs[startDate].Value())))
+				m.inputs[cycleTitle].Reset()
 				m.inputs[startDate].Reset()
 				cmds = append(cmds, router.GotoPage(domain.CyclesPage, 0))
 			}
@@ -124,7 +115,7 @@ func (m CycleFormModel) Update(msg tea.Msg) (CycleFormModel, tea.Cmd) {
 				m.inputs[m.active%len(m.inputs)].Focus()
 			}
 		}
-		if len(m.inputs[title].Value()) > 0 || len(m.inputs[startDate].Value()) > 0 {
+		if len(m.inputs[cycleTitle].Value()) > 0 || len(m.inputs[startDate].Value()) > 0 {
 			m.status = ""
 		}
 	}

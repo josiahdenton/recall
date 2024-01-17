@@ -5,7 +5,7 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/josiahdenton/recall/internal/domain"
-	"github.com/josiahdenton/recall/internal/ui/projects/task/forms"
+	"github.com/josiahdenton/recall/internal/ui/forms"
 	"github.com/josiahdenton/recall/internal/ui/router"
 	"github.com/josiahdenton/recall/internal/ui/shared"
 	"github.com/josiahdenton/recall/internal/ui/styles"
@@ -47,7 +47,7 @@ type Model struct {
 func New() *Model {
 	formList := make([]tea.Model, formCount)
 	formList[steps] = forms.NewStepForm()
-	formList[resources] = forms.NewStepResourceForm()
+	formList[resources] = forms.NewResourceForm()
 	formList[status] = forms.NewStatusForm()
 	return &Model{
 		headerActive: true,
@@ -145,11 +145,11 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				} else {
 					m.statusMessage = "reset step!"
 				}
-				cmds = append(cmds, clearStatus(), updateTask(m.task))
+				cmds = append(cmds, clearStatus(), updateStep(step))
 			case resources:
 				resource := m.lists[resources].SelectedItem().(*domain.Resource)
 				if resource.Type == domain.WebResource {
-					resource.OpenLink()
+					resource.Open()
 					m.statusMessage = "opened web link!"
 				} else {
 					m.statusMessage = "unsupported type!"
@@ -174,17 +174,20 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			if m.active < header && len(m.lists[m.active].Items()) > 0 {
 				index := m.lists[m.active].Index()
+				item := m.lists[m.active].SelectedItem()
 				switch m.active {
 				case steps:
 					m.task.Steps = append(m.task.Steps[:index], m.task.Steps[index+1:]...)
+					cmds = append(cmds, clearStatus(), deleteStep(m.task, item.(*domain.Step)))
 				case resources:
 					m.task.Resources = append(m.task.Resources[:index], m.task.Resources[index+1:]...)
+					cmds = append(cmds, clearStatus(), deleteResource(m.task, item.(*domain.Resource)))
 				case status:
 					m.task.Status = append(m.task.Status[:index], m.task.Status[index+1:]...)
+					cmds = append(cmds, clearStatus(), deleteStatus(m.task, item.(*domain.Status)))
 				}
 				m.lists[m.active].RemoveItem(index)
 				m.statusMessage = "removed item!"
-				cmds = append(cmds, clearStatus(), updateTask(m.task))
 			}
 		case Add:
 			if !m.showForm && m.active < header {
@@ -217,6 +220,45 @@ func updateTask(task *domain.Task) tea.Cmd {
 		return shared.SaveStateMsg{
 			Update: *task,
 			Type:   shared.ModifyTask,
+		}
+	}
+}
+
+func updateStep(step *domain.Step) tea.Cmd {
+	return func() tea.Msg {
+		return shared.SaveStateMsg{
+			Update: *step,
+			Type:   shared.ModifyStep,
+		}
+	}
+}
+
+func deleteStep(task *domain.Task, step *domain.Step) tea.Cmd {
+	return func() tea.Msg {
+		return shared.DeleteStateMsg{
+			Type:   shared.ModifyStep,
+			Parent: task,
+			Child:  step,
+		}
+	}
+}
+
+func deleteResource(task *domain.Task, resource *domain.Resource) tea.Cmd {
+	return func() tea.Msg {
+		return shared.DeleteStateMsg{
+			Type:   shared.ModifyResource,
+			Parent: task,
+			Child:  resource,
+		}
+	}
+}
+
+func deleteStatus(task *domain.Task, status *domain.Status) tea.Cmd {
+	return func() tea.Msg {
+		return shared.DeleteStateMsg{
+			Type:   shared.ModifyStatus,
+			Parent: task,
+			Child:  status,
 		}
 	}
 }

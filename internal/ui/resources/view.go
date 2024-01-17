@@ -57,7 +57,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			resource := m.resources.SelectedItem().(*domain.Resource)
 			switch resource.Type {
 			case domain.WebResource:
-				resource.OpenLink()
+				resource.Open()
 			default:
 				// unsupported
 			}

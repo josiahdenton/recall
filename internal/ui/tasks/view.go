@@ -5,7 +5,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/josiahdenton/recall/internal/domain"
-	"github.com/josiahdenton/recall/internal/ui/projects/tasks/forms"
+	"github.com/josiahdenton/recall/internal/ui/forms"
 	"github.com/josiahdenton/recall/internal/ui/router"
 	"github.com/josiahdenton/recall/internal/ui/shared"
 	"github.com/josiahdenton/recall/internal/ui/styles"
@@ -61,7 +61,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case router.LoadPageMsg:
 		tasks := msg.State.([]domain.Task)
-		m.tasks = list.New(toItemList(tasks), taskDelegate{}, 50, 20)
+		m.tasks = list.New(toItemList(tasks), taskDelegate{}, 50, 30)
 		m.tasks.Title = "Tasks"
 		m.tasks.Styles.PaginationStyle = paginationStyle
 		m.tasks.Styles.Title = titleStyle
