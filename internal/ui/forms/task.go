@@ -140,7 +140,7 @@ func (m TaskFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					router.GotoPage(domain.MenuPage, 0))
 				m.inputs[title].Reset()
 				m.inputs[due].Reset()
-				m.priorityCursor = -1
+				m.priorityCursor = 0
 				m.active = 0
 				m.inputs[m.active].Focus()
 			}

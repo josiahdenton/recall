@@ -9,6 +9,7 @@ const (
 	ModifyStatus
 	ModifyCycle
 	ModifyZettel
+	ModifyLink
 	ModifyAccomplishment
 	ModifySettings
 )

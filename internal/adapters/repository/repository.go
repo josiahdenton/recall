@@ -21,6 +21,8 @@ type Repository interface {
 	AllZettels() []domain.Zettel
 	Zettel(uint) *domain.Zettel
 	ModifyZettel(domain.Zettel)
+	DeleteZettel(uint)
+	UnlinkZettel(*domain.Zettel, *domain.Zettel)
 	LoadRepository() error
 	DeleteTaskResource(*domain.Task, *domain.Resource)
 	DeleteTaskStep(*domain.Task, *domain.Step)

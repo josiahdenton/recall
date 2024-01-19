@@ -20,7 +20,7 @@ type Commands struct {
 func DefaultCommands() Commands {
 	keys := make(map[string]Action)
 	keys["a"] = Add
-	keys[" "] = Interact
+	keys["enter"] = Interact
 	keys["d"] = Delete
 	keys["tab"] = MoveFocus
 	keys["esc"] = Back
