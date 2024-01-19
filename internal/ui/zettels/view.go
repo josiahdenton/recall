@@ -64,6 +64,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			zettel := msg.Update.(domain.Zettel)
 			m.zettels.InsertItem(len(m.zettels.Items()), &zettel)
 		}
+		cmds = append(cmds, router.GotoPage(domain.MenuPage, 0))
 	}
 
 	if m.ready {
@@ -104,11 +105,24 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "a":
 			m.showForm = true
 		case "d":
-			// TODO
+			if len(m.zettels.Items()) > 0 {
+				selected := m.zettels.SelectedItem().(*domain.Zettel)
+				m.zettels.RemoveItem(m.zettels.Index())
+				cmds = append(cmds, deleteZettel(selected))
+			}
 		}
 	}
 
 	return m, tea.Batch(cmds...)
+}
+
+func deleteZettel(zettel *domain.Zettel) tea.Cmd {
+	return func() tea.Msg {
+		return shared.DeleteStateMsg{
+			Type: shared.ModifyZettel,
+			ID:   zettel.ID,
+		}
+	}
 }
 
 func toItemList(zettels []domain.Zettel) []list.Item {

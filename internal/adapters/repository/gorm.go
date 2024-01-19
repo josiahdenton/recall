@@ -24,6 +24,20 @@ type GormInstance struct {
 	db *gorm.DB
 }
 
+func (g GormInstance) DeleteZettel(id uint) {
+	err := g.db.Delete(&domain.Zettel{}, id).Error
+	if err != nil {
+		log.Printf("failed to delete zettel: %v", err)
+	}
+}
+
+func (g GormInstance) UnlinkZettel(a *domain.Zettel, b *domain.Zettel) {
+	err := g.db.Model(a).Association("Links").Delete(b)
+	if err != nil {
+		log.Printf("failed to delete link between zettels (%d) and (%d) due to: %v", a.ID, b.ID, err)
+	}
+}
+
 func (g GormInstance) DeleteTaskResource(task *domain.Task, resource *domain.Resource) {
 	err := g.db.Model(task).Association("Resources").Delete(resource)
 	if err != nil {

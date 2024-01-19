@@ -110,7 +110,7 @@ func NewResourceForm() ResourceModel {
 	return ResourceModel{
 		inputs:     inputs,
 		options:    options,
-		choice:     domain.NoneType,
+		choice:     none,
 		selectFrom: selectFrom,
 	}
 }
@@ -182,7 +182,7 @@ func (m ResourceModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.inputs[source].Reset()
 					m.inputs[source].Blur()
 					m.active = name
-					m.choice = domain.NoneType
+					m.choice = none
 				}
 			case tea.KeyTab:
 				m.inputs[m.active%len(m.inputs)].Blur()
@@ -209,6 +209,7 @@ func (m ResourceModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.existing, cmd = m.existing.Update(msg)
 		cmds = append(cmds, cmd)
+		m.choice = none
 	} else if m.choice == none {
 		m.selectFrom, cmd = m.selectFrom.Update(msg)
 		cmds = append(cmds, cmd)

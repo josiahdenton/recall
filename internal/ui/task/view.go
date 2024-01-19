@@ -88,16 +88,6 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, cmd)
 	}
 
-	// TODO - have the task form do something like this for due date
-	//func mustParseDate(date string) time.Time {
-	//	input := fmt.Sprintf("%s at 7:00am (EST)", date)
-	//	t, err := time.Parse(longDateForm, input)
-	//	if err != nil {
-	//	return time.Time{}
-	//}
-	//	return t
-	//}
-
 	switch msg := msg.(type) {
 	case router.LoadPageMsg:
 		m.task = msg.State.(*domain.Task)

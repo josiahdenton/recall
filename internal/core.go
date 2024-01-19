@@ -279,6 +279,9 @@ func (m Model) deleteState(msg shared.DeleteStateMsg) {
 		m.repository.DeleteTaskStatus(msg.Parent.(*domain.Task), msg.Child.(*domain.Status))
 	case shared.ModifyCycle:
 	case shared.ModifyZettel:
+		m.repository.DeleteZettel(msg.ID)
+	case shared.ModifyLink:
+		m.repository.UnlinkZettel(msg.Parent.(*domain.Zettel), msg.Child.(*domain.Zettel))
 	case shared.ModifyAccomplishment:
 	case shared.ModifySettings:
 	}

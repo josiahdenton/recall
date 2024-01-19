@@ -93,6 +93,7 @@ func (m LinkFormModel) View() string {
 	b.WriteString(m.createOptions.View())
 	b.WriteString("\n")
 	b.WriteString(titleStyle.Render(fmt.Sprintf("linking a zettel of type: %s", m.choice.DisplayName)))
+	b.WriteString("\n")
 	if m.choice.AttachBy == existingItem && m.existingReady {
 		b.WriteString(m.existing.View())
 	} else if m.choice.AttachBy == newItem {
@@ -117,7 +118,7 @@ func (m LinkFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case shared.LoadedStateMsg:
 		zettels := msg.State.([]domain.Zettel)
 		m.existing = list.New(linksToItemList(zettels), zettelDelegate{}, 50, 10)
-		m.existing.Title = "attach one of the following types"
+		m.existing.Title = "existing zettels"
 		m.existing.Styles.PaginationStyle = paginationStyle
 		m.existing.Styles.Title = fadedTitleStyle
 		m.existing.SetShowHelp(false)
@@ -148,9 +149,12 @@ func (m LinkFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					break
 				}
 				cmds = append(cmds, linkZettel(domain.Zettel{Name: m.nameInput.Value()}))
+				m.nameInput.Reset()
+				m.choice = linkZettelOption{}
 			case existingItem:
 				selected := m.existing.SelectedItem().(*domain.Zettel)
 				cmds = append(cmds, linkZettel(*selected))
+				m.choice = linkZettelOption{}
 			}
 		}
 	}
@@ -160,6 +164,7 @@ func (m LinkFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, cmd)
 	} else if m.choice.AttachBy == existingItem && m.existingReady {
 		m.existing, cmd = m.existing.Update(msg)
+		cmds = append(cmds, cmd)
 	}
 
 	return m, tea.Batch(cmds...)

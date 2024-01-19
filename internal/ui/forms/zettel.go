@@ -67,6 +67,7 @@ func (m ZettelFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				break
 			}
 			cmds = append(cmds, addZettel(domain.Zettel{Name: m.nameInput.Value()}))
+			m.nameInput.Reset()
 		}
 	}
 

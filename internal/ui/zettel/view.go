@@ -128,6 +128,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.showForm = false
 		} else if msg.Type == tea.KeyEsc {
 			cmds = append(cmds, router.GotoPage(domain.ZettelsPage, 0))
+			m.active = content
 		}
 	}
 
@@ -184,6 +185,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.active == links || m.active == resources {
 				m.showForm = true
 			}
+		case "d":
+			if m.active == links {
+				selected := m.links.SelectedItem().(*domain.Zettel)
+				m.links.RemoveItem(m.links.Index())
+				cmds = append(cmds, unlinkZettel(m.zettel, selected))
+			}
 		}
 	}
 
@@ -209,6 +216,16 @@ func modifyZettel(zettel domain.Zettel) tea.Cmd {
 		return shared.SaveStateMsg{
 			Update: zettel,
 			Type:   shared.ModifyZettel,
+		}
+	}
+}
+
+func unlinkZettel(parent *domain.Zettel, child *domain.Zettel) tea.Cmd {
+	return func() tea.Msg {
+		return shared.DeleteStateMsg{
+			Type:   shared.ModifyLink,
+			Parent: parent,
+			Child:  child,
 		}
 	}
 }
