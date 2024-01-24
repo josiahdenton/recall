@@ -159,6 +159,8 @@ func (m ResourceModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg := msg.(type) {
 		case tea.KeyMsg:
 			switch msg.Type {
+			case tea.KeyEsc:
+				m.choice = none
 			case tea.KeyEnter:
 				if m.active == name {
 					m.inputs[m.active%len(m.inputs)].Blur()
@@ -202,14 +204,17 @@ func (m ResourceModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	} else if m.choice == existingItem && m.existingReady {
 		switch msg := msg.(type) {
 		case tea.KeyMsg:
-			if msg.Type == tea.KeyEnter {
+			switch msg.Type {
+			case tea.KeyEsc:
+				m.choice = none
+			case tea.KeyEnter:
 				selected := m.existing.SelectedItem().(*domain.Resource)
 				cmds = append(cmds, addResourceToTask(*selected))
+				m.choice = none
 			}
 		}
 		m.existing, cmd = m.existing.Update(msg)
 		cmds = append(cmds, cmd)
-		m.choice = none
 	} else if m.choice == none {
 		m.selectFrom, cmd = m.selectFrom.Update(msg)
 		cmds = append(cmds, cmd)

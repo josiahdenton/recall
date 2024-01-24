@@ -53,7 +53,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	cmds = append(cmds, cmd)
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		if msg.Type == tea.KeySpace {
+		if msg.Type == tea.KeyEnter {
 			resource := m.resources.SelectedItem().(*domain.Resource)
 			switch resource.Type {
 			case domain.WebResource:

@@ -59,7 +59,6 @@ func NewLinkForm() LinkFormModel {
 	createOptions := list.New(items, createZettelOptionDelegate{}, 50, 10)
 	createOptions.Title = "attach one of the following types"
 	createOptions.SetShowStatusBar(false)
-	createOptions.SetFilteringEnabled(false)
 	createOptions.Styles.PaginationStyle = paginationStyle
 	createOptions.Styles.Title = fadedTitleStyle
 	createOptions.SetShowHelp(false)
@@ -92,8 +91,9 @@ func (m LinkFormModel) View() string {
 	b.WriteString("\n")
 	b.WriteString(m.createOptions.View())
 	b.WriteString("\n")
-	b.WriteString(titleStyle.Render(fmt.Sprintf("linking a zettel of type: %s", m.choice.DisplayName)))
-	b.WriteString("\n")
+	b.WriteString(formLabelStyle.Render("linking a zettel of type: "))
+	b.WriteString(titleStyle.Render(m.choice.DisplayName))
+	b.WriteString("\n\n")
 	if m.choice.AttachBy == existingItem && m.existingReady {
 		b.WriteString(m.existing.View())
 	} else if m.choice.AttachBy == newItem {
@@ -117,7 +117,7 @@ func (m LinkFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case shared.LoadedStateMsg:
 		zettels := msg.State.([]domain.Zettel)
-		m.existing = list.New(linksToItemList(zettels), zettelDelegate{}, 50, 10)
+		m.existing = list.New(linksToItemList(zettels), zettelDelegate{}, 50, 20)
 		m.existing.Title = "existing zettels"
 		m.existing.Styles.PaginationStyle = paginationStyle
 		m.existing.Styles.Title = fadedTitleStyle

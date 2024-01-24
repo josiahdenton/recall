@@ -1,29 +1,26 @@
 package accomplishments
 
 import (
-	"fmt"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/josiahdenton/recall/internal/domain"
 	"github.com/josiahdenton/recall/internal/ui/styles"
 )
 
 var (
-	activeCycleStyle  = styles.SecondaryColor.Copy().Width(50)
-	defaultCycleStyle = styles.PrimaryGray.Copy().Width(50)
-	cursorStyle       = styles.PrimaryColor.Copy()
-	titleKeyStyle     = styles.SecondaryGray.Copy()
-	alignStyle        = lipgloss.NewStyle().PaddingLeft(1)
+	selectedCycleStyle = styles.PrimaryGray.Copy().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#D120AF")).Width(70)
+	defaultCycleStyle  = styles.SecondaryGray.Copy().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#3a3b5b")).Width(70)
+	descriptionStyle   = styles.SecondaryColor.Copy()
+	impactStyle        = styles.PrimaryGray.Copy()
 )
 
 func renderAccomplishment(accomplishment *domain.Accomplishment, selected bool) string {
-	selectedMarker := " "
 	style := defaultCycleStyle
 	if selected {
-		selectedMarker = ">"
-		style = activeCycleStyle
+		style = selectedCycleStyle
 	}
-	description := fmt.Sprintf("%s %s", titleKeyStyle.Render("Accomplishment:"), style.Render(accomplishment.Description))
-	impact := fmt.Sprintf(" %s %s", titleKeyStyle.Render("Impact:"), style.Render(accomplishment.Impact))
-	s := lipgloss.JoinVertical(lipgloss.Right, description, impact)
-	return fmt.Sprintf("%s%s", cursorStyle.Render(selectedMarker), alignStyle.Render(s))
+	return style.Render(lipgloss.JoinVertical(
+		lipgloss.Left,
+		descriptionStyle.Render(accomplishment.Description),
+		impactStyle.Render(accomplishment.Impact),
+	))
 }

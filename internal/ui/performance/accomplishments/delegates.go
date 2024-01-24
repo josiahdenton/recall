@@ -11,7 +11,7 @@ import (
 type accomplishmentDelegate struct{}
 
 func (d accomplishmentDelegate) Height() int  { return 1 }
-func (d accomplishmentDelegate) Spacing() int { return 0 }
+func (d accomplishmentDelegate) Spacing() int { return 1 }
 func (d accomplishmentDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd {
 	return nil
 }

@@ -37,9 +37,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case router.LoadPageMsg:
 		cycle := msg.State.(*domain.Cycle)
-		m.accomplishments = list.New(toItemList(cycle.Accomplishments), accomplishmentDelegate{}, 50, 20)
+		m.accomplishments = list.New(toItemList(cycle.Accomplishments), accomplishmentDelegate{}, 50, 30)
 		m.accomplishments.SetShowStatusBar(false)
-		m.accomplishments.SetFilteringEnabled(false)
 		m.accomplishments.Title = "Accomplishments"
 		m.accomplishments.Styles.PaginationStyle = paginationStyle
 		m.accomplishments.Styles.Title = titleStyle
