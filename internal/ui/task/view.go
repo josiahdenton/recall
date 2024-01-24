@@ -122,12 +122,13 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.active = header
 			}
 		case Interact:
-			if m.showForm {
+			if m.showForm || (m.active < header && len(m.lists[m.active].Items()) < 1) {
 				break
 			}
 
 			switch m.active {
 			case steps:
+
 				step := m.lists[steps].SelectedItem().(*domain.Step)
 				step.ToggleStatus()
 				if step.Complete {
@@ -164,17 +165,19 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			if m.active < header && len(m.lists[m.active].Items()) > 0 {
 				index := m.lists[m.active].Index()
-				item := m.lists[m.active].SelectedItem()
 				switch m.active {
 				case steps:
+					item := m.task.Steps[index]
 					m.task.Steps = append(m.task.Steps[:index], m.task.Steps[index+1:]...)
-					cmds = append(cmds, clearStatus(), deleteStep(m.task, item.(*domain.Step)))
+					cmds = append(cmds, clearStatus(), deleteStep(m.task, &item))
 				case resources:
+					item := m.task.Resources[index]
 					m.task.Resources = append(m.task.Resources[:index], m.task.Resources[index+1:]...)
-					cmds = append(cmds, clearStatus(), deleteResource(m.task, item.(*domain.Resource)))
+					cmds = append(cmds, clearStatus(), deleteResource(m.task, &item))
 				case status:
+					item := m.task.Status[index]
 					m.task.Status = append(m.task.Status[:index], m.task.Status[index+1:]...)
-					cmds = append(cmds, clearStatus(), deleteStatus(m.task, item.(*domain.Status)))
+					cmds = append(cmds, clearStatus(), deleteStatus(m.task, &item))
 				}
 				m.lists[m.active].RemoveItem(index)
 				m.statusMessage = "removed item!"
@@ -281,17 +284,17 @@ func setupLists(task *domain.Task) []list.Model {
 
 	lists[steps] = list.New(_steps, stepDelegate{}, 80, 9)
 	lists[steps].Title = "Steps"
-	lists[steps].SetFilteringEnabled(false)
 	lists[steps].Styles.Title = listTitleStyle
+	lists[steps].SetFilteringEnabled(false)
 	lists[steps].SetShowHelp(false)
 	lists[steps].SetFilteringEnabled(false)
 	lists[steps].SetShowStatusBar(false)
 	lists[steps].KeyMap.Quit.Unbind()
 
-	lists[resources] = list.New(_resources, resourceDelegate{}, 80, 7)
+	lists[resources] = list.New(_resources, resourceDelegate{}, 80, 9)
 	lists[resources].Title = "Resources"
-	lists[resources].SetFilteringEnabled(false)
 	lists[resources].Styles.Title = listTitleStyle
+	lists[resources].SetFilteringEnabled(false)
 	lists[resources].SetShowHelp(false)
 	lists[resources].SetFilteringEnabled(false)
 	lists[resources].SetShowStatusBar(false)
@@ -299,8 +302,8 @@ func setupLists(task *domain.Task) []list.Model {
 
 	lists[status] = list.New(_status, statusDelegate{}, 80, 5)
 	lists[status].Title = "Status"
-	lists[status].SetFilteringEnabled(false)
 	lists[status].Styles.Title = listTitleStyle
+	lists[status].SetFilteringEnabled(false)
 	lists[status].SetShowHelp(false)
 	lists[status].SetFilteringEnabled(false)
 	lists[status].SetShowStatusBar(false)

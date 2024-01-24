@@ -68,8 +68,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			task := m.tasks.SelectedItem().(*domain.Task)
 			cmds = append(cmds, router.GotoPage(domain.TaskDetailedPage, task.ID))
 		case tea.KeyEsc:
-			// TODO - have this go to the Cycle Page we want... not all cycles
-			cmds = append(cmds, router.GotoPage(domain.CyclesPage, 0))
+			cmds = append(cmds, router.GotoPreviousPage())
 		}
 	}
 

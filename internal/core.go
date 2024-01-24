@@ -61,6 +61,9 @@ func New() Model {
 		zettels:         zettels.New(),
 		page:            domain.MenuPage,
 		repository:      instance,
+		history: router.History{
+			Pages: []router.GotoPageMsg{{Page: domain.MenuPage, RequestedItemId: 0}},
+		},
 	}
 }
 
@@ -82,7 +85,6 @@ type Model struct {
 }
 
 func (m Model) Init() tea.Cmd {
-	// TODO - use tea.ExecProcess() to pause while editing in nvim
 	return tea.Batch(tea.EnterAltScreen)
 }
 
@@ -132,15 +134,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case router.GotoPageMsg:
 		m.history.Pages = append(m.history.Pages, msg)
 		cmds = append(cmds, m.loadPage(msg))
-	case router.PreviousPageMsg: // TODO - implement history for zettels to work correctly
-		// previous page is 1 page before current
-		//if len(m.history.Pages) > 1 {
-		//	last := m.history.Pages[len(m.history.Pages)-2]
-		//	m.history.Pages = m.history.Pages[:len(m.history.Pages)-1]
-		//	cmds = append(cmds, router.GotoPage(last.Page, last.RequestedItemId))
-		//} else {
-		//	cmds = append(cmds, router.GotoPage(domain.MenuPage, 0))
-		//}
+	case router.PreviousPageMsg:
+		previousPage := m.history.Pages[len(m.history.Pages)-2]
+		m.history.Pages = m.history.Pages[:len(m.history.Pages)-2]
+		cmds = append(cmds, router.GotoPage(previousPage.Page, previousPage.RequestedItemId))
 	case router.LoadPageMsg:
 		m.page = msg.Page
 	}

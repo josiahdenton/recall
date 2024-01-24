@@ -93,7 +93,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.links = list.New(linksToItemList(m.zettel.Links), zettelDelegate{}, 80, 7)
 		m.links.Title = "Links"
 		m.links.Styles.PaginationStyle = paginationStyle
-		m.links.Styles.Title = defaultListTitle
+		if m.active == links {
+			m.links.Styles.Title = activeListTitle
+		} else {
+			m.links.Styles.Title = defaultListTitle
+		}
 		m.links.SetShowHelp(false)
 		m.links.SetFilteringEnabled(false)
 		m.links.SetShowStatusBar(false)
@@ -102,7 +106,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.resources = list.New(resourcesToItemList(m.zettel.Resources), resourceDelegate{}, 80, 5)
 		m.resources.Title = "Resources"
 		m.resources.Styles.PaginationStyle = paginationStyle
-		m.resources.Styles.Title = defaultListTitle
+		if m.active == resources {
+			m.resources.Styles.Title = activeListTitle
+		} else {
+			m.resources.Styles.Title = defaultListTitle
+		}
 		m.resources.SetShowHelp(false)
 		m.resources.SetFilteringEnabled(false)
 		m.resources.SetShowStatusBar(false)
@@ -123,13 +131,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.links.InsertItem(len(m.zettel.Links), m.zettel.Links[len(m.zettel.Links)-1])
 		cmds = append(cmds, modifyZettel(*m.zettel))
 		m.showForm = false
-	case tea.KeyMsg:
-		if msg.Type == tea.KeyEsc && m.showForm {
-			m.showForm = false
-		} else if msg.Type == tea.KeyEsc {
-			cmds = append(cmds, router.GotoPage(domain.ZettelsPage, 0))
-			m.active = content
-		}
 	}
 
 	if !m.ready {
@@ -139,14 +140,28 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if m.showForm && m.active == links {
 		m.linkZettelForm, cmd = m.linkZettelForm.Update(msg)
 		cmds = append(cmds, cmd)
-		return m, tea.Batch(cmds...)
 	} else if m.showForm && m.active == content {
 		m.conceptForm, cmd = m.conceptForm.Update(msg)
 		cmds = append(cmds, cmd)
-		return m, tea.Batch(cmds...)
 	} else if m.showForm && m.active == resources {
 		m.resourceForm, cmd = m.resourceForm.Update(msg)
 		cmds = append(cmds, cmd)
+	}
+
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.Type {
+		case tea.KeyEsc:
+			if m.showForm {
+				m.showForm = false
+			} else {
+				cmds = append(cmds, router.GotoPreviousPage())
+				m.active = content
+			}
+		}
+	}
+
+	if m.showForm {
 		return m, tea.Batch(cmds...)
 	}
 
@@ -171,10 +186,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.active == content {
 				cmds = append(cmds, forms.AttachConcept(m.zettel.Concept))
 				m.showForm = true
-			} else if m.active == links {
+			} else if m.active == links && len(m.links.Items()) > 0 {
 				selected := m.links.SelectedItem().(*domain.Zettel)
 				cmds = append(cmds, router.GotoPage(domain.ZettelPage, selected.ID))
-			} else if m.active == resources {
+			} else if m.active == resources && len(m.links.Items()) > 0 {
 				selected := m.resources.SelectedItem().(*domain.Resource)
 				selected.Open()
 			}

@@ -64,6 +64,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			zettel := msg.Update.(domain.Zettel)
 			m.zettels.InsertItem(len(m.zettels.Items()), &zettel)
 		}
+		// NOTE: need this to get the latest Zettel ID, should clean this up eventually
 		cmds = append(cmds, router.GotoPage(domain.MenuPage, 0))
 	}
 
