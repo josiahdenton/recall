@@ -7,7 +7,7 @@ import (
 	"github.com/josiahdenton/recall/internal/domain"
 	"github.com/josiahdenton/recall/internal/ui/forms"
 	"github.com/josiahdenton/recall/internal/ui/router"
-	"github.com/josiahdenton/recall/internal/ui/shared"
+	"github.com/josiahdenton/recall/internal/ui/state"
 	"github.com/josiahdenton/recall/internal/ui/styles"
 )
 
@@ -68,9 +68,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.tasks.SetShowHelp(false)
 		m.tasks.KeyMap.Quit.Unbind()
 		m.ready = true
-	case shared.SaveStateMsg:
+	case state.SaveStateMsg:
 		m.showForm = false
-		if msg.Type == shared.ModifyTask {
+		if msg.Type == state.ModifyTask {
 			task := msg.Update.(domain.Task)
 			m.tasks.InsertItem(len(m.tasks.Items()), &task)
 		}
@@ -111,7 +111,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	if m.tasks.FilterState() != list.Unfiltered {
+	if m.tasks.FilterState() == list.Filtering {
 		return m, tea.Batch(cmds...)
 	}
 
@@ -130,6 +130,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			selected := m.tasks.SelectedItem().(*domain.Task)
 			m.tasks.RemoveItem(m.tasks.Index())
 			cmds = append(cmds, deleteTask(selected.ID))
+		case "u":
+			cmds = append(cmds, state.UndoDeleteState())
 		}
 	}
 
@@ -147,8 +149,8 @@ func toItemList(tasks []domain.Task) []list.Item {
 
 func deleteTask(id uint) tea.Cmd {
 	return func() tea.Msg {
-		return shared.DeleteStateMsg{
-			Type: shared.ModifyTask,
+		return state.DeleteStateMsg{
+			Type: state.ModifyTask,
 			ID:   id,
 		}
 	}

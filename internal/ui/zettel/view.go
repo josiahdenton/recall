@@ -7,7 +7,7 @@ import (
 	"github.com/josiahdenton/recall/internal/domain"
 	"github.com/josiahdenton/recall/internal/ui/forms"
 	"github.com/josiahdenton/recall/internal/ui/router"
-	"github.com/josiahdenton/recall/internal/ui/shared"
+	"github.com/josiahdenton/recall/internal/ui/state"
 	"github.com/josiahdenton/recall/internal/ui/styles"
 	"strings"
 )
@@ -228,17 +228,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func modifyZettel(zettel domain.Zettel) tea.Cmd {
 	return func() tea.Msg {
-		return shared.SaveStateMsg{
+		return state.SaveStateMsg{
 			Update: zettel,
-			Type:   shared.ModifyZettel,
+			Type:   state.ModifyZettel,
 		}
 	}
 }
 
 func unlinkZettel(parent *domain.Zettel, child *domain.Zettel) tea.Cmd {
 	return func() tea.Msg {
-		return shared.DeleteStateMsg{
-			Type:   shared.ModifyLink,
+		return state.DeleteStateMsg{
+			Type:   state.ModifyLink,
 			Parent: parent,
 			Child:  child,
 		}

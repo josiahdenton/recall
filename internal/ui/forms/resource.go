@@ -5,7 +5,7 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/josiahdenton/recall/internal/domain"
-	"github.com/josiahdenton/recall/internal/ui/shared"
+	"github.com/josiahdenton/recall/internal/ui/state"
 	"github.com/josiahdenton/recall/internal/ui/styles"
 	"strings"
 
@@ -142,7 +142,7 @@ func (m ResourceModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
-	case shared.LoadedStateMsg:
+	case state.LoadedStateMsg:
 		resources := msg.State.([]domain.Resource)
 		m.existing = list.New(resourcesToItemList(resources), resourceDelegate{}, 50, 10)
 		m.existing.Title = "attach one of the following types"
@@ -224,7 +224,7 @@ func (m ResourceModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				choice := m.selectFrom.SelectedItem().(*createResourceOption)
 				m.choice = choice.AttachBy
 				if m.choice == existingItem {
-					cmds = append(cmds, shared.RequestState(shared.LoadResource, 0))
+					cmds = append(cmds, state.RequestState(state.LoadResource, 0))
 				}
 			}
 		}

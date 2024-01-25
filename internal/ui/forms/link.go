@@ -6,7 +6,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/josiahdenton/recall/internal/domain"
-	"github.com/josiahdenton/recall/internal/ui/shared"
+	"github.com/josiahdenton/recall/internal/ui/state"
 	"strings"
 )
 
@@ -115,7 +115,7 @@ func (m LinkFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	switch msg := msg.(type) {
-	case shared.LoadedStateMsg:
+	case state.LoadedStateMsg:
 		zettels := msg.State.([]domain.Zettel)
 		m.existing = list.New(linksToItemList(zettels), zettelDelegate{}, 50, 20)
 		m.existing.Title = "existing zettels"
@@ -140,7 +140,7 @@ func (m LinkFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				selected := m.createOptions.SelectedItem().(*linkZettelOption)
 				m.choice = *selected
 				if m.choice.AttachBy == existingItem {
-					cmds = append(cmds, shared.RequestState(shared.LoadZettel, 0))
+					cmds = append(cmds, state.RequestState(state.LoadZettel, 0))
 				}
 			case newItem:
 				if m.nameInput.Err != nil {

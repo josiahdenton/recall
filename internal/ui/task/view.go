@@ -7,7 +7,7 @@ import (
 	"github.com/josiahdenton/recall/internal/domain"
 	"github.com/josiahdenton/recall/internal/ui/forms"
 	"github.com/josiahdenton/recall/internal/ui/router"
-	"github.com/josiahdenton/recall/internal/ui/shared"
+	"github.com/josiahdenton/recall/internal/ui/state"
 	"github.com/josiahdenton/recall/internal/ui/styles"
 	"log"
 	"strings"
@@ -168,16 +168,16 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				switch m.active {
 				case steps:
 					item := m.task.Steps[index]
-					m.task.Steps = append(m.task.Steps[:index], m.task.Steps[index+1:]...)
 					cmds = append(cmds, clearStatus(), deleteStep(m.task, &item))
+					m.task.Steps = append(m.task.Steps[:index], m.task.Steps[index+1:]...)
 				case resources:
 					item := m.task.Resources[index]
-					m.task.Resources = append(m.task.Resources[:index], m.task.Resources[index+1:]...)
 					cmds = append(cmds, clearStatus(), deleteResource(m.task, &item))
+					m.task.Resources = append(m.task.Resources[:index], m.task.Resources[index+1:]...)
 				case status:
 					item := m.task.Status[index]
-					m.task.Status = append(m.task.Status[:index], m.task.Status[index+1:]...)
 					cmds = append(cmds, clearStatus(), deleteStatus(m.task, &item))
+					m.task.Status = append(m.task.Status[:index], m.task.Status[index+1:]...)
 				}
 				m.lists[m.active].RemoveItem(index)
 				m.statusMessage = "removed item!"
@@ -210,26 +210,26 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func updateTask(task *domain.Task) tea.Cmd {
 	return func() tea.Msg {
-		return shared.SaveStateMsg{
+		return state.SaveStateMsg{
 			Update: *task,
-			Type:   shared.ModifyTask,
+			Type:   state.ModifyTask,
 		}
 	}
 }
 
 func updateStep(step *domain.Step) tea.Cmd {
 	return func() tea.Msg {
-		return shared.SaveStateMsg{
+		return state.SaveStateMsg{
 			Update: *step,
-			Type:   shared.ModifyStep,
+			Type:   state.ModifyStep,
 		}
 	}
 }
 
 func deleteStep(task *domain.Task, step *domain.Step) tea.Cmd {
 	return func() tea.Msg {
-		return shared.DeleteStateMsg{
-			Type:   shared.ModifyStep,
+		return state.DeleteStateMsg{
+			Type:   state.ModifyStep,
 			Parent: task,
 			Child:  step,
 		}
@@ -238,8 +238,8 @@ func deleteStep(task *domain.Task, step *domain.Step) tea.Cmd {
 
 func deleteResource(task *domain.Task, resource *domain.Resource) tea.Cmd {
 	return func() tea.Msg {
-		return shared.DeleteStateMsg{
-			Type:   shared.ModifyResource,
+		return state.DeleteStateMsg{
+			Type:   state.ModifyResource,
 			Parent: task,
 			Child:  resource,
 		}
@@ -248,8 +248,8 @@ func deleteResource(task *domain.Task, resource *domain.Resource) tea.Cmd {
 
 func deleteStatus(task *domain.Task, status *domain.Status) tea.Cmd {
 	return func() tea.Msg {
-		return shared.DeleteStateMsg{
-			Type:   shared.ModifyStatus,
+		return state.DeleteStateMsg{
+			Type:   state.ModifyStatus,
 			Parent: task,
 			Child:  status,
 		}

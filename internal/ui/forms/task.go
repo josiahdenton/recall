@@ -5,6 +5,7 @@ import (
 	"github.com/josiahdenton/recall/internal/domain"
 	"github.com/josiahdenton/recall/internal/ui/router"
 	"github.com/josiahdenton/recall/internal/ui/shared"
+	"github.com/josiahdenton/recall/internal/ui/state"
 	"github.com/josiahdenton/recall/internal/ui/styles"
 	"strings"
 	"time"
@@ -186,8 +187,8 @@ func (m TaskFormModel) nextInput(current int) int {
 
 func addTask(title string, due time.Time, priority domain.Priority) tea.Cmd {
 	return func() tea.Msg {
-		return shared.SaveStateMsg{
-			Type: shared.ModifyTask,
+		return state.SaveStateMsg{
+			Type: state.ModifyTask,
 			Update: domain.Task{
 				Title:    title,
 				Due:      due,

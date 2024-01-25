@@ -6,6 +6,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/josiahdenton/recall/internal/domain"
 	"github.com/josiahdenton/recall/internal/ui/router"
+	"github.com/josiahdenton/recall/internal/ui/state"
 	"github.com/josiahdenton/recall/internal/ui/styles"
 	"log"
 )
@@ -64,7 +65,32 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, cmd)
 	}
 
+	if m.accomplishments.FilterState() == list.Filtering {
+		return m, tea.Batch(cmds...)
+	}
+
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "d":
+			selected := m.accomplishments.SelectedItem().(*domain.Accomplishment)
+			cmds = append(cmds, deleteAccomplishment(selected.ID))
+			m.accomplishments.RemoveItem(m.accomplishments.Index())
+		case "u":
+			cmds = append(cmds, state.UndoDeleteState())
+		}
+	}
+
 	return m, tea.Batch(cmds...)
+}
+
+func deleteAccomplishment(id uint) tea.Cmd {
+	return func() tea.Msg {
+		return state.DeleteStateMsg{
+			Type: state.ModifyAccomplishment,
+			ID:   id,
+		}
+	}
 }
 
 func toItemList(accomplishments []domain.Accomplishment) []list.Item {

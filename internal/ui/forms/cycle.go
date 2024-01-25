@@ -6,7 +6,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/josiahdenton/recall/internal/domain"
 	"github.com/josiahdenton/recall/internal/ui/router"
-	"github.com/josiahdenton/recall/internal/ui/shared"
+	"github.com/josiahdenton/recall/internal/ui/state"
 	"strings"
 	"time"
 )
@@ -134,12 +134,12 @@ func mustParseDate(date string) time.Time {
 
 func addCycle(title string, start time.Time) tea.Cmd {
 	return func() tea.Msg {
-		return shared.SaveStateMsg{
+		return state.SaveStateMsg{
 			Update: domain.Cycle{
 				Title:     title,
 				StartDate: start,
 			},
-			Type: shared.ModifyCycle,
+			Type: state.ModifyCycle,
 		}
 	}
 }
