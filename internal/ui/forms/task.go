@@ -2,11 +2,14 @@ package forms
 
 import (
 	"fmt"
+	"github.com/charmbracelet/bubbles/list"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/josiahdenton/recall/internal/domain"
 	"github.com/josiahdenton/recall/internal/ui/router"
-	"github.com/josiahdenton/recall/internal/ui/shared"
 	"github.com/josiahdenton/recall/internal/ui/state"
 	"github.com/josiahdenton/recall/internal/ui/styles"
+	"github.com/josiahdenton/recall/internal/ui/toast"
+	"reflect"
 	"strings"
 	"time"
 
@@ -17,19 +20,42 @@ import (
 const (
 	title = iota
 	due
+	tTags
 	priority
 )
 
 var (
-	priorityKeys = []string{"None", "Low", "High"}
+	leftPad = lipgloss.NewStyle().PaddingLeft(2)
 )
 
+type priorityOption struct {
+	Display string
+	Value   domain.Priority
+}
+
+func (p *priorityOption) FilterValue() string {
+	return ""
+}
+
+func EditTask(task *domain.Task) tea.Cmd {
+	return func() tea.Msg {
+		return editTaskMsg{
+			Task: task,
+		}
+	}
+}
+
+type editTaskMsg struct {
+	Task *domain.Task
+}
+
 type TaskFormModel struct {
+	title          string
 	inputs         []textinput.Model
-	priorityMap    map[string]domain.Priority
+	priority       list.Model
 	priorityCursor int
-	status         string
 	active         int
+	task           *domain.Task
 }
 
 func NewTaskForm() TaskFormModel {
@@ -59,18 +85,56 @@ func NewTaskForm() TaskFormModel {
 		return nil
 	}
 
-	inputs := make([]textinput.Model, 2)
+	inputTags := textinput.New()
+	inputTags.Width = 60
+	inputTags.CharLimit = 120
+	inputTags.Prompt = "Tags: "
+	inputTags.PromptStyle = styles.FormLabelStyle
+	inputTags.Placeholder = "(comma seperated list - tags improve search)"
+
+	inputs := make([]textinput.Model, 3)
 	inputs[title] = inputTitle
 	inputs[due] = inputDue
+	inputs[tTags] = inputTags
 
-	priority := make(map[string]domain.Priority, 3)
-	priority[priorityKeys[domain.TaskPriorityNone]] = domain.TaskPriorityNone
-	priority[priorityKeys[domain.TaskPriorityLow]] = domain.TaskPriorityLow
-	priority[priorityKeys[domain.TaskPriorityHigh]] = domain.TaskPriorityHigh
+	priorities := []priorityOption{
+		{
+			Display: "None",
+			Value:   domain.TaskPriorityNone,
+		},
+		{
+			Display: "Low",
+			Value:   domain.TaskPriorityLow,
+		},
+		{
+			Display: "Medium",
+			Value:   domain.TaskPriorityMedium,
+		},
+		{
+			Display: "High",
+			Value:   domain.TaskPriorityHigh,
+		},
+	}
+
+	items := make([]list.Item, len(priorities))
+	for i := range priorities {
+		item := &priorities[i]
+		items[i] = item
+	}
+	priority := list.New(items, priorityDelegate{}, 80, 20)
+	priority.Title = "Priority"
+	priority.SetShowStatusBar(false)
+	priority.SetFilteringEnabled(false)
+	priority.Styles.PaginationStyle = paginationStyle
+	priority.Styles.Title = fadedTitleStyle
+	priority.SetShowHelp(false)
+	priority.KeyMap.Quit.Unbind()
+	priority.KeyMap.AcceptWhileFiltering.Unbind()
 
 	return TaskFormModel{
+		title:          "Add Task",
 		inputs:         inputs,
-		priorityMap:    priority,
+		priority:       priority,
 		priorityCursor: 0,
 	}
 }
@@ -81,16 +145,15 @@ func (m TaskFormModel) Init() tea.Cmd {
 
 func (m TaskFormModel) View() string {
 	var b strings.Builder
-	b.WriteString(styles.FormTitleStyle.Render("Add Task"))
+	b.WriteString(styles.FormTitleStyle.Render(m.title))
 	b.WriteString("\n\n")
-	b.WriteString(m.inputs[title].View())
+	b.WriteString(leftPad.Render(m.inputs[title].View()))
 	b.WriteString("\n\n")
-	b.WriteString(m.inputs[due].View())
+	b.WriteString(leftPad.Render(m.inputs[due].View()))
 	b.WriteString("\n\n")
-	b.WriteString(styles.FormLabelStyle.Render("Priority: "))
-	b.WriteString(shared.VerticalOptions(priorityKeys, m.priorityCursor))
+	b.WriteString(leftPad.Render(m.inputs[tTags].View()))
 	b.WriteString("\n\n")
-	b.WriteString(styles.FormErrorStyle.Render(m.status))
+	b.WriteString(m.priority.View())
 	return b.String()
 }
 
@@ -98,24 +161,15 @@ func (m TaskFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	var cmds []tea.Cmd
 
-	if m.active < priority {
-		m.inputs[m.active], cmd = m.inputs[m.active].Update(msg)
-		cmds = append(cmds, cmd)
-	}
-
 	switch msg := msg.(type) {
+	case editTaskMsg:
+		m.task = msg.Task
+		m.inputs[title].SetValue(m.task.Title)
+		m.inputs[due].SetValue(formatDate(m.task.Due))
+		m.inputs[tTags].SetValue(m.task.Tags)
+		m.priority.Select(int(m.task.Priority))
+		m.title = "Edit Task"
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "l":
-			if m.active == priority && m.priorityCursor < len(priorityKeys)-1 {
-				m.priorityCursor++
-			}
-		case "h":
-			if m.active == priority && m.priorityCursor > 0 {
-				m.priorityCursor--
-			}
-		}
-
 		switch msg.Type {
 		case tea.KeyEnter:
 			if m.active == title {
@@ -129,44 +183,46 @@ func (m TaskFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				break
 			}
 
-			// TODO fix the <nil>
-			if m.inputs[title].Err != nil || m.inputs[due].Err != nil {
-				m.status = fmt.Sprintf("%v, %v", m.inputs[title].Err, m.inputs[due].Err)
-			} else {
-				date := m.inputs[due].Value()
-				t := parseDate(date)
-				cmds = append(
-					cmds,
-					addTask(m.inputs[title].Value(), t, m.priorityMap[priorityKeys[m.priorityCursor]]),
-					router.RefreshPage())
-				m.inputs[title].Reset()
-				m.inputs[due].Reset()
-				m.priorityCursor = 0
-				m.active = 0
-				m.inputs[m.active].Focus()
+			if err := m.inputs[title].Err; err != nil {
+				cmds = append(cmds, toast.ShowToast(fmt.Sprintf("%v", err)))
+				return m, tea.Batch(cmds...)
 			}
+
+			date := m.inputs[due].Value()
+			dueDate, cmd := parseDate(date)
+			if cmd != nil {
+				cmds = append(cmds, cmd)
+				return m, tea.Batch(cmds...)
+			}
+			m.task.Title = m.inputs[title].Value()
+			m.task.Due = dueDate
+			m.task.Priority = m.priority.SelectedItem().(*priorityOption).Value
+			m.task.Tags = m.inputs[tTags].Value()
+
+			cmds = append(cmds, addTask(m.task), router.RefreshPage())
+			// Reset form to default state
+			m.inputs[title].Reset()
+			m.inputs[due].Reset()
+			m.active = 0
+			m.inputs[m.active].Focus()
+			m.priority.ResetSelected()
 		case tea.KeyTab:
 			if m.active < priority {
 				m.inputs[m.active].Blur()
-				m.active = m.nextInput(m.active)
 			}
+			m.active = m.nextInput(m.active)
 			if m.active < priority {
 				m.inputs[m.active].Focus()
 			}
-		case tea.KeyShiftTab:
-			if m.active > 0 {
-				if m.active < priority {
-					m.inputs[m.active].Blur()
-				}
-				m.active--
-				if m.active < priority {
-					m.inputs[m.active].Focus()
-				}
-			}
 		}
-		if len(m.inputs[title].Value()) > 0 || len(m.inputs[due].Value()) > 0 {
-			m.status = ""
-		}
+	}
+
+	if m.active < priority {
+		m.inputs[m.active], cmd = m.inputs[m.active].Update(msg)
+		cmds = append(cmds, cmd)
+	} else {
+		m.priority, cmd = m.priority.Update(msg)
+		cmds = append(cmds, cmd)
 	}
 
 	return m, tea.Batch(cmds...)
@@ -177,6 +233,8 @@ func (m TaskFormModel) nextInput(current int) int {
 	case title:
 		return due
 	case due:
+		return tTags
+	case tTags:
 		return priority
 	case priority:
 		return title
@@ -185,26 +243,34 @@ func (m TaskFormModel) nextInput(current int) int {
 
 }
 
-func addTask(title string, due time.Time, priority domain.Priority) tea.Cmd {
+func addTask(task *domain.Task) tea.Cmd {
 	return func() tea.Msg {
 		return state.SaveStateMsg{
-			Type: state.ModifyTask,
-			Update: domain.Task{
-				Title:    title,
-				Due:      due,
-				Priority: priority,
-			},
+			Type:   state.ModifyTask,
+			Update: *task,
 		}
 	}
 }
 
-// TODO - no longer have any "musts", have it go to a global notify service
+func formatDate(due time.Time) string {
+	if reflect.ValueOf(due).IsZero() {
+		return ""
+	}
 
-func parseDate(date string) time.Time {
+	s := due.Format(longDateForm)
+	value := strings.Split(s, "at")[0]
+	return value
+}
+
+func parseDate(date string) (time.Time, tea.Cmd) {
+	if len(strings.Trim(date, " \n")) < 1 {
+		return time.Time{}, nil
+	}
+
 	input := fmt.Sprintf("%s at 10:00pm (EST)", date)
 	t, err := time.Parse(longDateForm, input)
 	if err != nil {
-		return time.Time{}
+		return time.Time{}, toast.ShowToast("failed to parse date")
 	}
-	return t
+	return t, nil
 }

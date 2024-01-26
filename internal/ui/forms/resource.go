@@ -7,6 +7,7 @@ import (
 	"github.com/josiahdenton/recall/internal/domain"
 	"github.com/josiahdenton/recall/internal/ui/state"
 	"github.com/josiahdenton/recall/internal/ui/styles"
+	"github.com/josiahdenton/recall/internal/ui/toast"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textinput"
@@ -16,6 +17,7 @@ import (
 const (
 	name = iota
 	source
+	rTags
 )
 
 var (
@@ -37,7 +39,6 @@ type ResourceModel struct {
 	existingReady bool
 	choice        domain.ResourceType
 	active        int
-	status        string
 }
 
 type createResourceOption struct {
@@ -79,9 +80,17 @@ func NewResourceForm() ResourceModel {
 		return nil
 	}
 
-	inputs := make([]textinput.Model, 2)
+	inputTags := textinput.New()
+	inputTags.Width = 60
+	inputTags.CharLimit = 300
+	inputTags.Prompt = "Tags: "
+	inputTags.PromptStyle = formLabelStyle
+	inputTags.Placeholder = "(comma seperated list - tags are for improving searching only)"
+
+	inputs := make([]textinput.Model, 3)
 	inputs[name] = inputName
 	inputs[source] = inputSource
+	inputs[rTags] = inputTags
 
 	options := make([]createResourceOption, 2)
 	options[0] = createResourceOption{
@@ -125,10 +134,10 @@ func (m ResourceModel) View() string {
 	b.WriteString("\n\n")
 	if m.choice == newItem {
 		b.WriteString(m.inputs[name].View())
-		b.WriteString("\n")
+		b.WriteString("\n\n")
 		b.WriteString(m.inputs[source].View())
 		b.WriteString("\n\n")
-		b.WriteString(errorStyle.Render(m.status))
+		b.WriteString(m.inputs[rTags].View())
 	} else if m.choice == existingItem && m.existingReady {
 		b.WriteString(m.existing.View())
 	} else if m.choice == none {
@@ -162,30 +171,33 @@ func (m ResourceModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case tea.KeyEsc:
 				m.choice = none
 			case tea.KeyEnter:
-				if m.active == name {
+				if m.active < rTags {
 					m.inputs[m.active%len(m.inputs)].Blur()
 					m.active++
 					m.inputs[m.active%len(m.inputs)].Focus()
 					break
 				}
 
-				// TODO fix the <nil>
-				if m.inputs[name].Err != nil || m.inputs[source].Err != nil {
-					m.status = fmt.Sprintf("%v, %v", m.inputs[name].Err, m.inputs[source].Err)
-				} else {
-					cmds = append(cmds, addResourceToTask(domain.Resource{
-						Name:   m.inputs[name].Value(),
-						Source: m.inputs[source].Value(),
-						Type:   domain.WebResource,
-					}))
-
-					m.inputs[name].Reset()
-					m.inputs[name].Focus()
-					m.inputs[source].Reset()
-					m.inputs[source].Blur()
-					m.active = name
-					m.choice = none
+				if cmd := validateForm(m.inputs[name].Err, m.inputs[source].Err); cmd != nil {
+					cmds = append(cmds, cmd)
+					return m, tea.Batch(cmds...)
 				}
+				cmds = append(cmds, addResourceToTask(domain.Resource{
+					Name:   m.inputs[name].Value(),
+					Source: m.inputs[source].Value(),
+					Tags:   m.inputs[rTags].Value(),
+					Type:   domain.WebResource,
+				}))
+
+				// Reset form to defaults
+				m.inputs[name].Reset()
+				m.inputs[name].Focus()
+				m.inputs[source].Reset()
+				m.inputs[source].Blur()
+				m.inputs[rTags].Reset()
+				m.inputs[rTags].Blur()
+				m.active = name
+				m.choice = none
 			case tea.KeyTab:
 				m.inputs[m.active%len(m.inputs)].Blur()
 				m.active++
@@ -196,9 +208,6 @@ func (m ResourceModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.active--
 					m.inputs[m.active%len(m.inputs)].Focus()
 				}
-			}
-			if len(m.inputs[name].Value()) > 0 || len(m.inputs[source].Value()) > 0 {
-				m.status = ""
 			}
 		}
 	} else if m.choice == existingItem && m.existingReady {
@@ -231,6 +240,16 @@ func (m ResourceModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	return m, tea.Batch(cmds...)
+}
+
+func validateForm(titleErr, sourceErr error) tea.Cmd {
+	if titleErr != nil {
+		return toast.ShowToast(fmt.Sprintf("%v", titleErr))
+	}
+	if sourceErr != nil {
+		return toast.ShowToast(fmt.Sprintf("%v", sourceErr))
+	}
+	return nil
 }
 
 func addResourceToTask(resource domain.Resource) tea.Cmd {

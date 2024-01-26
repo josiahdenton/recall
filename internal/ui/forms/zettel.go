@@ -6,7 +6,13 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/josiahdenton/recall/internal/domain"
 	"github.com/josiahdenton/recall/internal/ui/state"
+	"github.com/josiahdenton/recall/internal/ui/toast"
 	"strings"
+)
+
+const (
+	zName = iota
+	zTags
 )
 
 type ZettelFormMsg struct {
@@ -28,14 +34,27 @@ func NewZettelForm() ZettelFormModel {
 		}
 		return nil
 	}
+
+	tags := textinput.New()
+	tags.Width = 60
+	tags.CharLimit = 60
+	tags.Prompt = "Tags: "
+	tags.Placeholder = "(comma seperated list - tags improve search)"
+	tags.PromptStyle = formLabelStyle
+
+	inputs := make([]textinput.Model, 2)
+	inputs[zName] = name
+	inputs[zTags] = tags
+
 	return ZettelFormModel{
-		nameInput: name,
+		inputs: inputs,
+		active: zName,
 	}
 }
 
 type ZettelFormModel struct {
-	nameInput textinput.Model
-	status    string
+	active int
+	inputs []textinput.Model
 }
 
 func (m ZettelFormModel) Init() tea.Cmd {
@@ -46,9 +65,9 @@ func (m ZettelFormModel) View() string {
 	var b strings.Builder
 	b.WriteString(titleStyle.Render("Add Zettel"))
 	b.WriteString("\n\n")
-	b.WriteString(m.nameInput.View())
+	b.WriteString(m.inputs[zName].View())
 	b.WriteString("\n\n")
-	b.WriteString(errorStyle.Render(m.status))
+	b.WriteString(m.inputs[zTags].View())
 	return b.String()
 }
 
@@ -60,18 +79,38 @@ func (m ZettelFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyEsc:
-			m.nameInput.Reset()
+			m.inputs[zName].Reset()
+			m.inputs[zName].Focus()
+			m.inputs[zTags].Reset()
+			m.inputs[zTags].Blur()
 		case tea.KeyEnter:
-			if m.nameInput.Err != nil {
-				m.status = "missing name for zettel"
+			if m.active < zTags {
+				m.inputs[m.active%len(m.inputs)].Blur()
+				m.active++
+				m.inputs[m.active%len(m.inputs)].Focus()
 				break
 			}
-			cmds = append(cmds, addZettel(domain.Zettel{Name: m.nameInput.Value()}))
-			m.nameInput.Reset()
+
+			if err := m.inputs[zName].Err; err != nil {
+				cmds = append(cmds, toast.ShowToast(fmt.Sprintf("%v", err)))
+				return m, tea.Batch(cmds...)
+			}
+			cmds = append(cmds, addZettel(domain.Zettel{
+				Name: m.inputs[zName].Value(),
+				Tags: m.inputs[zTags].Value(),
+			}))
+			m.inputs[zName].Reset()
+			m.inputs[zName].Focus()
+			m.inputs[zTags].Reset()
+			m.inputs[zTags].Blur()
+		case tea.KeyTab:
+			m.inputs[m.active%len(m.inputs)].Blur()
+			m.active++
+			m.inputs[m.active%len(m.inputs)].Focus()
 		}
 	}
 
-	m.nameInput, cmd = m.nameInput.Update(msg)
+	m.inputs[m.active%len(m.inputs)], cmd = m.inputs[m.active%len(m.inputs)].Update(msg)
 	cmds = append(cmds, cmd)
 
 	return m, tea.Batch(cmds...)

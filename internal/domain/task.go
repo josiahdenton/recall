@@ -9,6 +9,7 @@ import (
 const (
 	TaskPriorityNone = iota
 	TaskPriorityLow
+	TaskPriorityMedium
 	TaskPriorityHigh
 )
 
@@ -23,6 +24,7 @@ type Priority int
 type Task struct {
 	gorm.Model
 	Title            string
+	Tags             string
 	Due              time.Time
 	Priority         Priority
 	Active           bool
@@ -51,5 +53,5 @@ func (t *Task) RemoveStep(i int) {
 }
 
 func (t *Task) FilterValue() string {
-	return t.Title
+	return t.Title + t.Tags
 }

@@ -183,6 +183,15 @@ func (g GormInstance) AllTasks() []domain.Task {
 	}
 	// sort them...
 	sort.Slice(tasks, func(i, j int) bool {
+		if tasks[i].Favorite && !tasks[j].Favorite {
+			return true
+		}
+
+		// TODO - try to get priority sorting working one day
+		//if tasks[i].Priority != tasks[j].Priority {
+		//	return !(tasks[i].Priority < tasks[j].Priority)
+		//}
+
 		if (reflect.ValueOf(tasks[i].Due).IsZero() && reflect.ValueOf(tasks[j].Due).IsZero()) || tasks[i].Due.Equal(tasks[j].Due) {
 			return tasks[i].Title < tasks[j].Title
 		}

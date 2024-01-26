@@ -18,11 +18,13 @@ type ResourceType = int
 
 type Resource struct {
 	gorm.Model
-	Name     string
-	Source   string
-	Type     ResourceType
-	TaskID   uint
-	ZettelID uint
+	Name       string
+	Source     string
+	Tags       string
+	Type       ResourceType
+	TaskID     uint
+	ZettelID   uint
+	ArtifactID uint
 }
 
 func (r *Resource) StringType() string {
@@ -41,7 +43,7 @@ func (r *Resource) StringType() string {
 }
 
 func (r *Resource) FilterValue() string {
-	return r.Name
+	return r.Name + r.Tags
 }
 
 func (r *Resource) Open() bool {
