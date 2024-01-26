@@ -23,6 +23,8 @@ type LoadPageMsg struct {
 
 type PreviousPageMsg struct{}
 
+type RefreshPageMsg struct{}
+
 func GotoPage(page domain.Page, id uint) tea.Cmd {
 	return func() tea.Msg {
 		return GotoPageMsg{Page: page, RequestedItemId: id}
@@ -32,5 +34,11 @@ func GotoPage(page domain.Page, id uint) tea.Cmd {
 func GotoPreviousPage() tea.Cmd {
 	return func() tea.Msg {
 		return PreviousPageMsg{}
+	}
+}
+
+func RefreshPage() tea.Cmd {
+	return func() tea.Msg {
+		return RefreshPageMsg{}
 	}
 }

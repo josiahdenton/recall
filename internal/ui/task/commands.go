@@ -10,6 +10,7 @@ const (
 	Add
 	MoveFocus
 	Back
+	Favorite
 	None
 )
 
@@ -24,6 +25,7 @@ func DefaultCommands() Commands {
 	keys["d"] = Delete
 	keys["tab"] = MoveFocus
 	keys["esc"] = Back
+	keys["f"] = Favorite
 	return Commands{keys: keys}
 }
 

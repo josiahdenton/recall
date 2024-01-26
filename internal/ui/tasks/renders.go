@@ -16,6 +16,7 @@ var (
 	activeTaskStyle         = styles.SecondaryColor.Copy()
 	activeSelectedTaskStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#30b3a2"))
 	cursorStyle             = styles.PrimaryColor.Copy()
+	favoriteStyle           = styles.PrimaryColor.Copy()
 )
 
 func renderTask(t *domain.Task, selected bool) string {
@@ -23,6 +24,7 @@ func renderTask(t *domain.Task, selected bool) string {
 	var priorityStyle lipgloss.Style
 	var priorityMarker string
 	// TODO I need to clean all this logic up
+	favoriteMarker := ""
 	cursor := ""
 
 	switch {
@@ -47,6 +49,10 @@ func renderTask(t *domain.Task, selected bool) string {
 		priorityMarker = " ***"
 	}
 
+	if t.Favorite {
+		favoriteMarker = "\uF005"
+	}
+
 	title := lipgloss.JoinHorizontal(lipgloss.Left, cursorStyle.Width(2).Render(cursor), style.Width(30).Render(t.Title))
 	priority := priorityStyle.Width(10).Render(priorityMarker)
 	var date string
@@ -55,5 +61,6 @@ func renderTask(t *domain.Task, selected bool) string {
 	} else {
 		date = lipgloss.JoinHorizontal(lipgloss.Left, keyTitleStyle.Render("Due "), style.Width(10).Italic(true).Render(t.Due.Format("2006/01/02")))
 	}
-	return lipgloss.JoinHorizontal(lipgloss.Top, title, priority, date)
+	favorite := favoriteStyle.Render(favoriteMarker)
+	return lipgloss.JoinHorizontal(lipgloss.Top, title, priority, date, favorite)
 }

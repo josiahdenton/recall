@@ -5,7 +5,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/josiahdenton/recall/internal/domain"
 	"github.com/josiahdenton/recall/internal/ui/router"
-	"github.com/josiahdenton/recall/internal/ui/shared"
+	"github.com/josiahdenton/recall/internal/ui/state"
 	"github.com/josiahdenton/recall/internal/ui/styles"
 	"strings"
 )
@@ -77,9 +77,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func saveSettings(settings domain.Settings) tea.Cmd {
 	return func() tea.Msg {
-		return shared.SaveStateMsg{
+		return state.SaveStateMsg{
 			Update: settings,
-			Type:   shared.ModifySettings,
+			Type:   state.ModifySettings,
 		}
 	}
 }

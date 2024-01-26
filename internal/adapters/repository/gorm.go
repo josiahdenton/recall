@@ -24,6 +24,34 @@ type GormInstance struct {
 	db *gorm.DB
 }
 
+func (g GormInstance) DeleteAccomplishment(id uint) {
+	err := g.db.Delete(&domain.Accomplishment{}, id).Error
+	if err != nil {
+		log.Printf("failed to delete accomplisment (%d), for reason: %v", id, err)
+	}
+}
+
+func (g GormInstance) UndoDeleteTask(id uint) {
+	err := g.db.Unscoped().Model(&domain.Task{}).Where("id", id).Update("deleted_at", nil).Error
+	if err != nil {
+		log.Printf("failed to undo delete for task (%d) for reason: %v", id, err)
+	}
+}
+
+func (g GormInstance) UndoDeleteZettel(id uint) {
+	err := g.db.Unscoped().Model(&domain.Zettel{}).Where("id", id).Update("deleted_at", nil).Error
+	if err != nil {
+		log.Printf("failed to undo delete for zettel (%d) for reason: %v", id, err)
+	}
+}
+
+func (g GormInstance) UndoDeleteAccomplishment(id uint) {
+	err := g.db.Unscoped().Model(&domain.Accomplishment{}).Where("id", id).Update("deleted_at", nil).Error
+	if err != nil {
+		log.Printf("failed to undo delete for accomplishment (%d) for reason: %v", id, err)
+	}
+}
+
 func (g GormInstance) DeleteZettel(id uint) {
 	err := g.db.Delete(&domain.Zettel{}, id).Error
 	if err != nil {
@@ -48,14 +76,22 @@ func (g GormInstance) DeleteTaskResource(task *domain.Task, resource *domain.Res
 func (g GormInstance) DeleteTaskStep(task *domain.Task, step *domain.Step) {
 	err := g.db.Model(task).Association("Steps").Delete(step)
 	if err != nil {
-		log.Printf("failed to delete resource (%d) associated with task (%d) due to: %+v", task.ID, step.ID, err)
+		log.Printf("failed to delete step (%d) associated with task (%d) due to: %+v", task.ID, step.ID, err)
+	}
+	err = g.db.Unscoped().Delete(step).Error
+	if err != nil {
+		log.Printf("failed to delete step (%d) associated with task (%d) due to: %+v", task.ID, step.ID, err)
 	}
 }
 
 func (g GormInstance) DeleteTaskStatus(task *domain.Task, status *domain.Status) {
 	err := g.db.Model(task).Association("Status").Delete(status)
 	if err != nil {
-		log.Printf("failed to delete resource (%d) associated with task (%d) due to: %+v", task.ID, status.ID, err)
+		log.Printf("failed to delete status (%d) associated with task (%d) due to: %+v", task.ID, status.ID, err)
+	}
+	err = g.db.Unscoped().Delete(status).Error
+	if err != nil {
+		log.Printf("failed to delete status (%d) associated with task (%d) due to: %+v", task.ID, status.ID, err)
 	}
 }
 

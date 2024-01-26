@@ -7,7 +7,7 @@ import (
 	"github.com/josiahdenton/recall/internal/domain"
 	"github.com/josiahdenton/recall/internal/ui/forms"
 	"github.com/josiahdenton/recall/internal/ui/router"
-	"github.com/josiahdenton/recall/internal/ui/shared"
+	"github.com/josiahdenton/recall/internal/ui/state"
 	"github.com/josiahdenton/recall/internal/ui/styles"
 )
 
@@ -113,9 +113,9 @@ func toItemList(cycles []domain.Cycle) []list.Item {
 func toggleCycleActive(cycle *domain.Cycle) tea.Cmd {
 	cycle.Active = !cycle.Active
 	return func() tea.Msg {
-		return shared.SaveStateMsg{
+		return state.SaveStateMsg{
 			Update: *cycle,
-			Type:   shared.ModifyCycle,
+			Type:   state.ModifyCycle,
 		}
 	}
 }

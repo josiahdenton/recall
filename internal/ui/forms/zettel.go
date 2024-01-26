@@ -5,7 +5,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/josiahdenton/recall/internal/domain"
-	"github.com/josiahdenton/recall/internal/ui/shared"
+	"github.com/josiahdenton/recall/internal/ui/state"
 	"strings"
 )
 
@@ -79,9 +79,9 @@ func (m ZettelFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func addZettel(zettel domain.Zettel) tea.Cmd {
 	return func() tea.Msg {
-		return shared.SaveStateMsg{
+		return state.SaveStateMsg{
 			Update: zettel,
-			Type:   shared.ModifyZettel,
+			Type:   state.ModifyZettel,
 		}
 	}
 }

@@ -12,13 +12,15 @@ import (
 	"github.com/josiahdenton/recall/internal/ui/performance/cycles"
 	"github.com/josiahdenton/recall/internal/ui/resources"
 	"github.com/josiahdenton/recall/internal/ui/router"
-	"github.com/josiahdenton/recall/internal/ui/shared"
+	"github.com/josiahdenton/recall/internal/ui/state"
 	taskdetailed "github.com/josiahdenton/recall/internal/ui/task"
 	tasklist "github.com/josiahdenton/recall/internal/ui/tasks"
+	"github.com/josiahdenton/recall/internal/ui/toast"
 	"github.com/josiahdenton/recall/internal/ui/zettel"
 	"github.com/josiahdenton/recall/internal/ui/zettels"
 	"log"
 	"os"
+	"strings"
 )
 
 var (
@@ -59,9 +61,10 @@ func New() Model {
 		accomplishment:  accomplishment.Model{},
 		zettel:          zettel.New(),
 		zettels:         zettels.New(),
+		toast:           toast.New(),
 		page:            domain.MenuPage,
 		repository:      instance,
-		history: router.History{
+		routeHistory: router.History{
 			Pages: []router.GotoPageMsg{{Page: domain.MenuPage, RequestedItemId: 0}},
 		},
 	}
@@ -77,8 +80,10 @@ type Model struct {
 	resources       tea.Model
 	zettel          tea.Model
 	zettels         tea.Model
+	toast           tea.Model
 	repository      repository.Repository
-	history         router.History
+	routeHistory    router.History
+	stateHistory    state.History
 	page            domain.Page
 	width           int
 	height          int
@@ -89,28 +94,32 @@ func (m Model) Init() tea.Cmd {
 }
 
 func (m Model) View() string {
-	var pageModel tea.Model
+	var page tea.Model
 	switch m.page {
 	case domain.TaskListPage:
-		pageModel = m.taskList
+		page = m.taskList
 	case domain.TaskDetailedPage:
-		pageModel = m.taskDetailed
+		page = m.taskDetailed
 	case domain.CyclesPage:
-		pageModel = m.cycles
+		page = m.cycles
 	case domain.MenuPage:
-		pageModel = m.menu
+		page = m.menu
 	case domain.AccomplishmentsPage:
-		pageModel = m.accomplishments
+		page = m.accomplishments
 	case domain.ResourcesPage:
-		pageModel = m.resources
+		page = m.resources
 	case domain.AccomplishmentPage:
-		pageModel = m.accomplishment
+		page = m.accomplishment
 	case domain.ZettelPage:
-		pageModel = m.zettel
+		page = m.zettel
 	case domain.ZettelsPage:
-		pageModel = m.zettels
+		page = m.zettels
 	}
-	return windowStyle.Width(m.width).Height(m.height).Render(pageModel.View())
+	var b strings.Builder
+	b.WriteString(page.View())
+	b.WriteString("\n")
+	b.WriteString(m.toast.View())
+	return windowStyle.Width(m.width).Height(m.height).Render(b.String())
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -125,22 +134,40 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.height = msg.Height
 		m.width = msg.Width
-	case shared.SaveStateMsg:
+	case state.SaveStateMsg:
 		m.updateState(msg)
-	case shared.DeleteStateMsg:
+	case state.DeleteStateMsg:
 		m.deleteState(msg)
-	case shared.RequestStateMsg:
+		m.stateHistory.Deletes = append(m.stateHistory.Deletes, msg)
+	case state.UndoDeleteStateMsg:
+		//TODO: if I undo a in the zettel page after deleting a task, it will bring that task back.
+		// I want add the modifyType. Maybe make Deletes a map of types to slices?
+		if len(m.stateHistory.Deletes) > 0 {
+			previousDelete := m.stateHistory.Deletes[len(m.stateHistory.Deletes)-1]
+			m.stateHistory.Deletes = m.stateHistory.Deletes[:len(m.stateHistory.Deletes)-1]
+			m.undoDeleteState(previousDelete)
+		}
+		cmds = append(cmds, router.RefreshPage())
+	case state.RequestStateMsg:
 		cmds = append(cmds, m.fetchState(msg))
 	case router.GotoPageMsg:
-		m.history.Pages = append(m.history.Pages, msg)
+		m.routeHistory.Pages = append(m.routeHistory.Pages, msg)
 		cmds = append(cmds, m.loadPage(msg))
 	case router.PreviousPageMsg:
-		previousPage := m.history.Pages[len(m.history.Pages)-2]
-		m.history.Pages = m.history.Pages[:len(m.history.Pages)-2]
+		previousPage := m.routeHistory.Pages[len(m.routeHistory.Pages)-2]
+		m.routeHistory.Pages = m.routeHistory.Pages[:len(m.routeHistory.Pages)-2]
+		cmds = append(cmds, router.GotoPage(previousPage.Page, previousPage.RequestedItemId))
+	case router.RefreshPageMsg:
+		previousPage := m.routeHistory.Pages[len(m.routeHistory.Pages)-1]
+		m.routeHistory.Pages = m.routeHistory.Pages[:len(m.routeHistory.Pages)-1]
 		cmds = append(cmds, router.GotoPage(previousPage.Page, previousPage.RequestedItemId))
 	case router.LoadPageMsg:
 		m.page = msg.Page
 	}
+
+	// toast is always active
+	m.toast, cmd = m.toast.Update(msg)
+	cmds = append(cmds, cmd)
 
 	// only push events to "in focus" pages
 	switch m.page {
@@ -176,21 +203,21 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-func (m Model) fetchState(msg shared.RequestStateMsg) tea.Cmd {
+func (m Model) fetchState(msg state.RequestStateMsg) tea.Cmd {
 	return func() tea.Msg {
-		var state any
+		var s any
 		switch msg.Type {
-		case shared.LoadZettel:
+		case state.LoadZettel:
 			if msg.ID > 0 {
-				state = m.repository.Zettel(msg.ID)
+				s = m.repository.Zettel(msg.ID)
 			} else {
-				state = m.repository.AllZettels()
+				s = m.repository.AllZettels()
 			}
-		case shared.LoadResource:
-			state = m.repository.AllResources()
+		case state.LoadResource:
+			s = m.repository.AllResources()
 		}
 
-		return shared.LoadedStateMsg{State: state}
+		return state.LoadedStateMsg{State: s}
 	}
 }
 
@@ -227,18 +254,18 @@ func (m Model) loadPage(msg router.GotoPageMsg) tea.Cmd {
 }
 
 // updateState should only worry about updating the repository
-func (m Model) updateState(msg shared.SaveStateMsg) {
+func (m Model) updateState(msg state.SaveStateMsg) {
 	switch msg.Type {
-	case shared.ModifyCycle:
+	case state.ModifyCycle:
 		update := msg.Update.(domain.Cycle)
 		m.repository.ModifyCycle(update)
-	case shared.ModifySettings:
+	case state.ModifySettings:
 		update := msg.Update.(domain.Settings)
 		m.repository.ModifySettings(update)
-	case shared.ModifyTask:
+	case state.ModifyTask:
 		update := msg.Update.(domain.Task)
 		m.repository.ModifyTask(update)
-	case shared.ModifyAccomplishment:
+	case state.ModifyAccomplishment:
 		allCycles := m.repository.AllCycles()
 		update := msg.Update.(domain.Accomplishment)
 		activeSet := false
@@ -253,33 +280,51 @@ func (m Model) updateState(msg shared.SaveStateMsg) {
 		if !activeSet {
 			m.repository.ModifyAccomplishment(update)
 		}
-	case shared.ModifyStep:
+	case state.ModifyStep:
 		update := msg.Update.(domain.Step)
 		m.repository.ModifyStep(update)
-	case shared.ModifyResource:
-	case shared.ModifyStatus:
-	case shared.ModifyZettel:
+	case state.ModifyResource:
+	case state.ModifyStatus:
+	case state.ModifyZettel:
 		update := msg.Update.(domain.Zettel)
 		m.repository.ModifyZettel(update)
 	}
 }
 
-func (m Model) deleteState(msg shared.DeleteStateMsg) {
+func (m Model) deleteState(msg state.DeleteStateMsg) {
 	switch msg.Type {
-	case shared.ModifyTask:
+	case state.ModifyTask:
 		m.repository.DeleteTask(msg.ID)
-	case shared.ModifyStep:
+	case state.ModifyStep:
 		m.repository.DeleteTaskStep(msg.Parent.(*domain.Task), msg.Child.(*domain.Step))
-	case shared.ModifyResource:
+	case state.ModifyResource:
 		m.repository.DeleteTaskResource(msg.Parent.(*domain.Task), msg.Child.(*domain.Resource))
-	case shared.ModifyStatus:
+	case state.ModifyStatus:
 		m.repository.DeleteTaskStatus(msg.Parent.(*domain.Task), msg.Child.(*domain.Status))
-	case shared.ModifyCycle:
-	case shared.ModifyZettel:
+	case state.ModifyCycle:
+	case state.ModifyZettel:
 		m.repository.DeleteZettel(msg.ID)
-	case shared.ModifyLink:
+	case state.ModifyLink:
 		m.repository.UnlinkZettel(msg.Parent.(*domain.Zettel), msg.Child.(*domain.Zettel))
-	case shared.ModifyAccomplishment:
-	case shared.ModifySettings:
+	case state.ModifyAccomplishment:
+		m.repository.DeleteAccomplishment(msg.ID)
+	case state.ModifySettings:
+	}
+}
+
+func (m Model) undoDeleteState(msg state.DeleteStateMsg) {
+	switch msg.Type {
+	case state.ModifyTask:
+		m.repository.UndoDeleteTask(msg.ID)
+	case state.ModifyAccomplishment:
+		m.repository.UndoDeleteAccomplishment(msg.ID)
+	case state.ModifyZettel:
+		m.repository.UndoDeleteZettel(msg.ID)
+	case state.ModifyStep:
+	case state.ModifyResource:
+	case state.ModifyStatus:
+	case state.ModifyCycle:
+	case state.ModifyLink:
+	case state.ModifySettings:
 	}
 }

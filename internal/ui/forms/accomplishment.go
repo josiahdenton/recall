@@ -6,7 +6,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/josiahdenton/recall/internal/domain"
 	"github.com/josiahdenton/recall/internal/ui/router"
-	"github.com/josiahdenton/recall/internal/ui/shared"
+	"github.com/josiahdenton/recall/internal/ui/state"
 	"github.com/josiahdenton/recall/internal/ui/styles"
 	"strings"
 )
@@ -169,9 +169,9 @@ func (m AccomplishmentFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func archiveTask(task domain.Task) tea.Cmd {
 	return func() tea.Msg {
 		task.Archive = true
-		return shared.SaveStateMsg{
+		return state.SaveStateMsg{
 			Update: task,
-			Type:   shared.ModifyTask,
+			Type:   state.ModifyTask,
 		}
 	}
 }
@@ -184,9 +184,9 @@ func addAccomplishment(description, impact, strength string, task domain.Task) t
 			Strength:    strength,
 			Tasks:       []domain.Task{task},
 		}
-		return shared.SaveStateMsg{
+		return state.SaveStateMsg{
 			Update: accomplishment,
-			Type:   shared.ModifyAccomplishment,
+			Type:   state.ModifyAccomplishment,
 		}
 	}
 }

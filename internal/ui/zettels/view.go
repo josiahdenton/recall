@@ -7,8 +7,9 @@ import (
 	"github.com/josiahdenton/recall/internal/domain"
 	"github.com/josiahdenton/recall/internal/ui/forms"
 	"github.com/josiahdenton/recall/internal/ui/router"
-	"github.com/josiahdenton/recall/internal/ui/shared"
+	"github.com/josiahdenton/recall/internal/ui/state"
 	"github.com/josiahdenton/recall/internal/ui/styles"
+	"github.com/josiahdenton/recall/internal/ui/toast"
 	"strings"
 )
 
@@ -58,14 +59,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.zettels.SetShowHelp(false)
 		m.zettels.KeyMap.Quit.Unbind()
 		m.ready = true
-	case shared.SaveStateMsg:
+	case state.SaveStateMsg:
 		m.showForm = false
-		if msg.Type == shared.ModifyZettel {
+		if msg.Type == state.ModifyZettel {
 			zettel := msg.Update.(domain.Zettel)
 			m.zettels.InsertItem(len(m.zettels.Items()), &zettel)
 		}
-		// NOTE: need this to get the latest Zettel ID, should clean this up eventually
-		cmds = append(cmds, router.GotoPage(domain.MenuPage, 0))
+		cmds = append(cmds, router.RefreshPage())
 	}
 
 	if m.ready {
@@ -105,11 +105,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "a":
 			m.showForm = true
+		case "u":
+			cmds = append(cmds, state.UndoDeleteState(), toast.ShowToast("undo!"))
 		case "d":
 			if len(m.zettels.Items()) > 0 {
 				selected := m.zettels.SelectedItem().(*domain.Zettel)
 				m.zettels.RemoveItem(m.zettels.Index())
-				cmds = append(cmds, deleteZettel(selected))
+				cmds = append(cmds, deleteZettel(selected), toast.ShowToast("removed zettel!"))
 			}
 		}
 	}
@@ -119,8 +121,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func deleteZettel(zettel *domain.Zettel) tea.Cmd {
 	return func() tea.Msg {
-		return shared.DeleteStateMsg{
-			Type: shared.ModifyZettel,
+		return state.DeleteStateMsg{
+			Type: state.ModifyZettel,
 			ID:   zettel.ID,
 		}
 	}

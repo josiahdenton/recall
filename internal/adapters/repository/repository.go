@@ -10,6 +10,7 @@ type Repository interface {
 	Cycle(uint) *domain.Cycle // etc...
 	Accomplishment(uint) *domain.Accomplishment
 	ModifyAccomplishment(domain.Accomplishment)
+	DeleteAccomplishment(uint)
 	ModifyTask(domain.Task)
 	AllTasks() []domain.Task
 	ArchivedTasks() []domain.Task
@@ -28,6 +29,9 @@ type Repository interface {
 	DeleteTaskStep(*domain.Task, *domain.Step)
 	DeleteTaskStatus(*domain.Task, *domain.Status)
 	ModifyStep(step domain.Step)
+	UndoDeleteTask(uint)
+	UndoDeleteZettel(uint)
+	UndoDeleteAccomplishment(uint)
 	// Add Delete*FromTask for Resource, Status, Step
 	//Resource(string) domain.Resource // I don't think I ever would need to get a single resource
 	// Add the following

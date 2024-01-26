@@ -23,8 +23,9 @@ var (
 	selectedResourceStyle  = styles.SecondaryColor.Copy().PaddingLeft(2)
 	resourceMetaTitleStyle = styles.SecondaryGray.Copy()
 	// status
-	statusStyle   = lipgloss.NewStyle().Width(60).Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#3a3b5b"))
-	hiStatusStyle = lipgloss.NewStyle().Width(60).Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#D120AF"))
+	statusStyle         = lipgloss.NewStyle().Width(60).Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#3a3b5b"))
+	hiStatusStyle       = lipgloss.NewStyle().Width(60).Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#D120AF"))
+	favoriteMarkerStyle = styles.PrimaryColor.Copy()
 )
 
 func renderResource(r *domain.Resource, selected bool) string {
@@ -67,9 +68,15 @@ func renderHeader(task *domain.Task, headerActive bool) string {
 	if headerActive {
 		style = activeTitleStyle
 	}
+	favoriteMarker := ""
+	if task.Favorite {
+		favoriteMarker = "\uF005"
+	}
 
 	var b strings.Builder
-	b.WriteString(style.Render(task.Title) + "\n")
+	b.WriteString(style.Render(task.Title))
+	b.WriteString(favoriteMarkerStyle.Render(favoriteMarker))
+	b.WriteString("\n")
 	if reflect.ValueOf(task.Due).IsZero() {
 		b.WriteString(fmt.Sprintf("%s  %s\n\n", metaTitleStyle.Render("Due"), titleStyle.Render("None")))
 	} else {
