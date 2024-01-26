@@ -9,6 +9,7 @@ import (
 	"github.com/josiahdenton/recall/internal/ui/router"
 	"github.com/josiahdenton/recall/internal/ui/state"
 	"github.com/josiahdenton/recall/internal/ui/styles"
+	"github.com/josiahdenton/recall/internal/ui/toast"
 )
 
 var (
@@ -125,13 +126,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.showForm = true
 			m.activeForm = completeForm
 			selected := m.tasks.SelectedItem().(*domain.Task)
-			cmds = append(cmds, forms.AttachTask(*selected))
+			cmds = append(cmds, forms.AttachTask(*selected), toast.ShowToast("completing task!"))
 		case "d":
 			selected := m.tasks.SelectedItem().(*domain.Task)
 			m.tasks.RemoveItem(m.tasks.Index())
-			cmds = append(cmds, deleteTask(selected.ID))
+			cmds = append(cmds, deleteTask(selected.ID), toast.ShowToast("removed task!"))
 		case "u":
-			cmds = append(cmds, state.UndoDeleteState())
+			cmds = append(cmds, state.UndoDeleteState(), toast.ShowToast("undo!"))
 		}
 	}
 

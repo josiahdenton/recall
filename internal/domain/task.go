@@ -34,6 +34,10 @@ type Task struct {
 	AccomplishmentID uint
 }
 
+func (t *Task) ToggleFavorite() {
+	t.Favorite = !t.Favorite
+}
+
 func (t *Task) RemoveResource(i int) {
 	t.Resources = append(t.Resources[:i], t.Resources[i+1:]...)
 }

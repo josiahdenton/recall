@@ -138,7 +138,7 @@ func (m TaskFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				cmds = append(
 					cmds,
 					addTask(m.inputs[title].Value(), t, m.priorityMap[priorityKeys[m.priorityCursor]]),
-					router.GotoPage(domain.MenuPage, 0))
+					router.RefreshPage())
 				m.inputs[title].Reset()
 				m.inputs[due].Reset()
 				m.priorityCursor = 0

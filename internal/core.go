@@ -15,10 +15,12 @@ import (
 	"github.com/josiahdenton/recall/internal/ui/state"
 	taskdetailed "github.com/josiahdenton/recall/internal/ui/task"
 	tasklist "github.com/josiahdenton/recall/internal/ui/tasks"
+	"github.com/josiahdenton/recall/internal/ui/toast"
 	"github.com/josiahdenton/recall/internal/ui/zettel"
 	"github.com/josiahdenton/recall/internal/ui/zettels"
 	"log"
 	"os"
+	"strings"
 )
 
 var (
@@ -59,6 +61,7 @@ func New() Model {
 		accomplishment:  accomplishment.Model{},
 		zettel:          zettel.New(),
 		zettels:         zettels.New(),
+		toast:           toast.New(),
 		page:            domain.MenuPage,
 		repository:      instance,
 		routeHistory: router.History{
@@ -77,6 +80,7 @@ type Model struct {
 	resources       tea.Model
 	zettel          tea.Model
 	zettels         tea.Model
+	toast           tea.Model
 	repository      repository.Repository
 	routeHistory    router.History
 	stateHistory    state.History
@@ -90,28 +94,32 @@ func (m Model) Init() tea.Cmd {
 }
 
 func (m Model) View() string {
-	var pageModel tea.Model
+	var page tea.Model
 	switch m.page {
 	case domain.TaskListPage:
-		pageModel = m.taskList
+		page = m.taskList
 	case domain.TaskDetailedPage:
-		pageModel = m.taskDetailed
+		page = m.taskDetailed
 	case domain.CyclesPage:
-		pageModel = m.cycles
+		page = m.cycles
 	case domain.MenuPage:
-		pageModel = m.menu
+		page = m.menu
 	case domain.AccomplishmentsPage:
-		pageModel = m.accomplishments
+		page = m.accomplishments
 	case domain.ResourcesPage:
-		pageModel = m.resources
+		page = m.resources
 	case domain.AccomplishmentPage:
-		pageModel = m.accomplishment
+		page = m.accomplishment
 	case domain.ZettelPage:
-		pageModel = m.zettel
+		page = m.zettel
 	case domain.ZettelsPage:
-		pageModel = m.zettels
+		page = m.zettels
 	}
-	return windowStyle.Width(m.width).Height(m.height).Render(pageModel.View())
+	var b strings.Builder
+	b.WriteString(page.View())
+	b.WriteString("\n")
+	b.WriteString(m.toast.View())
+	return windowStyle.Width(m.width).Height(m.height).Render(b.String())
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -139,6 +147,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.stateHistory.Deletes = m.stateHistory.Deletes[:len(m.stateHistory.Deletes)-1]
 			m.undoDeleteState(previousDelete)
 		}
+		cmds = append(cmds, router.RefreshPage())
 	case state.RequestStateMsg:
 		cmds = append(cmds, m.fetchState(msg))
 	case router.GotoPageMsg:
@@ -148,9 +157,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		previousPage := m.routeHistory.Pages[len(m.routeHistory.Pages)-2]
 		m.routeHistory.Pages = m.routeHistory.Pages[:len(m.routeHistory.Pages)-2]
 		cmds = append(cmds, router.GotoPage(previousPage.Page, previousPage.RequestedItemId))
+	case router.RefreshPageMsg:
+		previousPage := m.routeHistory.Pages[len(m.routeHistory.Pages)-1]
+		m.routeHistory.Pages = m.routeHistory.Pages[:len(m.routeHistory.Pages)-1]
+		cmds = append(cmds, router.GotoPage(previousPage.Page, previousPage.RequestedItemId))
 	case router.LoadPageMsg:
 		m.page = msg.Page
 	}
+
+	// toast is always active
+	m.toast, cmd = m.toast.Update(msg)
+	cmds = append(cmds, cmd)
 
 	// only push events to "in focus" pages
 	switch m.page {

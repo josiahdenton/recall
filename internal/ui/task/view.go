@@ -9,9 +9,9 @@ import (
 	"github.com/josiahdenton/recall/internal/ui/router"
 	"github.com/josiahdenton/recall/internal/ui/state"
 	"github.com/josiahdenton/recall/internal/ui/styles"
+	"github.com/josiahdenton/recall/internal/ui/toast"
 	"log"
 	"strings"
-	"time"
 )
 
 var (
@@ -33,15 +33,14 @@ const (
 )
 
 type Model struct {
-	ready         bool
-	showForm      bool
-	headerActive  bool
-	forms         []tea.Model
-	statusMessage string
-	task          *domain.Task
-	lists         []list.Model
-	active        int
-	commands      Commands
+	ready        bool
+	showForm     bool
+	headerActive bool
+	forms        []tea.Model
+	task         *domain.Task
+	lists        []list.Model
+	active       int
+	commands     Commands
 }
 
 func New() *Model {
@@ -68,7 +67,6 @@ func (m *Model) View() string {
 		b.WriteString(m.lists[steps].View() + "\n")
 		b.WriteString(m.lists[resources].View() + "\n")
 		b.WriteString(m.lists[status].View() + "\n")
-		b.WriteString(statusMessageStyle.Render(m.statusMessage))
 	} else if m.showForm {
 		b.WriteString(renderHeader(m.task, m.active == header))
 		b.WriteString(m.forms[m.active].View())
@@ -93,8 +91,6 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.task = msg.State.(*domain.Task)
 		m.lists = setupLists(m.task)
 		m.ready = true
-	case clearStatusMessage:
-		m.statusMessage = ""
 	case forms.StepFormMsg:
 		m.task.Steps = append(m.task.Steps, msg.Step)
 		m.lists[steps].InsertItem(len(m.task.Steps), &m.task.Steps[len(m.task.Steps)-1])
@@ -117,7 +113,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.showForm {
 				m.showForm = false
 			} else {
-				cmds = append(cmds, router.GotoPage(domain.TaskListPage, 0))
+				cmds = append(cmds, router.GotoPreviousPage())
 				// TODO - add a Reset method
 				m.active = header
 			}
@@ -128,38 +124,34 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			switch m.active {
 			case steps:
-
 				step := m.lists[steps].SelectedItem().(*domain.Step)
 				step.ToggleStatus()
 				if step.Complete {
-					m.statusMessage = "completed step!"
+					cmds = append(cmds, updateStep(step), toast.ShowToast("completed step!"))
 				} else {
-					m.statusMessage = "reset step!"
+					cmds = append(cmds, updateStep(step), toast.ShowToast("reset step!"))
 				}
-				cmds = append(cmds, clearStatus(), updateStep(step))
 			case resources:
 				resource := m.lists[resources].SelectedItem().(*domain.Resource)
 				if resource.Type == domain.WebResource {
 					resource.Open()
-					m.statusMessage = "opened web link!"
+					cmds = append(cmds, toast.ShowToast("opened web link!"))
 				} else {
-					m.statusMessage = "unsupported type!"
+					cmds = append(cmds, toast.ShowToast("unsupported type!"))
 				}
-				cmds = append(cmds, clearStatus())
 			case status:
 				status := m.lists[status].SelectedItem().(*domain.Status)
 				err := clipboard.WriteAll(status.Description)
 				if err != nil {
 					log.Printf("failed to copy to clipboard: %v", err)
-					m.statusMessage = "failed to copy to clipboard"
+					cmds = append(cmds, toast.ShowToast("failed to copy to clipboard"))
 				}
-				m.statusMessage = "copied to clipboard!"
-				cmds = append(cmds, clearStatus())
+				cmds = append(cmds, toast.ShowToast("copied to clipboard!"))
 			case header:
 				// nothing for now
 			}
 		case Delete:
-			if m.showForm {
+			if m.showForm || (m.active < header && m.lists[m.active].FilterState() == list.Filtering) {
 				break
 			}
 
@@ -168,26 +160,26 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				switch m.active {
 				case steps:
 					item := m.task.Steps[index]
-					cmds = append(cmds, clearStatus(), deleteStep(m.task, &item))
+					cmds = append(cmds, deleteStep(m.task, &item))
 					m.task.Steps = append(m.task.Steps[:index], m.task.Steps[index+1:]...)
 				case resources:
 					item := m.task.Resources[index]
-					cmds = append(cmds, clearStatus(), deleteResource(m.task, &item))
+					cmds = append(cmds, deleteResource(m.task, &item))
 					m.task.Resources = append(m.task.Resources[:index], m.task.Resources[index+1:]...)
 				case status:
 					item := m.task.Status[index]
-					cmds = append(cmds, clearStatus(), deleteStatus(m.task, &item))
+					cmds = append(cmds, deleteStatus(m.task, &item))
 					m.task.Status = append(m.task.Status[:index], m.task.Status[index+1:]...)
 				}
 				m.lists[m.active].RemoveItem(index)
-				m.statusMessage = "removed item!"
+				cmds = append(cmds, toast.ShowToast("removed item!"))
 			}
 		case Add:
-			if !m.showForm && m.active < header {
+			if !m.showForm && m.active < header && m.lists[m.active].FilterState() != list.Filtering {
 				m.showForm = true
 			}
 		case MoveFocus:
-			if m.showForm {
+			if m.showForm || (m.active < header && m.lists[m.active].FilterState() == list.Filtering) {
 				break
 			}
 
@@ -198,6 +190,12 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.active < header {
 				m.lists[m.active].Styles.Title = activeListStyle
 			}
+		case Favorite:
+			if m.active == header {
+				m.task.ToggleFavorite()
+				cmds = append(cmds, updateTask(m.task), toast.ShowToast("favorited task!"))
+			}
+		case None:
 		}
 	}
 
@@ -256,14 +254,6 @@ func deleteStatus(task *domain.Task, status *domain.Status) tea.Cmd {
 	}
 }
 
-type clearStatusMessage struct{}
-
-func clearStatus() tea.Cmd {
-	return tea.Tick(time.Second*5, func(_ time.Time) tea.Msg {
-		return clearStatusMessage{}
-	})
-}
-
 func setupLists(task *domain.Task) []list.Model {
 	_steps := make([]list.Item, len(task.Steps))
 	_resources := make([]list.Item, len(task.Resources))
@@ -287,16 +277,13 @@ func setupLists(task *domain.Task) []list.Model {
 	lists[steps].Styles.Title = listTitleStyle
 	lists[steps].SetFilteringEnabled(false)
 	lists[steps].SetShowHelp(false)
-	lists[steps].SetFilteringEnabled(false)
 	lists[steps].SetShowStatusBar(false)
 	lists[steps].KeyMap.Quit.Unbind()
 
 	lists[resources] = list.New(_resources, resourceDelegate{}, 80, 9)
 	lists[resources].Title = "Resources"
 	lists[resources].Styles.Title = listTitleStyle
-	lists[resources].SetFilteringEnabled(false)
 	lists[resources].SetShowHelp(false)
-	lists[resources].SetFilteringEnabled(false)
 	lists[resources].SetShowStatusBar(false)
 	lists[resources].KeyMap.Quit.Unbind()
 
@@ -305,7 +292,6 @@ func setupLists(task *domain.Task) []list.Model {
 	lists[status].Styles.Title = listTitleStyle
 	lists[status].SetFilteringEnabled(false)
 	lists[status].SetShowHelp(false)
-	lists[status].SetFilteringEnabled(false)
 	lists[status].SetShowStatusBar(false)
 	lists[status].KeyMap.Quit.Unbind()
 

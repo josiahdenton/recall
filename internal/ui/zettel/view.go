@@ -9,6 +9,7 @@ import (
 	"github.com/josiahdenton/recall/internal/ui/router"
 	"github.com/josiahdenton/recall/internal/ui/state"
 	"github.com/josiahdenton/recall/internal/ui/styles"
+	"github.com/josiahdenton/recall/internal/ui/toast"
 	"strings"
 )
 
@@ -99,11 +100,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.links.Styles.Title = defaultListTitle
 		}
 		m.links.SetShowHelp(false)
-		m.links.SetFilteringEnabled(false)
 		m.links.SetShowStatusBar(false)
 		m.links.KeyMap.Quit.Unbind()
 
-		m.resources = list.New(resourcesToItemList(m.zettel.Resources), resourceDelegate{}, 80, 5)
+		m.resources = list.New(resourcesToItemList(m.zettel.Resources), resourceDelegate{}, 80, 7)
 		m.resources.Title = "Resources"
 		m.resources.Styles.PaginationStyle = paginationStyle
 		if m.active == resources {
@@ -112,7 +112,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.resources.Styles.Title = defaultListTitle
 		}
 		m.resources.SetShowHelp(false)
-		m.resources.SetFilteringEnabled(false)
 		m.resources.SetShowStatusBar(false)
 		m.resources.KeyMap.Quit.Unbind()
 		m.ready = true
@@ -189,10 +188,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else if m.active == links && len(m.links.Items()) > 0 {
 				selected := m.links.SelectedItem().(*domain.Zettel)
 				cmds = append(cmds, router.GotoPage(domain.ZettelPage, selected.ID))
-			} else if m.active == resources && len(m.links.Items()) > 0 {
+			} else if m.active == resources && len(m.resources.Items()) > 0 {
 				selected := m.resources.SelectedItem().(*domain.Resource)
 				selected.Open()
 			}
+		}
+
+		if m.resources.FilterState() == list.Filtering || m.links.FilterState() == list.Filtering {
+			break
 		}
 
 		switch msg.String() {
@@ -204,7 +207,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.active == links {
 				selected := m.links.SelectedItem().(*domain.Zettel)
 				m.links.RemoveItem(m.links.Index())
-				cmds = append(cmds, unlinkZettel(m.zettel, selected))
+				cmds = append(cmds, unlinkZettel(m.zettel, selected), toast.ShowToast("unlinked zettel!"))
 			}
 		}
 	}

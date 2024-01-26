@@ -8,6 +8,7 @@ import (
 	"github.com/josiahdenton/recall/internal/ui/router"
 	"github.com/josiahdenton/recall/internal/ui/state"
 	"github.com/josiahdenton/recall/internal/ui/styles"
+	"github.com/josiahdenton/recall/internal/ui/toast"
 	"log"
 )
 
@@ -74,10 +75,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "d":
 			selected := m.accomplishments.SelectedItem().(*domain.Accomplishment)
-			cmds = append(cmds, deleteAccomplishment(selected.ID))
+			cmds = append(cmds, deleteAccomplishment(selected.ID), toast.ShowToast("removed accomplishment!"))
 			m.accomplishments.RemoveItem(m.accomplishments.Index())
 		case "u":
-			cmds = append(cmds, state.UndoDeleteState())
+			cmds = append(cmds, state.UndoDeleteState(), toast.ShowToast("undo!"))
 		}
 	}
 

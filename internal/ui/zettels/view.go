@@ -9,6 +9,7 @@ import (
 	"github.com/josiahdenton/recall/internal/ui/router"
 	"github.com/josiahdenton/recall/internal/ui/state"
 	"github.com/josiahdenton/recall/internal/ui/styles"
+	"github.com/josiahdenton/recall/internal/ui/toast"
 	"strings"
 )
 
@@ -64,8 +65,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			zettel := msg.Update.(domain.Zettel)
 			m.zettels.InsertItem(len(m.zettels.Items()), &zettel)
 		}
-		// NOTE: need this to get the latest Zettel ID, should clean this up eventually
-		cmds = append(cmds, router.GotoPage(domain.MenuPage, 0))
+		cmds = append(cmds, router.RefreshPage())
 	}
 
 	if m.ready {
@@ -106,12 +106,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "a":
 			m.showForm = true
 		case "u":
-			cmds = append(cmds, state.UndoDeleteState())
+			cmds = append(cmds, state.UndoDeleteState(), toast.ShowToast("undo!"))
 		case "d":
 			if len(m.zettels.Items()) > 0 {
 				selected := m.zettels.SelectedItem().(*domain.Zettel)
 				m.zettels.RemoveItem(m.zettels.Index())
-				cmds = append(cmds, deleteZettel(selected))
+				cmds = append(cmds, deleteZettel(selected), toast.ShowToast("removed zettel!"))
 			}
 		}
 	}
