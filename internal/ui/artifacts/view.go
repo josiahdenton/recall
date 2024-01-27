@@ -48,7 +48,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
-	case state.LoadedStateMsg:
+	case router.LoadPageMsg:
 		artifacts := msg.State.([]domain.Artifact)
 		m.artifacts = list.New(toItemList(artifacts), artifactDelegate{}, 50, 30)
 		m.artifacts.Title = "Artifacts"

@@ -4,6 +4,7 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/josiahdenton/recall/internal/domain"
+	"github.com/josiahdenton/recall/internal/ui/router"
 )
 
 func New() Model {
@@ -11,7 +12,7 @@ func New() Model {
 }
 
 type Model struct {
-	artifact  domain.Artifact
+	artifact  *domain.Artifact
 	releases  list.Model
 	resources list.Model
 }
@@ -25,13 +26,23 @@ func (m Model) View() string {
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmds []tea.Cmd
+	var cmd tea.Cmd
+
+	switch msg := msg.(type) {
+	case router.LoadPageMsg:
+		m.artifact = msg.State.(*domain.Artifact)
+		// releases
+
+		// resources
+	}
+
 	return m, nil
 }
 
-func releasesToItemList() []list.Item {
-	return nil
+func releasesToItemList(releases []domain.Release) []list.Item {
 }
 
-func resourcesToItemList() []list.Item {
+func resourcesToItemList(resources []domain.Resource) []list.Item {
 	return nil
 }
