@@ -8,19 +8,19 @@ import (
 )
 
 var (
-	selectedLinkOptionStyle = styles.PrimaryGray.Copy().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#D120AF")).Width(25)
-	defaultLinkOptionStyle  = styles.SecondaryGray.Copy().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#3a3b5b")).Width(25)
-	selectedZettelStyle     = styles.SecondaryColor.Copy()
-	defaultZettelStyle      = styles.SecondaryGray.Copy()
-	cursorStyle             = styles.PrimaryColor.Copy().Width(2)
+	selectedBorderOptionStyle = styles.PrimaryGray.Copy().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#D120AF")).Width(25)
+	defaultBorderOptionStyle  = styles.SecondaryGray.Copy().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#3a3b5b")).Width(25)
+	selectedZettelStyle       = styles.SecondaryColor.Copy()
+	defaultZettelStyle        = styles.SecondaryGray.Copy()
+	cursorStyle               = styles.PrimaryColor.Copy().Width(2)
 )
 
 func renderLinkOption(option *linkZettelOption, selected bool) string {
 	var s string
 	if selected {
-		s = selectedLinkOptionStyle.Render(option.DisplayName)
+		s = selectedBorderOptionStyle.Render(option.DisplayName)
 	} else {
-		s = defaultLinkOptionStyle.Render(option.DisplayName)
+		s = defaultBorderOptionStyle.Render(option.DisplayName)
 	}
 	return s
 }
@@ -63,4 +63,14 @@ func renderResource(resource *domain.Resource, selected bool) string {
 	resourceType := fmt.Sprintf(" %s %s", titleKeyStyle.Render("Type"), style.Render(resource.StringType()))
 	s := lipgloss.JoinHorizontal(lipgloss.Left, name, resourceType)
 	return fmt.Sprintf("%s%s", cursorStyle.Render(selectedMarker), alignStyle.Render(s))
+}
+
+func renderPriorityOption(option *priorityOption, selected bool) string {
+	var s string
+	if selected {
+		s = selectedBorderOptionStyle.Render(option.Display)
+	} else {
+		s = defaultBorderOptionStyle.Render(option.Display)
+	}
+	return s
 }

@@ -19,19 +19,15 @@ var (
 			Page:  domain.ZettelsPage,
 		},
 		{
+			Title: "Artifacts",
+			Page:  domain.ArtifactsPage,
+		},
+		{
 			Title: "Resources",
 			Page:  domain.ResourcesPage,
 		},
 		{
 			Title: "Performance Cycles",
-			Page:  domain.CyclesPage,
-		},
-		{
-			Title: "Releases",
-			Page:  domain.CyclesPage,
-		},
-		{
-			Title: "Artifacts",
 			Page:  domain.CyclesPage,
 		},
 		{

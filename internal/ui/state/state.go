@@ -14,6 +14,8 @@ const (
 	ModifyLink
 	ModifyAccomplishment
 	ModifySettings
+	ModifyArtifact
+	ModifyRelease
 )
 
 // TODO - for now, undo only supported for deleting a whole task/zettel/accomplishment/cycle

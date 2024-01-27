@@ -6,6 +6,8 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/josiahdenton/recall/internal/adapters/repository"
 	"github.com/josiahdenton/recall/internal/domain"
+	"github.com/josiahdenton/recall/internal/ui/artifact"
+	"github.com/josiahdenton/recall/internal/ui/artifacts"
 	"github.com/josiahdenton/recall/internal/ui/menu"
 	"github.com/josiahdenton/recall/internal/ui/performance/accomplishment"
 	"github.com/josiahdenton/recall/internal/ui/performance/accomplishments"
@@ -61,6 +63,8 @@ func New() Model {
 		accomplishment:  accomplishment.Model{},
 		zettel:          zettel.New(),
 		zettels:         zettels.New(),
+		artifact:        artifact.New(),
+		artifacts:       artifacts.New(),
 		toast:           toast.New(),
 		page:            domain.MenuPage,
 		repository:      instance,
@@ -80,6 +84,8 @@ type Model struct {
 	resources       tea.Model
 	zettel          tea.Model
 	zettels         tea.Model
+	artifact        tea.Model
+	artifacts       tea.Model
 	toast           tea.Model
 	repository      repository.Repository
 	routeHistory    router.History
@@ -114,6 +120,10 @@ func (m Model) View() string {
 		page = m.zettel
 	case domain.ZettelsPage:
 		page = m.zettels
+	case domain.ArtifactsPage:
+		page = m.artifacts
+	case domain.ArtifactPage:
+		page = m.artifact
 	}
 	var b strings.Builder
 	b.WriteString(page.View())
@@ -169,6 +179,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	m.toast, cmd = m.toast.Update(msg)
 	cmds = append(cmds, cmd)
 
+	// TODO - add another always active page for keybindings
+
 	// only push events to "in focus" pages
 	switch m.page {
 	case domain.TaskListPage:
@@ -198,6 +210,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case domain.ZettelsPage:
 		m.zettels, cmd = m.zettels.Update(msg)
 		cmds = append(cmds, cmd)
+	case domain.ArtifactsPage:
+		m.artifacts, cmd = m.artifacts.Update(msg)
+		cmds = append(cmds, cmd)
+	case domain.ArtifactPage:
+		m.artifact, cmd = m.artifact.Update(msg)
+		cmds = append(cmds, cmd)
 	}
 
 	return m, tea.Batch(cmds...)
@@ -223,32 +241,36 @@ func (m Model) fetchState(msg state.RequestStateMsg) tea.Cmd {
 
 func (m Model) loadPage(msg router.GotoPageMsg) tea.Cmd {
 	return func() tea.Msg {
-		var state any
+		var s any
 		switch msg.Page {
 		case domain.TaskListPage:
-			state = m.repository.AllTasks()
+			s = m.repository.AllTasks()
 		// TODO add a page for task archive
 		case domain.CyclesPage:
-			state = m.repository.AllCycles()
+			s = m.repository.AllCycles()
 		case domain.TaskDetailedPage:
-			state = m.repository.Task(msg.RequestedItemId)
+			s = m.repository.Task(msg.RequestedItemId)
 		case domain.AccomplishmentsPage:
-			state = m.repository.Cycle(msg.RequestedItemId)
+			s = m.repository.Cycle(msg.RequestedItemId)
 		case domain.AccomplishmentPage:
-			state = m.repository.Accomplishment(msg.RequestedItemId)
+			s = m.repository.Accomplishment(msg.RequestedItemId)
 		case domain.MenuPage:
-			// no state attached...
+			// no s attached...
 			// TODO - have the repository read the settings file to determine this
 		case domain.ResourcesPage:
-			state = m.repository.AllResources()
+			s = m.repository.AllResources()
 		case domain.ZettelPage:
-			state = m.repository.Zettel(msg.RequestedItemId)
+			s = m.repository.Zettel(msg.RequestedItemId)
 		case domain.ZettelsPage:
-			state = m.repository.AllZettels()
+			s = m.repository.AllZettels()
+		case domain.ArtifactsPage:
+			s = m.repository.AllArtifacts()
+		case domain.ArtifactPage:
+			s = m.repository.Artifact(msg.RequestedItemId)
 		}
 		return router.LoadPageMsg{
 			Page:  msg.Page,
-			State: state,
+			State: s,
 		}
 	}
 }
@@ -288,6 +310,13 @@ func (m Model) updateState(msg state.SaveStateMsg) {
 	case state.ModifyZettel:
 		update := msg.Update.(domain.Zettel)
 		m.repository.ModifyZettel(update)
+	case state.ModifyLink:
+	case state.ModifyArtifact:
+		update := msg.Update.(domain.Artifact)
+		m.repository.ModifyArtifact(update)
+	case state.ModifyRelease:
+		update := msg.Update.(domain.Release)
+		m.repository.ModifyRelease(update)
 	}
 }
 
@@ -309,6 +338,11 @@ func (m Model) deleteState(msg state.DeleteStateMsg) {
 	case state.ModifyAccomplishment:
 		m.repository.DeleteAccomplishment(msg.ID)
 	case state.ModifySettings:
+	case state.ModifyArtifact:
+		m.repository.DeleteArtifact(msg.ID)
+	case state.ModifyRelease:
+		m.repository.DeleteArtifactRelease(msg.Parent.(*domain.Artifact), msg.Child.(*domain.Release))
+		m.repository.DeleteRelease(msg.ID)
 	}
 }
 
@@ -326,5 +360,9 @@ func (m Model) undoDeleteState(msg state.DeleteStateMsg) {
 	case state.ModifyCycle:
 	case state.ModifyLink:
 	case state.ModifySettings:
+	case state.ModifyArtifact:
+		m.repository.UndoDeleteArtifact(msg.ID)
+	case state.ModifyRelease:
+		// TODO - fill in
 	}
 }

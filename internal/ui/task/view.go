@@ -15,9 +15,8 @@ import (
 )
 
 var (
-	listTitleStyle     = styles.SecondaryGray.Copy()
-	activeListStyle    = styles.SecondaryColor.Copy()
-	statusMessageStyle = styles.PrimaryColor.Copy().PaddingLeft(1)
+	listTitleStyle  = styles.SecondaryGray.Copy()
+	activeListStyle = styles.SecondaryColor.Copy()
 )
 
 // active options
@@ -26,10 +25,7 @@ const (
 	resources
 	status
 	header
-)
-
-const (
-	formCount = 3
+	formCount
 )
 
 type Model struct {
@@ -48,6 +44,7 @@ func New() *Model {
 	formList[steps] = forms.NewStepForm()
 	formList[resources] = forms.NewResourceForm()
 	formList[status] = forms.NewStatusForm()
+	formList[header] = forms.NewTaskForm()
 	return &Model{
 		headerActive: true,
 		active:       header,
@@ -94,18 +91,19 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case forms.StepFormMsg:
 		m.task.Steps = append(m.task.Steps, msg.Step)
 		m.lists[steps].InsertItem(len(m.task.Steps), &m.task.Steps[len(m.task.Steps)-1])
-		m.showForm = false
 		cmds = append(cmds, updateTask(m.task))
 	case forms.ResourceFormMsg:
 		m.task.Resources = append(m.task.Resources, msg.Resource)
 		m.lists[resources].InsertItem(len(m.task.Resources), &m.task.Resources[len(m.task.Resources)-1])
-		m.showForm = false
 		cmds = append(cmds, updateTask(m.task))
 	case forms.StatusFormMsg:
 		m.task.Status = append(m.task.Status, msg.Status)
 		m.lists[status].InsertItem(len(m.task.Status), &m.task.Status[len(m.task.Status)-1])
-		m.showForm = false
 		cmds = append(cmds, updateTask(m.task))
+	case state.SaveStateMsg:
+		if msg.Type == state.ModifyTask {
+			m.showForm = false
+		}
 	case tea.KeyMsg:
 		action := m.commands.HandleInput(msg)
 		switch action {
@@ -148,7 +146,11 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				cmds = append(cmds, toast.ShowToast("copied to clipboard!"))
 			case header:
-				// nothing for now
+				// TODO - this should open the task form prefilled
+				if !m.showForm {
+					m.showForm = true
+					cmds = append(cmds, forms.EditTask(m.task))
+				}
 			}
 		case Delete:
 			if m.showForm || (m.active < header && m.lists[m.active].FilterState() == list.Filtering) {
@@ -193,7 +195,11 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case Favorite:
 			if m.active == header {
 				m.task.ToggleFavorite()
-				cmds = append(cmds, updateTask(m.task), toast.ShowToast("favorited task!"))
+				if m.task.Favorite {
+					cmds = append(cmds, updateTask(m.task), toast.ShowToast("favorited task!"))
+				} else {
+					cmds = append(cmds, updateTask(m.task), toast.ShowToast("not a favorite task"))
+				}
 			}
 		case None:
 		}

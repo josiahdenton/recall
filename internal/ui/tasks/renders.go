@@ -10,13 +10,14 @@ import (
 var (
 	taskStyle               = styles.PrimaryGray.Copy()
 	keyTitleStyle           = styles.SecondaryGray.Copy()
-	lowPriorityStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("#f59e0b")).Bold(true)
+	lowPriorityStyle        = styles.AccentColor.Copy().Bold(true)
+	medPriorityStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("#f59e0b")).Bold(true)
 	highPriorityStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("#ef4444")).Bold(true)
 	selectedTaskStyle       = styles.SecondaryColor.Copy()
 	activeTaskStyle         = styles.SecondaryColor.Copy()
 	activeSelectedTaskStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#30b3a2"))
 	cursorStyle             = styles.PrimaryColor.Copy()
-	favoriteStyle           = styles.PrimaryColor.Copy()
+	favoriteStyle           = styles.AccentColor.Copy().PaddingLeft(2)
 )
 
 func renderTask(t *domain.Task, selected bool) string {
@@ -44,6 +45,9 @@ func renderTask(t *domain.Task, selected bool) string {
 	case t.Priority == domain.TaskPriorityLow:
 		priorityStyle = lowPriorityStyle
 		priorityMarker = " *"
+	case t.Priority == domain.TaskPriorityMedium:
+		priorityStyle = medPriorityStyle
+		priorityMarker = " **"
 	case t.Priority == domain.TaskPriorityHigh:
 		priorityStyle = highPriorityStyle
 		priorityMarker = " ***"

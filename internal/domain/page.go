@@ -12,4 +12,6 @@ const (
 	ResourcesPage
 	ZettelPage
 	ZettelsPage
+	ArtifactsPage
+	ArtifactPage
 )

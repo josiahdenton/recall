@@ -7,9 +7,10 @@ import (
 )
 
 var (
-	selectedZettelStyle = styles.SecondaryColor.Copy()
-	defaultZettelStyle  = styles.PrimaryGray.Copy()
+	selectedZettelStyle = styles.SecondaryColor.Copy().Width(40)
+	defaultZettelStyle  = styles.PrimaryGray.Copy().Width(40)
 	cursorStyle         = styles.PrimaryColor.Copy().PaddingRight(1)
+	metaStyle           = styles.SecondaryGray.Copy()
 )
 
 func renderZettel(zettel *domain.Zettel, selected bool) string {
@@ -20,5 +21,5 @@ func renderZettel(zettel *domain.Zettel, selected bool) string {
 		cursor = ">"
 	}
 
-	return lipgloss.JoinHorizontal(lipgloss.Left, cursorStyle.Render(cursor), style.Render(zettel.Name))
+	return lipgloss.JoinHorizontal(lipgloss.Left, cursorStyle.Render(cursor), style.Render(zettel.Name), metaStyle.Render(zettel.Tags))
 }

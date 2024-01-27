@@ -3,24 +3,40 @@
 recall allows you to
 
 - track tasks, accomplishments, releases, and artifacts
+- bookmark sites as resources, attachable to tasks, accomplishments, and zettels
 - record notes following the zettelkasten method
 
-all of which is stored in a local sqlite database and the content of each zettel is stored in a respective
-markdown file under `~/recall-notes`.
+all of which is stored in a local sqlite database in `~/recall-notes`.
 
 ## Usage
 
 will add demos soon...
 
-## Improvements
+## Bugs
 
+- don't update lists if a form is showing...
+
+## Road to V1
+
+- [ ] can remove resources from zettels, artifacts, & accomplishments
+- [ ] zettel tags can be edited...
+- [ ] accomplishments have resources now
 - [ ] add edit functionality
+- [ ] accomplishments can now have resources
 - [ ] standardize patterns, document them
-- [ ] make the forms their own pages
-- [ ] global status messages for errors / forms
-- [ ] consolidate forms, no need to have them separated
-- [ ] add releases
+- [ ] Inbox
+  - [ ] add / delete
+  - [ ] re-use status so interact key can attach status to new/existing task 
+- [x] global status messages for errors / forms
+- [x] consolidate forms, no need to have them separated
+- [x] add releases 
+  - [ ] only part of artifacts
+- [ ] add artifacts
 - [ ] add settings
+  - [ ] clear delete cache
+  - [ ] accomplishment control
+  - [ ] keybindings
+  - [ ] store in json/yaml
 - [ ] refinish accomplishments design
     - [ ] export option
 
