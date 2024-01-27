@@ -9,7 +9,6 @@ type Step struct {
 	Description string
 	Complete    bool
 	TaskID      uint
-	ReleaseID   uint
 }
 
 func (s *Step) ToggleStatus() {

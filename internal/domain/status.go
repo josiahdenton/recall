@@ -8,7 +8,6 @@ type Status struct {
 	gorm.Model
 	Description string
 	TaskID      uint
-	ReleaseID   uint
 }
 
 func (s *Status) FilterValue() string {

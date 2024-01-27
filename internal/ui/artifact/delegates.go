@@ -22,3 +22,18 @@ func (d resourceDelegate) Render(w io.Writer, m list.Model, index int, item list
 	}
 	fmt.Fprintf(w, renderResource(resource, index == m.Index()))
 }
+
+type releaseDelegate struct{}
+
+func (d releaseDelegate) Height() int  { return 1 }
+func (d releaseDelegate) Spacing() int { return 1 }
+func (d releaseDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd {
+	return nil
+}
+func (d releaseDelegate) Render(w io.Writer, m list.Model, index int, item list.Item) {
+	release, ok := item.(*domain.Release)
+	if !ok {
+		return
+	}
+	fmt.Fprintf(w, renderRelease(release, index == m.Index()))
+}

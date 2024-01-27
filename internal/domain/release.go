@@ -5,20 +5,22 @@ import (
 	"time"
 )
 
+type Outcome = int
+
+const (
+	AwaitingRelease = iota
+	SuccessfulRelease
+	FailedRelease
+)
+
 type Release struct {
 	gorm.Model
 	Date       time.Time
 	Owner      string
-	Steps      []Step
-	Outcome    Status
-	Completed  bool
+	Outcome    Outcome
 	ArtifactID uint
 }
 
 func (r *Release) FilterValue() string {
 	return ""
-}
-
-func (r *Release) ToggleComplete() {
-	r.Completed = !r.Completed
 }
