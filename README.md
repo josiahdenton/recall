@@ -31,14 +31,14 @@ will add demos soon...
 - [x] consolidate forms, no need to have them separated
 - [x] add releases 
   - [ ] only part of artifacts
-- [ ] add artifacts
+- [x] add artifacts
 - [ ] add settings
   - [ ] clear delete cache
   - [ ] accomplishment control
   - [ ] keybindings
   - [ ] store in json/yaml
-- [ ] refinish accomplishments design
-    - [ ] export option
+- [x] refinish accomplishments design
+- [ ] export option for accomplishment
 
 ## Colorscheme
 
