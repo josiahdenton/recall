@@ -63,15 +63,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			artifact := msg.Update.(domain.Artifact)
 			m.artifacts.InsertItem(len(m.artifacts.Items()), &artifact)
 		}
+		cmds = append(cmds, router.RefreshPage())
 	}
 
 	if m.showForm && m.ready {
 		m.form, cmd = m.form.Update(msg)
-		cmds = append(cmds, cmd)
-	}
-
-	if m.ready {
-		m.artifacts, cmd = m.artifacts.Update(msg)
 		cmds = append(cmds, cmd)
 	}
 
@@ -88,15 +84,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Batch(cmds...)
 	}
 
+	if m.ready {
+		m.artifacts, cmd = m.artifacts.Update(msg)
+		cmds = append(cmds, cmd)
+	}
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		if msg.Type == tea.KeyEnter {
-			if len(m.artifacts.Items()) < 1 {
-				return m, tea.Batch(cmds...)
+			if len(m.artifacts.Items()) > 0 {
+				artifact := m.artifacts.SelectedItem().(*domain.Artifact)
+				cmd = router.GotoPage(domain.ArtifactPage, artifact.ID)
+				cmds = append(cmds, cmd)
 			}
-			artifact := m.artifacts.SelectedItem().(*domain.Artifact)
-			cmd = router.GotoPage(domain.ArtifactPage, artifact.ID)
-			cmds = append(cmds, cmd)
 		}
 	}
 

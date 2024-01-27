@@ -24,7 +24,7 @@ func NewReleaseForm() ReleaseFormModel {
 	inputOwner.Focus()
 	inputOwner.Width = 60
 	inputOwner.CharLimit = 60
-	inputOwner.Prompt = "Title: "
+	inputOwner.Prompt = "Owner: "
 	inputOwner.PromptStyle = styles.FormLabelStyle
 	inputOwner.Placeholder = "..."
 
@@ -38,7 +38,7 @@ func NewReleaseForm() ReleaseFormModel {
 	inputDate := textinput.New()
 	inputDate.Width = 60
 	inputDate.CharLimit = 120
-	inputDate.Prompt = "Due: "
+	inputDate.Prompt = "Release Date: "
 	inputDate.PromptStyle = styles.FormLabelStyle
 	inputDate.Placeholder = "Jan 5, 2013"
 
@@ -68,7 +68,13 @@ func (m ReleaseFormModel) Init() tea.Cmd {
 }
 
 func (m ReleaseFormModel) View() string {
-	return ""
+	var b strings.Builder
+	b.WriteString(titleStyle.Render("Add Release"))
+	b.WriteString("\n\n")
+	b.WriteString(m.inputs[releaseOwner].View())
+	b.WriteString("\n\n")
+	b.WriteString(m.inputs[releaseDate].View())
+	return b.String()
 }
 
 func (m ReleaseFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {

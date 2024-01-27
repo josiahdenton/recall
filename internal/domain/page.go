@@ -14,6 +14,4 @@ const (
 	ZettelsPage
 	ArtifactsPage
 	ArtifactPage
-	ReleasesPage
-	ReleasePage
 )

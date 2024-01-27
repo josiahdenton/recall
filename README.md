@@ -12,8 +12,15 @@ all of which is stored in a local sqlite database in `~/recall-notes`.
 
 will add demos soon...
 
-## Improvements
+## Bugs
 
+- don't update lists if a form is showing...
+
+## Road to V1
+
+- [ ] can remove resources from zettels, artifacts, & accomplishments
+- [ ] zettel tags can be edited...
+- [ ] accomplishments have resources now
 - [ ] add edit functionality
 - [ ] accomplishments can now have resources
 - [ ] standardize patterns, document them

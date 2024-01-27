@@ -11,7 +11,7 @@ import (
 type artifactDelegate struct{}
 
 func (d artifactDelegate) Height() int  { return 1 }
-func (d artifactDelegate) Spacing() int { return 0 }
+func (d artifactDelegate) Spacing() int { return 1 }
 func (d artifactDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd {
 	return nil
 }

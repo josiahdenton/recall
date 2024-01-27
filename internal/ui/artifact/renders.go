@@ -9,16 +9,17 @@ import (
 )
 
 var (
-	cursorStyle           = styles.PrimaryColor.Copy()
-	resourceStyle         = styles.PrimaryGray.Copy().PaddingLeft(2)
-	selectedResourceStyle = styles.SecondaryColor.Copy().PaddingLeft(2)
-	metaTitleStyle        = styles.SecondaryGray.Copy()
+	cursorStyle            = styles.PrimaryColor.Copy()
+	resourceStyle          = styles.PrimaryGray.Copy().PaddingLeft(2)
+	selectedResourceStyle  = styles.SecondaryColor.Copy().PaddingLeft(2)
+	resourceMetaTitleStyle = styles.SecondaryGray.Copy().Width(5)
 	// release
 	selectedReleaseStyle   = styles.PrimaryGray.Copy().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#D120AF")).Width(70).Align(lipgloss.Center)
 	defaultReleaseStyle    = styles.PrimaryGray.Copy().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#3a3b5b")).Width(70).Align(lipgloss.Center)
 	upcomingReleaseStyle   = styles.AccentColor.Copy().PaddingRight(1)
 	successfulReleaseStyle = styles.SecondaryColor.Copy().PaddingRight(1)
 	failedReleaseStyle     = styles.PrimaryColor.Copy().PaddingRight(1)
+	releaseMetaTitleStyle  = styles.SecondaryGray.Copy()
 )
 
 func renderResource(r *domain.Resource, selected bool) string {
@@ -29,7 +30,7 @@ func renderResource(r *domain.Resource, selected bool) string {
 		style = selectedResourceStyle
 	}
 	name := lipgloss.JoinHorizontal(lipgloss.Left, cursorStyle.Width(2).Render(selectedMarker), style.Width(50).Render(r.Name))
-	resourceType := lipgloss.JoinHorizontal(lipgloss.Left, metaTitleStyle.Width(5).Render("Type"), style.Width(10).Render(r.StringType()))
+	resourceType := lipgloss.JoinHorizontal(lipgloss.Left, resourceMetaTitleStyle.Render("Type"), style.Width(10).Render(r.StringType()))
 	return lipgloss.JoinHorizontal(lipgloss.Left, name, resourceType)
 }
 
@@ -47,23 +48,23 @@ func renderRelease(r *domain.Release, selected bool) string {
 	case domain.AwaitingRelease:
 		style = upcomingReleaseStyle
 		releaseKey = "Release "
-		releaseMarker = "\U000F1787"
+		releaseMarker = "\uF056"
 	case domain.SuccessfulRelease:
 		style = successfulReleaseStyle
 		releaseKey = "Released "
-		releaseMarker = "\U000F0995"
+		releaseMarker = "\U000F05E0"
 	case domain.FailedRelease:
 		style = failedReleaseStyle
 		releaseKey = "Released "
-		releaseMarker = "\U000F110A"
+		releaseMarker = "\U000F0159"
 	}
 	releaseDate := formatDate(r.Date)
 
 	var b strings.Builder
 	b.WriteString(style.Render(releaseMarker))
-	b.WriteString(metaTitleStyle.Render(releaseKey))
+	b.WriteString(releaseMetaTitleStyle.Render(releaseKey))
 	b.WriteString(style.Render(releaseDate))
-	b.WriteString(metaTitleStyle.Render("Owner "))
+	b.WriteString(releaseMetaTitleStyle.Render("Owner "))
 	b.WriteString(style.Render(r.Owner))
 
 	return cardStyle.Render(b.String())

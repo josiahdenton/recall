@@ -15,9 +15,8 @@ import (
 )
 
 var (
-	listTitleStyle     = styles.SecondaryGray.Copy()
-	activeListStyle    = styles.SecondaryColor.Copy()
-	statusMessageStyle = styles.PrimaryColor.Copy().PaddingLeft(1)
+	listTitleStyle  = styles.SecondaryGray.Copy()
+	activeListStyle = styles.SecondaryColor.Copy()
 )
 
 // active options
@@ -196,7 +195,11 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case Favorite:
 			if m.active == header {
 				m.task.ToggleFavorite()
-				cmds = append(cmds, updateTask(m.task), toast.ShowToast("favorited task!"))
+				if m.task.Favorite {
+					cmds = append(cmds, updateTask(m.task), toast.ShowToast("favorited task!"))
+				} else {
+					cmds = append(cmds, updateTask(m.task), toast.ShowToast("not a favorite task"))
+				}
 			}
 		case None:
 		}

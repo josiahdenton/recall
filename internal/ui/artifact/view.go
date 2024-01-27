@@ -3,17 +3,20 @@ package artifact
 import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 	"github.com/josiahdenton/recall/internal/domain"
 	"github.com/josiahdenton/recall/internal/ui/forms"
 	"github.com/josiahdenton/recall/internal/ui/router"
 	"github.com/josiahdenton/recall/internal/ui/state"
+	"github.com/josiahdenton/recall/internal/ui/styles"
 	"github.com/josiahdenton/recall/internal/ui/toast"
+	"strings"
 )
 
 var (
-	paginationStyle = list.DefaultStyles().PaginationStyle
-	titleStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("#3a3b5b"))
+	paginationStyle     = list.DefaultStyles().PaginationStyle
+	defaultSectionStyle = styles.SecondaryGray.Copy()
+	activeSectionStyle  = styles.SecondaryColor.Copy()
+	contextStyle        = styles.SecondaryGray.Copy()
 )
 
 const (
@@ -49,7 +52,24 @@ func (m Model) Init() tea.Cmd {
 }
 
 func (m Model) View() string {
-	return ""
+	var b strings.Builder
+	if m.showForm {
+		b.WriteString(m.forms[m.active%len(m.forms)].View())
+	} else {
+		if m.active == header {
+			b.WriteString(activeSectionStyle.Render(m.artifact.Name))
+		} else {
+			b.WriteString(defaultSectionStyle.Render(m.artifact.Name))
+		}
+		b.WriteString("\n")
+		b.WriteString(contextStyle.Render("Tags "))
+		b.WriteString(contextStyle.Render(m.artifact.Tags))
+		b.WriteString("\n\n")
+		b.WriteString(m.releases.View())
+		b.WriteString("\n")
+		b.WriteString(m.resources.View())
+	}
+	return styles.WindowStyle.Render(b.String())
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -66,7 +86,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.releases.SetFilteringEnabled(false)
 		m.releases.Title = "Releases"
 		m.releases.Styles.PaginationStyle = paginationStyle
-		m.releases.Styles.Title = titleStyle
+		m.releases.Styles.Title = defaultSectionStyle
 		m.releases.KeyMap.Quit.Unbind()
 		// resources
 		m.resources = list.New(resourcesToItemList(m.artifact.Resources), resourceDelegate{}, 80, 8)
@@ -75,13 +95,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.resources.SetFilteringEnabled(false)
 		m.resources.Title = "Resources"
 		m.resources.Styles.PaginationStyle = paginationStyle
-		m.resources.Styles.Title = titleStyle
+		m.resources.Styles.Title = defaultSectionStyle
 		m.resources.KeyMap.Quit.Unbind()
 		m.ready = true
 	case state.SaveStateMsg:
 		m.showForm = false
 	case forms.ReleaseFormMsg:
 		// attach release
+		m.artifact.Releases = append(m.artifact.Releases, msg.Release)
+		m.releases.InsertItem(len(m.artifact.Releases), &m.artifact.Releases[len(m.artifact.Releases)-1])
+		cmds = append(cmds, updateArtifact(m.artifact))
 	case forms.ResourceFormMsg:
 		// attach resource
 		m.artifact.Resources = append(m.artifact.Resources, msg.Resource)
@@ -127,7 +150,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyEnter:
-			// depends on the thing...
 			switch m.active {
 			case releases:
 				if len(m.releases.Items()) > 0 {
@@ -154,6 +176,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					cmds = append(cmds, forms.EditArtifact(m.artifact))
 				}
 			}
+		case tea.KeyTab:
+			m.active = nextSection(m.active)
+			if m.active == releases {
+				m.releases.Styles.Title = activeSectionStyle
+			} else if m.active == resources {
+				m.releases.Styles.Title = defaultSectionStyle
+				m.resources.Styles.Title = activeSectionStyle
+			} else {
+				m.resources.Styles.Title = defaultSectionStyle
+			}
 		}
 
 		switch msg.String() {
@@ -162,7 +194,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.showForm = true
 			}
 		case "d":
-			// TODO - support deleting releases / resources
+			//TODO - support deleting releases / resources
+			// will need to have my type modifications changed a bit.
+			// should make an "Unlink"
 			//if m.active == links {
 			//	selected := m.links.SelectedItem().(*domain.Zettel)
 			//	m.links.RemoveItem(m.links.Index())
@@ -190,6 +224,18 @@ func updateRelease(release *domain.Release) tea.Cmd {
 			Type:   state.ModifyRelease,
 		}
 	}
+}
+
+func nextSection(section int) int {
+	switch section {
+	case header:
+		return releases
+	case releases:
+		return resources
+	case resources:
+		return header
+	}
+	return header
 }
 
 func releasesToItemList(releases []domain.Release) []list.Item {

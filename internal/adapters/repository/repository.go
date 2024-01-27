@@ -32,6 +32,16 @@ type Repository interface {
 	UndoDeleteTask(uint)
 	UndoDeleteZettel(uint)
 	UndoDeleteAccomplishment(uint)
+	AllArtifacts() []domain.Artifact
+	Artifact(uint) *domain.Artifact
+	ModifyArtifact(domain.Artifact)
+	DeleteArtifact(uint)
+	Release(uint) *domain.Release
+	ModifyRelease(domain.Release)
+	DeleteRelease(uint)
+	DeleteArtifactRelease(*domain.Artifact, *domain.Release)
+	DeleteArtifactResource(*domain.Artifact, *domain.Resource)
+	UndoDeleteArtifact(uint)
 	// Add Delete*FromTask for Resource, Status, Step
 	//Resource(string) domain.Resource // I don't think I ever would need to get a single resource
 	// Add the following

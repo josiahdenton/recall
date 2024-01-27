@@ -27,6 +27,7 @@ func EditArtifact(artifact *domain.Artifact) tea.Cmd {
 
 func NewArtifactForm() ArtifactFormModel {
 	inputName := textinput.New()
+	inputName.Focus()
 	inputName.Width = 60
 	inputName.CharLimit = 300
 	inputName.Prompt = "Name: "
@@ -52,7 +53,8 @@ func NewArtifactForm() ArtifactFormModel {
 	inputs[artifactTags] = inputTags
 
 	return ArtifactFormModel{
-		inputs: inputs,
+		inputs:   inputs,
+		artifact: &domain.Artifact{},
 	}
 }
 
@@ -68,7 +70,7 @@ func (m ArtifactFormModel) Init() tea.Cmd {
 
 func (m ArtifactFormModel) View() string {
 	var b strings.Builder
-	b.WriteString(titleStyle.Render("Add Resource"))
+	b.WriteString(titleStyle.Render("Add Artifact"))
 	b.WriteString("\n\n")
 	b.WriteString(m.inputs[artifactName].View())
 	b.WriteString("\n\n")

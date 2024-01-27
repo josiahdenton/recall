@@ -24,6 +24,83 @@ type GormInstance struct {
 	db *gorm.DB
 }
 
+func (g GormInstance) UndoDeleteArtifact(id uint) {
+	err := g.db.Unscoped().Model(&domain.Artifact{}).Where("id", id).Update("deleted_at", nil).Error
+	if err != nil {
+		log.Printf("failed to undo delete for artifact (%d) for reason: %v", id, err)
+	}
+
+}
+
+func (g GormInstance) ModifyArtifact(artifact domain.Artifact) {
+	err := g.db.Save(&artifact).Commit().Error
+	if err != nil {
+		log.Printf("failed to save artifact: %v", err)
+	}
+}
+
+func (g GormInstance) ModifyRelease(release domain.Release) {
+	err := g.db.Save(&release).Commit().Error
+	if err != nil {
+		log.Printf("failed to save release: %v", err)
+	}
+}
+
+func (g GormInstance) DeleteRelease(id uint) {
+	err := g.db.Delete(&domain.Release{}, id).Error
+	if err != nil {
+		log.Printf("failed to delete release: %v", err)
+	}
+}
+
+func (g GormInstance) AllArtifacts() []domain.Artifact {
+	var artifacts []domain.Artifact
+	err := g.db.Find(&artifacts).Error
+	if err != nil {
+		log.Printf("failed to get all artifacts: %v", err)
+	}
+	return artifacts
+}
+
+func (g GormInstance) Artifact(id uint) *domain.Artifact {
+	artifact := &domain.Artifact{}
+	err := g.db.Preload(clause.Associations).First(artifact, id).Error
+	if err != nil {
+		log.Printf("failed to get artifact (%d): %v", id, err)
+	}
+	return artifact
+}
+
+func (g GormInstance) DeleteArtifact(id uint) {
+	err := g.db.Delete(&domain.Artifact{}, id).Error
+	if err != nil {
+		log.Printf("failed to delete release: %v", err)
+	}
+}
+
+func (g GormInstance) Release(id uint) *domain.Release {
+	release := &domain.Release{}
+	err := g.db.Preload(clause.Associations).First(release, id).Error
+	if err != nil {
+		log.Printf("failed to get release (%d): %v", id, err)
+	}
+	return release
+}
+
+func (g GormInstance) DeleteArtifactRelease(artifact *domain.Artifact, release *domain.Release) {
+	err := g.db.Model(artifact).Association("Releases").Delete(release)
+	if err != nil {
+		log.Printf("failed to delete release (%d) associated with artifact (%d) due to: %+v", artifact.ID, release.ID, err)
+	}
+}
+
+func (g GormInstance) DeleteArtifactResource(artifact *domain.Artifact, resource *domain.Resource) {
+	err := g.db.Model(artifact).Association("Resources").Delete(resource)
+	if err != nil {
+		log.Printf("failed to delete resource (%d) associated with artifact (%d) due to: %+v", artifact.ID, resource.ID, err)
+	}
+}
+
 func (g GormInstance) DeleteAccomplishment(id uint) {
 	err := g.db.Delete(&domain.Accomplishment{}, id).Error
 	if err != nil {
@@ -281,6 +358,14 @@ func (g GormInstance) LoadRepository() error {
 	err = g.db.AutoMigrate(&domain.Zettel{})
 	if err != nil {
 		return fmt.Errorf("failed to migrate zettel: %w", err)
+	}
+	err = g.db.AutoMigrate(&domain.Artifact{})
+	if err != nil {
+		return fmt.Errorf("failed to migrate artifact: %w", err)
+	}
+	err = g.db.AutoMigrate(&domain.Release{})
+	if err != nil {
+		return fmt.Errorf("failed to migrate release: %w", err)
 	}
 
 	return nil
