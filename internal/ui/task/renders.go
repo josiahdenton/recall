@@ -24,7 +24,7 @@ var (
 	// status
 	statusStyle         = lipgloss.NewStyle().Width(60).Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#3a3b5b"))
 	hiStatusStyle       = lipgloss.NewStyle().Width(60).Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#D120AF"))
-	favoriteMarkerStyle = styles.AccentColor.Copy()
+	favoriteMarkerStyle = styles.AccentColor.Copy().PaddingLeft(1)
 )
 
 func renderResource(r *domain.Resource, selected bool) string {
@@ -76,12 +76,13 @@ func renderHeader(task *domain.Task, headerActive bool) string {
 	b.WriteString(style.Render(task.Title))
 	b.WriteString(favoriteMarkerStyle.Render(favoriteMarker))
 	b.WriteString("\n")
+	style.Italic(true)
 	if reflect.ValueOf(task.Due).IsZero() {
-		b.WriteString(fmt.Sprintf("%s  %s\n", titleStyle.Render("Due"), titleStyle.Render("None")))
+		b.WriteString(fmt.Sprintf("%s  %s\n", titleStyle.Render("Due"), style.Render("None")))
 	} else {
-		b.WriteString(fmt.Sprintf("%s  %s\n", titleStyle.Render("Due"), titleStyle.Render(task.Due.Format("2006/01/02"))))
+		b.WriteString(fmt.Sprintf("%s  %s\n", titleStyle.Render("Due"), style.Render(task.Due.Format("2006/01/02"))))
 	}
-	b.WriteString(lipgloss.JoinHorizontal(lipgloss.Left, titleStyle.Render("Tags "), titleStyle.Render(task.Tags)))
+	b.WriteString(lipgloss.JoinHorizontal(lipgloss.Left, titleStyle.Render("Tags "), style.Render(task.Tags)))
 	b.WriteString("\n\n")
 	return b.String()
 }

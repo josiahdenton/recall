@@ -49,7 +49,7 @@ func New() *Model {
 		headerActive: true,
 		active:       header,
 		forms:        formList,
-		commands:     DefaultCommands(),
+		commands:     DefaultCommands(), // TODO - eventually this is passed in
 	}
 }
 
@@ -146,7 +146,20 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				cmds = append(cmds, toast.ShowToast("copied to clipboard!"))
 			case header:
-				// TODO - this should open the task form prefilled
+				// TODO - figure this out
+				//m.task.ToggleActive()
+				//if m.task.Favorite {
+				//	cmds = append(cmds, updateTask(m.task), toast.ShowToast("active task!"))
+				//} else {
+				//	cmds = append(cmds, updateTask(m.task), toast.ShowToast("inactive task"))
+				//}
+			}
+		case Edit:
+			switch m.active {
+			case steps:
+			case resources:
+			case status:
+			case header:
 				if !m.showForm {
 					m.showForm = true
 					cmds = append(cmds, forms.EditTask(m.task))
@@ -172,6 +185,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					item := m.task.Status[index]
 					cmds = append(cmds, deleteStatus(m.task, &item))
 					m.task.Status = append(m.task.Status[:index], m.task.Status[index+1:]...)
+					//m.lists[m.active].SetItems(m.task.Status) // TODO have this set, need to make new func at bottom...
 				}
 				m.lists[m.active].RemoveItem(index)
 				cmds = append(cmds, toast.ShowToast("removed item!"))
