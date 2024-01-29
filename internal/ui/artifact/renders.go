@@ -14,7 +14,7 @@ var (
 	selectedResourceStyle  = styles.SecondaryColor.Copy().PaddingLeft(2)
 	resourceMetaTitleStyle = styles.SecondaryGray.Copy().Width(5)
 	// release
-	selectedReleaseStyle   = styles.PrimaryGray.Copy().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#D120AF")).Width(70).Align(lipgloss.Center)
+	selectedReleaseStyle   = styles.PrimaryGray.Copy().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#fcd34d")).Width(70).Align(lipgloss.Center)
 	defaultReleaseStyle    = styles.PrimaryGray.Copy().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#3a3b5b")).Width(70).Align(lipgloss.Center)
 	upcomingReleaseStyle   = styles.AccentColor.Copy().PaddingRight(1)
 	successfulReleaseStyle = styles.SecondaryColor.Copy().PaddingRight(1)

@@ -105,6 +105,7 @@ func (m ReleaseFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				Owner: m.inputs[releaseOwner].Value(),
 			}))
 			// Reset Form
+			m.active = releaseOwner
 			m.inputs[releaseOwner].Reset()
 			m.inputs[releaseOwner].Focus()
 			m.inputs[releaseDate].Reset()
@@ -124,10 +125,10 @@ func (m ReleaseFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func validateReleaseForm(a, b error) tea.Cmd {
 	if a != nil {
-		return toast.ShowToast(fmt.Sprintf("%v", a))
+		return toast.ShowToast(fmt.Sprintf("%v", a), toast.Warn)
 	}
 	if b != nil {
-		return toast.ShowToast(fmt.Sprintf("%v", b))
+		return toast.ShowToast(fmt.Sprintf("%v", b), toast.Warn)
 	}
 	return nil
 }

@@ -98,7 +98,7 @@ func (m ArtifactFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			if err := m.inputs[artifactName].Err; err != nil {
-				cmds = append(cmds, toast.ShowToast(fmt.Sprintf("%v", err)))
+				cmds = append(cmds, toast.ShowToast(fmt.Sprintf("%v", err), toast.Warn))
 				return m, tea.Batch(cmds...)
 			}
 			m.artifact.Name = m.inputs[artifactName].Value()

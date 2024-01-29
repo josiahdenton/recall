@@ -3,7 +3,6 @@ package zettels
 import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 	"github.com/josiahdenton/recall/internal/domain"
 	"github.com/josiahdenton/recall/internal/ui/forms"
 	"github.com/josiahdenton/recall/internal/ui/router"
@@ -15,7 +14,7 @@ import (
 
 var (
 	paginationStyle = list.DefaultStyles().PaginationStyle
-	titleStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("#3a3b5b"))
+	titleStyle      = styles.SecondaryColor.Copy()
 )
 
 func New() Model {
@@ -106,12 +105,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "a":
 			m.showForm = true
 		case "u":
-			cmds = append(cmds, state.UndoDeleteState(), toast.ShowToast("undo!"))
+			cmds = append(cmds, state.UndoDeleteState(), toast.ShowToast("undo!", toast.Info))
 		case "d":
 			if len(m.zettels.Items()) > 0 {
 				selected := m.zettels.SelectedItem().(*domain.Zettel)
 				m.zettels.RemoveItem(m.zettels.Index())
-				cmds = append(cmds, deleteZettel(selected), toast.ShowToast("removed zettel!"))
+				cmds = append(cmds, deleteZettel(selected), toast.ShowToast("removed zettel!", toast.Warn))
 			}
 		}
 	}

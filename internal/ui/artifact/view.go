@@ -168,13 +168,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if len(m.resources.Items()) > 0 {
 					selected := m.resources.SelectedItem().(*domain.Resource)
 					selected.Open()
-					cmds = append(cmds, toast.ShowToast("opened resource!"))
+					cmds = append(cmds, toast.ShowToast("opened resource!", toast.Info))
 				}
 			case header:
-				if !m.showForm {
-					m.showForm = true
-					cmds = append(cmds, forms.EditArtifact(m.artifact))
-				}
+				//if !m.showForm {
+				//	m.showForm = true
+				//	cmds = append(cmds, forms.EditArtifact(m.artifact))
+				//}
 			}
 		case tea.KeyTab:
 			m.active = nextSection(m.active)
@@ -192,6 +192,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "a":
 			if m.active == releases || m.active == resources {
 				m.showForm = true
+			}
+		case "e":
+			if !m.showForm {
+				m.showForm = true
+				cmds = append(cmds, forms.EditArtifact(m.artifact))
 			}
 		case "d":
 			//TODO - support deleting releases / resources

@@ -27,11 +27,24 @@ var (
 	fadedTitleStyle     = styles.SecondaryGray.Copy()
 )
 
+type editResourceMsg struct {
+	resource *domain.Resource
+}
+
+func EditResource(resource *domain.Resource) tea.Cmd {
+	return func() tea.Msg {
+		return editResourceMsg{
+			resource: resource,
+		}
+	}
+}
+
 type ResourceFormMsg struct {
 	Resource domain.Resource
 }
 
 type ResourceModel struct {
+	resource      *domain.Resource
 	inputs        []textinput.Model
 	options       []createResourceOption
 	selectFrom    list.Model
@@ -121,6 +134,7 @@ func NewResourceForm() ResourceModel {
 		options:    options,
 		choice:     none,
 		selectFrom: selectFrom,
+		resource:   &domain.Resource{},
 	}
 }
 
@@ -160,6 +174,12 @@ func (m ResourceModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.existing.SetShowHelp(false)
 		m.existing.KeyMap.Quit.Unbind()
 		m.existingReady = true
+	case editResourceMsg:
+		m.resource = msg.resource
+		m.choice = newItem
+		m.inputs[name].SetValue(m.resource.Name)
+		m.inputs[source].SetValue(m.resource.Source)
+		m.inputs[rTags].SetValue(m.resource.Tags)
 	}
 
 	if m.choice == newItem {
@@ -182,12 +202,11 @@ func (m ResourceModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					cmds = append(cmds, cmd)
 					return m, tea.Batch(cmds...)
 				}
-				cmds = append(cmds, addResourceToTask(domain.Resource{
-					Name:   m.inputs[name].Value(),
-					Source: m.inputs[source].Value(),
-					Tags:   m.inputs[rTags].Value(),
-					Type:   domain.WebResource,
-				}))
+				m.resource.Name = m.inputs[name].Value()
+				m.resource.Source = m.inputs[source].Value()
+				m.resource.Tags = m.inputs[rTags].Value()
+				m.resource.Type = domain.WebResource
+				cmds = append(cmds, addResourceToTask(*m.resource))
 
 				// Reset form to defaults
 				m.inputs[name].Reset()
@@ -244,10 +263,10 @@ func (m ResourceModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func validateForm(titleErr, sourceErr error) tea.Cmd {
 	if titleErr != nil {
-		return toast.ShowToast(fmt.Sprintf("%v", titleErr))
+		return toast.ShowToast(fmt.Sprintf("%v", titleErr), toast.Warn)
 	}
 	if sourceErr != nil {
-		return toast.ShowToast(fmt.Sprintf("%v", sourceErr))
+		return toast.ShowToast(fmt.Sprintf("%v", sourceErr), toast.Warn)
 	}
 	return nil
 }

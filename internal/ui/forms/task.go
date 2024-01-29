@@ -184,7 +184,7 @@ func (m TaskFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			if err := m.inputs[title].Err; err != nil {
-				cmds = append(cmds, toast.ShowToast(fmt.Sprintf("%v", err)))
+				cmds = append(cmds, toast.ShowToast(fmt.Sprintf("%v", err), toast.Warn))
 				return m, tea.Batch(cmds...)
 			}
 
@@ -213,6 +213,12 @@ func (m TaskFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.active = m.nextInput(m.active)
 			if m.active < priority {
 				m.inputs[m.active].Focus()
+			}
+
+			if m.active == priority {
+				m.priority.Styles.Title = styles.FocusedInputStyle
+			} else if &m.priority.Styles.Title != &fadedTitleStyle {
+				m.priority.Styles.Title = fadedTitleStyle
 			}
 		}
 	}
@@ -270,7 +276,7 @@ func parseDate(date string) (time.Time, tea.Cmd) {
 	input := fmt.Sprintf("%s at 10:00pm (EST)", date)
 	t, err := time.Parse(longDateForm, input)
 	if err != nil {
-		return time.Time{}, toast.ShowToast("failed to parse date")
+		return time.Time{}, toast.ShowToast("failed to parse date", toast.Warn)
 	}
 	return t, nil
 }

@@ -8,16 +8,25 @@ import (
 )
 
 var (
-	statusStyle = styles.PrimaryGray.Copy().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#D120AF")).Width(25).Align(lipgloss.Center)
+	warnStatusStyle = styles.PrimaryGray.Copy().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#D120AF")).Width(25).Align(lipgloss.Center)
+	infoStatusStyle = styles.PrimaryGray.Copy().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#2dd4bf")).Width(25).Align(lipgloss.Center)
 )
 
 type showToastMsg struct {
 	message string
+	toast   ToastType
 }
 
-func ShowToast(message string) tea.Cmd {
+const (
+	Info = iota
+	Warn
+)
+
+type ToastType = int
+
+func ShowToast(message string, toast ToastType) tea.Cmd {
 	return func() tea.Msg {
-		return showToastMsg{message: message}
+		return showToastMsg{message: message, toast: toast}
 	}
 }
 
@@ -27,6 +36,7 @@ func New() Model {
 
 type Model struct {
 	message string
+	toast   ToastType
 }
 
 func (m Model) Init() tea.Cmd {
@@ -34,8 +44,10 @@ func (m Model) Init() tea.Cmd {
 }
 
 func (m Model) View() string {
-	if len(m.message) > 0 {
-		return statusStyle.Render(m.message)
+	if len(m.message) > 0 && m.toast == Info {
+		return infoStatusStyle.Render(m.message)
+	} else if len(m.message) > 0 && m.toast == Warn {
+		return warnStatusStyle.Render(m.message)
 	}
 	return ""
 }
@@ -45,6 +57,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case showToastMsg:
 		m.message = msg.message
+		m.toast = msg.toast
 		cmd = clearStatus()
 	case clearStatusMsg:
 		m.message = ""

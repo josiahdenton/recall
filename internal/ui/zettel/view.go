@@ -207,7 +207,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.active == links {
 				selected := m.links.SelectedItem().(*domain.Zettel)
 				m.links.RemoveItem(m.links.Index())
-				cmds = append(cmds, unlinkZettel(m.zettel, selected), toast.ShowToast("unlinked zettel!"))
+				cmds = append(cmds, unlinkZettel(m.zettel, selected), toast.ShowToast("unlinked zettel!", toast.Warn))
 			}
 		}
 	}

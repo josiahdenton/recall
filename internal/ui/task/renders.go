@@ -14,16 +14,16 @@ var (
 	cursorStyle = styles.PrimaryColor.Copy()
 	// steps
 	stepStyle         = styles.PrimaryGray.Copy().PaddingLeft(2)
-	selectedStepStyle = styles.SecondaryColor.Copy().PaddingLeft(2)
+	selectedStepStyle = styles.AccentColor.Copy().PaddingLeft(2)
 	titleStyle        = styles.SecondaryGray.Copy()
 	activeTitleStyle  = styles.SecondaryColor.Copy()
 	// resources
 	resourceStyle          = styles.PrimaryGray.Copy().PaddingLeft(2)
-	selectedResourceStyle  = styles.SecondaryColor.Copy().PaddingLeft(2)
+	selectedResourceStyle  = styles.AccentColor.Copy().PaddingLeft(2)
 	resourceMetaTitleStyle = styles.SecondaryGray.Copy()
 	// status
 	statusStyle         = lipgloss.NewStyle().Width(60).Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#3a3b5b"))
-	hiStatusStyle       = lipgloss.NewStyle().Width(60).Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#D120AF"))
+	hiStatusStyle       = lipgloss.NewStyle().Width(60).Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#fcd34d"))
 	favoriteMarkerStyle = styles.AccentColor.Copy().PaddingLeft(1)
 )
 

@@ -7,10 +7,10 @@ import (
 )
 
 var (
-	selectedArtifactStyle = styles.PrimaryGray.Copy().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#D120AF")).Width(70)
+	selectedArtifactStyle = styles.PrimaryGray.Copy().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#fcd34d")).Width(70)
 	defaultArtifactStyle  = styles.SecondaryGray.Copy().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#3a3b5b")).Width(70)
-	nameStyle             = styles.SecondaryColor.Copy().Width(35)
-	tagsStyle             = styles.PrimaryGray.Copy().Width(35).Align(lipgloss.Right)
+	nameStyle             = styles.PrimaryGray.Copy().Width(35)
+	tagsStyle             = styles.SecondaryGray.Copy().Width(35).Align(lipgloss.Right)
 )
 
 func renderArtifact(artifact *domain.Artifact, selected bool) string {
