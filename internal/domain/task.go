@@ -2,6 +2,7 @@ package domain
 
 import (
 	"gorm.io/gorm"
+	"reflect"
 	"time"
 )
 
@@ -23,17 +24,45 @@ type Priority int
 
 type Task struct {
 	gorm.Model
-	Title            string
-	Tags             string
-	Due              time.Time
-	Priority         Priority
-	Active           bool
-	Archive          bool
-	Favorite         bool
-	Resources        []Resource `gorm:"many2many:task_resources"`
-	Status           []Status
-	Steps            []Step
-	AccomplishmentID uint
+	Title string
+	Tags  string
+	Due   time.Time
+	// Active tracks if the current task is actively being worked on
+	Active bool
+	// Duration is the total time worked on a task
+	Duration time.Duration
+	// LastActivatedTime tracks how long it's been since this task was activated
+	LastActivatedTime time.Time
+	Priority          Priority
+	Archive           bool
+	Favorite          bool
+	Resources         []Resource `gorm:"many2many:task_resources"`
+	Status            []Status
+	Steps             []Step
+	AccomplishmentID  uint
+}
+
+func (t *Task) ToggleActive() {
+	if t.Active && reflect.ValueOf(t.Duration).IsZero() {
+		t.Duration = time.Now().Sub(t.LastActivatedTime)
+	} else if t.Active {
+		t.Duration += time.Now().Sub(t.LastActivatedTime)
+	} else {
+		t.LastActivatedTime = time.Now()
+	}
+	t.Active = !t.Active
+}
+
+// ActiveDuration calculates the total time
+// this task has been actively worked on
+func (t *Task) ActiveDuration() time.Duration {
+	if t.Active && reflect.ValueOf(t.Duration).IsZero() {
+		return time.Now().Sub(t.LastActivatedTime)
+	} else if t.Active {
+		return t.Duration + time.Now().Sub(t.LastActivatedTime)
+	} else {
+		return t.Duration
+	}
 }
 
 func (t *Task) ToggleFavorite() {

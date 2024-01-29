@@ -92,7 +92,7 @@ func (m ZettelFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			if err := m.inputs[zName].Err; err != nil {
-				cmds = append(cmds, toast.ShowToast(fmt.Sprintf("%v", err)))
+				cmds = append(cmds, toast.ShowToast(fmt.Sprintf("%v", err), toast.Warn))
 				return m, tea.Batch(cmds...)
 			}
 			cmds = append(cmds, addZettel(domain.Zettel{

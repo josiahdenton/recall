@@ -11,5 +11,5 @@ type Artifact struct {
 }
 
 func (a *Artifact) FilterValue() string {
-	return a.Name
+	return a.Name + a.Tags
 }

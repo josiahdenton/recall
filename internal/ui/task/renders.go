@@ -14,17 +14,20 @@ var (
 	cursorStyle = styles.PrimaryColor.Copy()
 	// steps
 	stepStyle         = styles.PrimaryGray.Copy().PaddingLeft(2)
-	selectedStepStyle = styles.SecondaryColor.Copy().PaddingLeft(2)
-	titleStyle        = styles.SecondaryGray.Copy()
-	activeTitleStyle  = styles.SecondaryColor.Copy()
+	selectedStepStyle = styles.AccentColor.Copy().PaddingLeft(2)
+	// header
+	metaTagsStyle    = styles.SecondaryGray.Copy()
+	hiDueDateStyle   = styles.PrimaryGray.Copy().Italic(true)
+	titleStyle       = styles.SecondaryGray.Copy()
+	activeTitleStyle = styles.SecondaryColor.Copy()
 	// resources
 	resourceStyle          = styles.PrimaryGray.Copy().PaddingLeft(2)
-	selectedResourceStyle  = styles.SecondaryColor.Copy().PaddingLeft(2)
+	selectedResourceStyle  = styles.AccentColor.Copy().PaddingLeft(2)
 	resourceMetaTitleStyle = styles.SecondaryGray.Copy()
 	// status
 	statusStyle         = lipgloss.NewStyle().Width(60).Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#3a3b5b"))
-	hiStatusStyle       = lipgloss.NewStyle().Width(60).Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#D120AF"))
-	favoriteMarkerStyle = styles.AccentColor.Copy()
+	hiStatusStyle       = lipgloss.NewStyle().Width(60).Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#fcd34d"))
+	favoriteMarkerStyle = styles.AccentColor.Copy().PaddingLeft(1)
 )
 
 func renderResource(r *domain.Resource, selected bool) string {
@@ -64,7 +67,9 @@ func renderStep(s *domain.Step, selected bool) string {
 
 func renderHeader(task *domain.Task, headerActive bool) string {
 	style := titleStyle
+	dueDateStyle := metaTagsStyle
 	if headerActive {
+		dueDateStyle = hiDueDateStyle
 		style = activeTitleStyle
 	}
 	favoriteMarker := ""
@@ -77,11 +82,12 @@ func renderHeader(task *domain.Task, headerActive bool) string {
 	b.WriteString(favoriteMarkerStyle.Render(favoriteMarker))
 	b.WriteString("\n")
 	if reflect.ValueOf(task.Due).IsZero() {
-		b.WriteString(fmt.Sprintf("%s  %s\n", titleStyle.Render("Due"), titleStyle.Render("None")))
+		b.WriteString(fmt.Sprintf("%s  %s", metaTagsStyle.Render("Due"), dueDateStyle.Render("None")))
 	} else {
-		b.WriteString(fmt.Sprintf("%s  %s\n", titleStyle.Render("Due"), titleStyle.Render(task.Due.Format("2006/01/02"))))
+		b.WriteString(fmt.Sprintf("%s  %s", metaTagsStyle.Render("Due"), dueDateStyle.Render(task.Due.Format("2006/01/02"))))
 	}
-	b.WriteString(lipgloss.JoinHorizontal(lipgloss.Left, titleStyle.Render("Tags "), titleStyle.Render(task.Tags)))
+	b.WriteString("  ")
+	b.WriteString(metaTagsStyle.Render(task.Tags))
 	b.WriteString("\n\n")
 	return b.String()
 }

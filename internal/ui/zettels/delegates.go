@@ -11,7 +11,7 @@ import (
 type zettelDelegate struct{}
 
 func (d zettelDelegate) Height() int  { return 1 }
-func (d zettelDelegate) Spacing() int { return 0 }
+func (d zettelDelegate) Spacing() int { return 1 }
 func (d zettelDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd {
 	return nil
 }

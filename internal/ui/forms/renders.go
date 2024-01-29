@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	selectedBorderOptionStyle = styles.PrimaryGray.Copy().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#D120AF")).Width(25)
+	selectedBorderOptionStyle = styles.PrimaryGray.Copy().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#fcd34d")).Width(25)
 	defaultBorderOptionStyle  = styles.SecondaryGray.Copy().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#3a3b5b")).Width(25)
 	selectedZettelStyle       = styles.SecondaryColor.Copy()
 	defaultZettelStyle        = styles.SecondaryGray.Copy()
@@ -46,7 +46,7 @@ func renderZettel(zettel *domain.Zettel, selected bool) string {
 }
 
 var (
-	selectedResourceStyle = styles.SecondaryColor.Copy().Width(50)
+	selectedResourceStyle = styles.AccentColor.Copy().Width(50)
 	defaultResourceStyle  = styles.PrimaryGray.Copy().Width(50)
 	titleKeyStyle         = styles.SecondaryGray.Copy()
 	alignStyle            = lipgloss.NewStyle().PaddingLeft(1)

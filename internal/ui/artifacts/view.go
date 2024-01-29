@@ -13,7 +13,7 @@ import (
 
 var (
 	paginationStyle = list.DefaultStyles().PaginationStyle
-	titleStyle      = styles.SecondaryGray.Copy()
+	titleStyle      = styles.SecondaryColor.Copy()
 )
 
 func New() tea.Model {
@@ -112,9 +112,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "d":
 			selected := m.artifacts.SelectedItem().(*domain.Artifact)
 			m.artifacts.RemoveItem(m.artifacts.Index())
-			cmds = append(cmds, deleteArtifact(selected.ID), toast.ShowToast("removed artifact!"))
+			cmds = append(cmds, deleteArtifact(selected.ID), toast.ShowToast("removed artifact!", toast.Warn))
 		case "u":
-			cmds = append(cmds, state.UndoDeleteState(), toast.ShowToast("undo!"))
+			cmds = append(cmds, state.UndoDeleteState(), toast.ShowToast("undo!", toast.Info))
 		}
 	}
 

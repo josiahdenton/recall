@@ -1,29 +1,31 @@
 package resources
 
 import (
-	"fmt"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/josiahdenton/recall/internal/domain"
 	"github.com/josiahdenton/recall/internal/ui/styles"
 )
 
 var (
-	activeCycleStyle  = styles.SecondaryColor.Copy().Width(50)
-	defaultCycleStyle = styles.PrimaryGray.Copy().Width(50)
-	cursorStyle       = styles.PrimaryColor.Copy()
-	titleKeyStyle     = styles.SecondaryGray.Copy()
-	alignStyle        = lipgloss.NewStyle().PaddingLeft(1)
+	activeResourceStyle  = styles.AccentColor.Copy().Width(40)
+	defaultResourceStyle = styles.PrimaryGray.Copy().Width(40)
+	cursorStyle          = styles.PrimaryColor.Copy()
+	metaStyle            = styles.SecondaryGray.Copy()
+	selectedMetaStyle    = styles.AccentColor.Copy()
+	alignStyle           = lipgloss.NewStyle().PaddingLeft(1)
 )
 
 func renderResource(resource *domain.Resource, selected bool) string {
 	selectedMarker := " "
-	style := defaultCycleStyle
+	style := defaultResourceStyle
+	tagsStyle := metaStyle
 	if selected {
 		selectedMarker = ">"
-		style = activeCycleStyle
+		style = activeResourceStyle
+		tagsStyle = selectedMetaStyle
 	}
 	name := style.Render(resource.Name)
-	resourceType := fmt.Sprintf(" %s %s", titleKeyStyle.Render("Type"), style.Render(resource.StringType()))
-	s := lipgloss.JoinHorizontal(lipgloss.Left, name, resourceType)
-	return fmt.Sprintf("%s%s", cursorStyle.Render(selectedMarker), alignStyle.Render(s))
+	tags := tagsStyle.Render(resource.Tags)
+	s := lipgloss.JoinHorizontal(lipgloss.Left, name, tags)
+	return lipgloss.JoinHorizontal(lipgloss.Left, cursorStyle.Render(selectedMarker), alignStyle.Render(s))
 }

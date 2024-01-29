@@ -49,7 +49,7 @@ func New() *Model {
 		headerActive: true,
 		active:       header,
 		forms:        formList,
-		commands:     DefaultCommands(),
+		commands:     DefaultCommands(), // TODO - eventually this is passed in
 	}
 }
 
@@ -125,28 +125,41 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				step := m.lists[steps].SelectedItem().(*domain.Step)
 				step.ToggleStatus()
 				if step.Complete {
-					cmds = append(cmds, updateStep(step), toast.ShowToast("completed step!"))
+					cmds = append(cmds, updateStep(step), toast.ShowToast("completed step!", toast.Info))
 				} else {
-					cmds = append(cmds, updateStep(step), toast.ShowToast("reset step!"))
+					cmds = append(cmds, updateStep(step), toast.ShowToast("reset step!", toast.Info))
 				}
 			case resources:
 				resource := m.lists[resources].SelectedItem().(*domain.Resource)
 				if resource.Type == domain.WebResource {
 					resource.Open()
-					cmds = append(cmds, toast.ShowToast("opened web link!"))
+					cmds = append(cmds, toast.ShowToast("opened web link!", toast.Info))
 				} else {
-					cmds = append(cmds, toast.ShowToast("unsupported type!"))
+					cmds = append(cmds, toast.ShowToast("unsupported type!", toast.Info))
 				}
 			case status:
 				status := m.lists[status].SelectedItem().(*domain.Status)
 				err := clipboard.WriteAll(status.Description)
 				if err != nil {
 					log.Printf("failed to copy to clipboard: %v", err)
-					cmds = append(cmds, toast.ShowToast("failed to copy to clipboard"))
+					cmds = append(cmds, toast.ShowToast("failed to copy to clipboard", toast.Warn))
 				}
-				cmds = append(cmds, toast.ShowToast("copied to clipboard!"))
+				cmds = append(cmds, toast.ShowToast("copied to clipboard!", toast.Info))
 			case header:
-				// TODO - this should open the task form prefilled
+				// TODO - figure this out
+				m.task.ToggleActive()
+				if m.task.Active {
+					cmds = append(cmds, updateTask(m.task), toast.ShowToast("active task!", toast.Info))
+				} else {
+					cmds = append(cmds, updateTask(m.task), toast.ShowToast("inactive task", toast.Info))
+				}
+			}
+		case Edit:
+			switch m.active {
+			case steps:
+			case resources:
+			case status:
+			case header:
 				if !m.showForm {
 					m.showForm = true
 					cmds = append(cmds, forms.EditTask(m.task))
@@ -164,17 +177,20 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					item := m.task.Steps[index]
 					cmds = append(cmds, deleteStep(m.task, &item))
 					m.task.Steps = append(m.task.Steps[:index], m.task.Steps[index+1:]...)
+					m.lists[m.active].SetItems(stepsToItemList(m.task.Steps))
 				case resources:
 					item := m.task.Resources[index]
 					cmds = append(cmds, deleteResource(m.task, &item))
 					m.task.Resources = append(m.task.Resources[:index], m.task.Resources[index+1:]...)
+					m.lists[m.active].SetItems(resourcesToItemList(m.task.Resources))
 				case status:
 					item := m.task.Status[index]
 					cmds = append(cmds, deleteStatus(m.task, &item))
 					m.task.Status = append(m.task.Status[:index], m.task.Status[index+1:]...)
+					m.lists[m.active].SetItems(statusToItemList(m.task.Status))
 				}
-				m.lists[m.active].RemoveItem(index)
-				cmds = append(cmds, toast.ShowToast("removed item!"))
+				//m.lists[m.active].RemoveItem(index)
+				cmds = append(cmds, toast.ShowToast("removed item!", toast.Warn))
 			}
 		case Add:
 			if !m.showForm && m.active < header && m.lists[m.active].FilterState() != list.Filtering {
@@ -196,9 +212,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.active == header {
 				m.task.ToggleFavorite()
 				if m.task.Favorite {
-					cmds = append(cmds, updateTask(m.task), toast.ShowToast("favorited task!"))
+					cmds = append(cmds, updateTask(m.task), toast.ShowToast("favorited task!", toast.Info))
 				} else {
-					cmds = append(cmds, updateTask(m.task), toast.ShowToast("not a favorite task"))
+					cmds = append(cmds, updateTask(m.task), toast.ShowToast("not a favorite task", toast.Info))
 				}
 			}
 		case None:
@@ -261,24 +277,9 @@ func deleteStatus(task *domain.Task, status *domain.Status) tea.Cmd {
 }
 
 func setupLists(task *domain.Task) []list.Model {
-	_steps := make([]list.Item, len(task.Steps))
-	_resources := make([]list.Item, len(task.Resources))
-	_status := make([]list.Item, len(task.Status))
-	for i := range task.Steps {
-		s := &task.Steps[i]
-		_steps[i] = s
-	}
-	for i := range task.Resources {
-		r := &task.Resources[i]
-		_resources[i] = r
-	}
-	for i := range task.Status {
-		s := &task.Status[i]
-		_status[i] = s
-	}
 	lists := make([]list.Model, formCount)
 
-	lists[steps] = list.New(_steps, stepDelegate{}, 80, 9)
+	lists[steps] = list.New(stepsToItemList(task.Steps), stepDelegate{}, 80, 9)
 	lists[steps].Title = "Steps"
 	lists[steps].Styles.Title = listTitleStyle
 	lists[steps].SetFilteringEnabled(false)
@@ -286,14 +287,14 @@ func setupLists(task *domain.Task) []list.Model {
 	lists[steps].SetShowStatusBar(false)
 	lists[steps].KeyMap.Quit.Unbind()
 
-	lists[resources] = list.New(_resources, resourceDelegate{}, 80, 9)
+	lists[resources] = list.New(resourcesToItemList(task.Resources), resourceDelegate{}, 80, 9)
 	lists[resources].Title = "Resources"
 	lists[resources].Styles.Title = listTitleStyle
 	lists[resources].SetShowHelp(false)
 	lists[resources].SetShowStatusBar(false)
 	lists[resources].KeyMap.Quit.Unbind()
 
-	lists[status] = list.New(_status, statusDelegate{}, 80, 5)
+	lists[status] = list.New(statusToItemList(task.Status), statusDelegate{}, 80, 5)
 	lists[status].Title = "Status"
 	lists[status].Styles.Title = listTitleStyle
 	lists[status].SetFilteringEnabled(false)
@@ -302,6 +303,33 @@ func setupLists(task *domain.Task) []list.Model {
 	lists[status].KeyMap.Quit.Unbind()
 
 	return lists
+}
+
+func stepsToItemList(steps []domain.Step) []list.Item {
+	items := make([]list.Item, len(steps))
+	for i := range steps {
+		item := &steps[i]
+		items[i] = item
+	}
+	return items
+}
+
+func resourcesToItemList(resources []domain.Resource) []list.Item {
+	items := make([]list.Item, len(resources))
+	for i := range resources {
+		item := &resources[i]
+		items[i] = item
+	}
+	return items
+}
+
+func statusToItemList(status []domain.Status) []list.Item {
+	items := make([]list.Item, len(status))
+	for i := range status {
+		item := &status[i]
+		items[i] = item
+	}
+	return items
 }
 
 // TODO - can make this a func

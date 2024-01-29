@@ -3,7 +3,6 @@ package tasks
 import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 	"github.com/josiahdenton/recall/internal/domain"
 	"github.com/josiahdenton/recall/internal/ui/forms"
 	"github.com/josiahdenton/recall/internal/ui/router"
@@ -14,7 +13,7 @@ import (
 
 var (
 	paginationStyle = list.DefaultStyles().PaginationStyle
-	titleStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("#3a3b5b"))
+	titleStyle      = styles.SecondaryColor.Copy()
 )
 
 const (
@@ -126,13 +125,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.showForm = true
 			m.activeForm = completeForm
 			selected := m.tasks.SelectedItem().(*domain.Task)
-			cmds = append(cmds, forms.AttachTask(*selected), toast.ShowToast("completing task!"))
+			cmds = append(cmds, forms.AttachTask(*selected), toast.ShowToast("completing task!", toast.Info))
 		case "d":
 			selected := m.tasks.SelectedItem().(*domain.Task)
 			m.tasks.RemoveItem(m.tasks.Index())
-			cmds = append(cmds, deleteTask(selected.ID), toast.ShowToast("removed task!"))
+			cmds = append(cmds, deleteTask(selected.ID), toast.ShowToast("removed task!", toast.Warn))
 		case "u":
-			cmds = append(cmds, state.UndoDeleteState(), toast.ShowToast("undo!"))
+			cmds = append(cmds, state.UndoDeleteState(), toast.ShowToast("undo!", toast.Info))
 		}
 	}
 

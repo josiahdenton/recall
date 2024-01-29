@@ -14,15 +14,16 @@ import (
 )
 
 var (
-	paginationStyle  = list.DefaultStyles().PaginationStyle
-	titleStyle       = styles.SecondaryColor.Copy().PaddingLeft(8)
-	defaultListTitle = styles.SecondaryGray.Copy()
-	activeListTitle  = styles.PrimaryColor.Copy()
+	paginationStyle   = list.DefaultStyles().PaginationStyle
+	titleStyle        = styles.SecondaryColor.Copy().PaddingLeft(8)
+	defaultTitleStyle = styles.SecondaryGray.Copy().PaddingLeft(8)
+	defaultListTitle  = styles.SecondaryGray.Copy()
+	activeListTitle   = styles.SecondaryColor.Copy()
 	// windows for zettel
 	alignContent              = lipgloss.NewStyle().Width(100).Align(lipgloss.Center).PaddingRight(4)
 	leftPad                   = lipgloss.NewStyle().PaddingLeft(8)
 	defaultConceptWindowStyle = lipgloss.NewStyle().Padding(1).Width(80).Height(20).Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#3a3b5b"))
-	activeConceptWindowStyle  = lipgloss.NewStyle().Padding(1).Width(80).Height(20).Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#D120AF"))
+	activeConceptWindowStyle  = lipgloss.NewStyle().Padding(1).Width(80).Height(20).Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#fcd34d"))
 )
 
 const (
@@ -67,7 +68,11 @@ func (m Model) View() string {
 	} else if m.showForm && m.active == content {
 		b.WriteString(m.conceptForm.View())
 	} else {
-		b.WriteString(titleStyle.Render(m.zettel.Name))
+		if m.active == content {
+			b.WriteString(titleStyle.Render(m.zettel.Name))
+		} else {
+			b.WriteString(defaultTitleStyle.Render(m.zettel.Name))
+		}
 		b.WriteString("\n")
 		if m.active == content {
 			b.WriteString(alignContent.Render(activeConceptWindowStyle.Render(m.zettel.Concept)))
@@ -207,7 +212,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.active == links {
 				selected := m.links.SelectedItem().(*domain.Zettel)
 				m.links.RemoveItem(m.links.Index())
-				cmds = append(cmds, unlinkZettel(m.zettel, selected), toast.ShowToast("unlinked zettel!"))
+				cmds = append(cmds, unlinkZettel(m.zettel, selected), toast.ShowToast("unlinked zettel!", toast.Warn))
 			}
 		}
 	}

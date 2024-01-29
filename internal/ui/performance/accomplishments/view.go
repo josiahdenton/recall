@@ -75,10 +75,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "d":
 			selected := m.accomplishments.SelectedItem().(*domain.Accomplishment)
-			cmds = append(cmds, deleteAccomplishment(selected.ID), toast.ShowToast("removed accomplishment!"))
+			cmds = append(cmds, deleteAccomplishment(selected.ID), toast.ShowToast("removed accomplishment!", toast.Warn))
 			m.accomplishments.RemoveItem(m.accomplishments.Index())
 		case "u":
-			cmds = append(cmds, state.UndoDeleteState(), toast.ShowToast("undo!"))
+			cmds = append(cmds, state.UndoDeleteState(), toast.ShowToast("undo!", toast.Info))
 		}
 	}
 

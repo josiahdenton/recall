@@ -12,10 +12,6 @@ all of which is stored in a local sqlite database in `~/recall-notes`.
 
 will add demos soon...
 
-## Bugs
-
-- don't update lists if a form is showing...
-
 ## Road to V1
 
 - [ ] can remove resources from zettels, artifacts, & accomplishments
@@ -25,18 +21,17 @@ will add demos soon...
 - [ ] accomplishments can now have resources
 - [ ] standardize patterns, document them
 - [ ] Inbox
-  - [ ] add / delete
-  - [ ] re-use status so interact key can attach status to new/existing task 
+    - [ ] add / delete
+    - [ ] re-use status so interact key can attach status to new/existing task
 - [x] global status messages for errors / forms
 - [x] consolidate forms, no need to have them separated
-- [x] add releases 
-  - [ ] only part of artifacts
+- [x] add releases
 - [x] add artifacts
 - [ ] add settings
-  - [ ] clear delete cache
-  - [ ] accomplishment control
-  - [ ] keybindings
-  - [ ] store in json/yaml
+    - [ ] clear delete cache
+    - [ ] accomplishment control
+    - [ ] keybindings
+    - [ ] store in json/yaml
 - [x] refinish accomplishments design
 - [ ] export option for accomplishment
 
