@@ -6,7 +6,7 @@ import (
 
 // TODO remove this and replace
 var (
-	titleStyle     = styles.PrimaryColor.Copy()
+	titleStyle     = styles.SecondaryColor.Copy()
 	formLabelStyle = styles.SecondaryGray.Copy()
 	errorStyle     = styles.PrimaryColor.Copy()
 )

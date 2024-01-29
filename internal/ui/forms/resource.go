@@ -21,7 +21,7 @@ const (
 )
 
 var (
-	selectedOptionStyle = styles.PrimaryGray.Copy().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#D120AF")).Width(25)
+	selectedOptionStyle = styles.PrimaryGray.Copy().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#fcd34d")).Width(25)
 	defaultOptionStyle  = styles.SecondaryGray.Copy().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#3a3b5b")).Width(25)
 	paginationStyle     = list.DefaultStyles().PaginationStyle
 	fadedTitleStyle     = styles.SecondaryGray.Copy()

@@ -15,8 +15,11 @@ var (
 	// steps
 	stepStyle         = styles.PrimaryGray.Copy().PaddingLeft(2)
 	selectedStepStyle = styles.AccentColor.Copy().PaddingLeft(2)
-	titleStyle        = styles.SecondaryGray.Copy()
-	activeTitleStyle  = styles.SecondaryColor.Copy()
+	// header
+	metaTagsStyle    = styles.SecondaryGray.Copy()
+	hiDueDateStyle   = styles.PrimaryGray.Copy().Italic(true)
+	titleStyle       = styles.SecondaryGray.Copy()
+	activeTitleStyle = styles.SecondaryColor.Copy()
 	// resources
 	resourceStyle          = styles.PrimaryGray.Copy().PaddingLeft(2)
 	selectedResourceStyle  = styles.AccentColor.Copy().PaddingLeft(2)
@@ -64,7 +67,9 @@ func renderStep(s *domain.Step, selected bool) string {
 
 func renderHeader(task *domain.Task, headerActive bool) string {
 	style := titleStyle
+	dueDateStyle := metaTagsStyle
 	if headerActive {
+		dueDateStyle = hiDueDateStyle
 		style = activeTitleStyle
 	}
 	favoriteMarker := ""
@@ -76,13 +81,13 @@ func renderHeader(task *domain.Task, headerActive bool) string {
 	b.WriteString(style.Render(task.Title))
 	b.WriteString(favoriteMarkerStyle.Render(favoriteMarker))
 	b.WriteString("\n")
-	style.Italic(true)
 	if reflect.ValueOf(task.Due).IsZero() {
-		b.WriteString(fmt.Sprintf("%s  %s\n", titleStyle.Render("Due"), style.Render("None")))
+		b.WriteString(fmt.Sprintf("%s  %s", metaTagsStyle.Render("Due"), dueDateStyle.Render("None")))
 	} else {
-		b.WriteString(fmt.Sprintf("%s  %s\n", titleStyle.Render("Due"), style.Render(task.Due.Format("2006/01/02"))))
+		b.WriteString(fmt.Sprintf("%s  %s", metaTagsStyle.Render("Due"), dueDateStyle.Render(task.Due.Format("2006/01/02"))))
 	}
-	b.WriteString(lipgloss.JoinHorizontal(lipgloss.Left, titleStyle.Render("Tags "), style.Render(task.Tags)))
+	b.WriteString("  ")
+	b.WriteString(metaTagsStyle.Render(task.Tags))
 	b.WriteString("\n\n")
 	return b.String()
 }

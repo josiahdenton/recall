@@ -46,7 +46,7 @@ func renderZettel(zettel *domain.Zettel, selected bool) string {
 }
 
 var (
-	selectedResourceStyle = styles.SecondaryColor.Copy().Width(50)
+	selectedResourceStyle = styles.AccentColor.Copy().Width(50)
 	defaultResourceStyle  = styles.PrimaryGray.Copy().Width(50)
 	titleKeyStyle         = styles.SecondaryGray.Copy()
 	alignStyle            = lipgloss.NewStyle().PaddingLeft(1)
