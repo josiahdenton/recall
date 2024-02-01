@@ -3,19 +3,31 @@ package forms
 import (
 	"fmt"
 	"github.com/josiahdenton/recall/internal/domain"
+	"github.com/josiahdenton/recall/internal/ui/toast"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+type editStepMsg struct {
+	step *domain.Step
+}
+
+func EditStep(step *domain.Step) tea.Cmd {
+	return func() tea.Msg {
+		return editStepMsg{step: step}
+	}
+}
+
 type StepFormMsg struct {
 	Step domain.Step
+	Edit bool
 }
 
 type StepModel struct {
-	input  textinput.Model
-	status string
+	input textinput.Model
+	step  *domain.Step
 }
 
 func NewStepForm() StepModel {
@@ -36,6 +48,7 @@ func NewStepForm() StepModel {
 
 	return StepModel{
 		input: input,
+		step:  &domain.Step{},
 	}
 }
 
@@ -49,7 +62,6 @@ func (m StepModel) View() string {
 	b.WriteString("\n\n")
 	b.WriteString(m.input.View())
 	b.WriteString("\n\n")
-	b.WriteString(errorStyle.Render(m.status))
 	return b.String()
 }
 
@@ -57,34 +69,34 @@ func (m StepModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	var cmds []tea.Cmd
 
-	m.input, cmd = m.input.Update(msg)
-	cmds = append(cmds, cmd)
-
 	switch msg := msg.(type) {
+	case editStepMsg:
+		m.step = msg.step
+		m.input.SetValue(msg.step.Description)
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyEnter:
 			if m.input.Err != nil {
-				m.status = errorStyle.Render(fmt.Sprintf("%v", m.input.Err))
+				cmds = append(cmds, toast.ShowToast(fmt.Sprintf("%v", m.input.Err), toast.Warn))
 			} else {
-				cmds = append(cmds, addStep(m.input.Value()))
+				m.step.Description = m.input.Value()
+				cmds = append(cmds, addStep(*m.step))
 				m.input.Reset()
 			}
 		}
-		if len(m.input.Value()) > 0 {
-			m.status = ""
-		}
 	}
+
+	m.input, cmd = m.input.Update(msg)
+	cmds = append(cmds, cmd)
 
 	return m, tea.Batch(cmds...)
 }
 
-func addStep(s string) tea.Cmd {
+func addStep(step domain.Step) tea.Cmd {
 	return func() tea.Msg {
 		return StepFormMsg{
-			Step: domain.Step{
-				Description: s,
-			},
+			Step: step,
+			Edit: step.ID != 0,
 		}
 	}
 }

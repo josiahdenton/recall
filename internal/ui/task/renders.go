@@ -25,9 +25,8 @@ var (
 	selectedResourceStyle  = styles.AccentColor.Copy().PaddingLeft(2)
 	resourceMetaTitleStyle = styles.SecondaryGray.Copy()
 	// status
-	statusStyle         = lipgloss.NewStyle().Width(60).Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#3a3b5b"))
-	hiStatusStyle       = lipgloss.NewStyle().Width(60).Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#fcd34d"))
-	favoriteMarkerStyle = styles.AccentColor.Copy().PaddingLeft(1)
+	statusStyle   = lipgloss.NewStyle().Width(80).Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#3a3b5b"))
+	hiStatusStyle = lipgloss.NewStyle().Width(80).Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#fcd34d"))
 )
 
 func renderResource(r *domain.Resource, selected bool) string {
@@ -38,8 +37,9 @@ func renderResource(r *domain.Resource, selected bool) string {
 		style = selectedResourceStyle
 	}
 	name := lipgloss.JoinHorizontal(lipgloss.Left, cursorStyle.Width(2).Render(selectedMarker), style.Width(50).Render(r.Name))
-	resourceType := lipgloss.JoinHorizontal(lipgloss.Left, resourceMetaTitleStyle.Width(5).Render("Type"), style.Width(10).Render(r.StringType()))
-	return lipgloss.JoinHorizontal(lipgloss.Left, name, resourceType)
+	//resourceType := lipgloss.JoinHorizontal(lipgloss.Left, resourceMetaTitleStyle.Width(5).Render("Type"), style.Width(10).Render(r.StringType()))
+	tags := style.Width(40).Render(r.Tags)
+	return lipgloss.JoinHorizontal(lipgloss.Left, name, tags)
 }
 
 func renderStatus(s *domain.Status, selected bool) string {
@@ -72,14 +72,9 @@ func renderHeader(task *domain.Task, headerActive bool) string {
 		dueDateStyle = hiDueDateStyle
 		style = activeTitleStyle
 	}
-	favoriteMarker := ""
-	if task.Favorite {
-		favoriteMarker = "\uF005"
-	}
 
 	var b strings.Builder
 	b.WriteString(style.Render(task.Title))
-	b.WriteString(favoriteMarkerStyle.Render(favoriteMarker))
 	b.WriteString("\n")
 	if reflect.ValueOf(task.Due).IsZero() {
 		b.WriteString(fmt.Sprintf("%s  %s", metaTagsStyle.Render("Due"), dueDateStyle.Render("None")))

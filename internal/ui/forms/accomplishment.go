@@ -5,9 +5,10 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/josiahdenton/recall/internal/domain"
-	"github.com/josiahdenton/recall/internal/ui/router"
 	"github.com/josiahdenton/recall/internal/ui/state"
 	"github.com/josiahdenton/recall/internal/ui/styles"
+	"github.com/josiahdenton/recall/internal/ui/toast"
+	"log"
 	"strings"
 )
 
@@ -16,6 +17,16 @@ const (
 	impact
 	strength
 )
+
+type editAccomplishmentMsg struct {
+	accomplishment *domain.Accomplishment
+}
+
+func EditAccomplishment(accomplishment *domain.Accomplishment) tea.Cmd {
+	return func() tea.Msg {
+		return editAccomplishmentMsg{accomplishment: accomplishment}
+	}
+}
 
 type attachTaskMsg struct {
 	Task domain.Task
@@ -28,11 +39,10 @@ func AttachTask(task domain.Task) tea.Cmd {
 }
 
 type AccomplishmentFormModel struct {
-	inputs []textinput.Model
-	task   domain.Task
-	status string
-	active int
-	ready  bool
+	inputs         []textinput.Model
+	accomplishment *domain.Accomplishment
+	active         int
+	ready          bool
 }
 
 func NewAccomplishmentForm() AccomplishmentFormModel {
@@ -46,7 +56,7 @@ func NewAccomplishmentForm() AccomplishmentFormModel {
 
 	inputDescription.Validate = func(s string) error {
 		if len(strings.Trim(s, " \n")) < 1 {
-			return fmt.Errorf("step description missing")
+			return fmt.Errorf("accomplishment description missing")
 		}
 		return nil
 	}
@@ -60,7 +70,7 @@ func NewAccomplishmentForm() AccomplishmentFormModel {
 
 	inputImpact.Validate = func(s string) error {
 		if len(strings.Trim(s, " \n")) < 1 {
-			return fmt.Errorf("step description missing")
+			return fmt.Errorf("accomplishment impact missing")
 		}
 		return nil
 	}
@@ -74,7 +84,7 @@ func NewAccomplishmentForm() AccomplishmentFormModel {
 
 	inputStrength.Validate = func(s string) error {
 		if len(strings.Trim(s, " \n")) < 1 {
-			return fmt.Errorf("step description missing")
+			return fmt.Errorf("accomplishment strength missing")
 		}
 		return nil
 	}
@@ -85,7 +95,8 @@ func NewAccomplishmentForm() AccomplishmentFormModel {
 	inputs[strength] = inputStrength
 
 	return AccomplishmentFormModel{
-		inputs: inputs,
+		inputs:         inputs,
+		accomplishment: &domain.Accomplishment{},
 	}
 }
 
@@ -96,13 +107,14 @@ func (m AccomplishmentFormModel) Init() tea.Cmd {
 func (m AccomplishmentFormModel) View() string {
 	var b strings.Builder
 	b.WriteString(styles.FormLabelStyle.Render("When you completed "))
-	b.WriteString(styles.FormTitleStyle.Render(m.task.Title))
+	if len(m.accomplishment.Tasks) > 0 {
+		b.WriteString(styles.FormTitleStyle.Render(m.accomplishment.Tasks[0].Title))
+	}
 	b.WriteString("\n\n")
 	for _, input := range m.inputs {
 		b.WriteString(input.View())
 		b.WriteString("\n\n")
 	}
-	b.WriteString(styles.FormErrorStyle.Render(m.status))
 	return b.String()
 }
 
@@ -110,20 +122,33 @@ func (m AccomplishmentFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	var cmds []tea.Cmd
 
-	if m.ready {
-		m.inputs[m.active%len(m.inputs)], cmd = m.inputs[m.active%len(m.inputs)].Update(msg)
-		cmds = append(cmds, cmd)
-	}
-
 	switch msg := msg.(type) {
-	case attachTaskMsg:
-		m.task = msg.Task
+	case editAccomplishmentMsg:
+		m.accomplishment = msg.accomplishment
+		m.inputs[description].SetValue(m.accomplishment.Description)
+		m.inputs[impact].SetValue(m.accomplishment.Impact)
+		m.inputs[strength].SetValue(m.accomplishment.Strength)
 		m.ready = true
+	case attachTaskMsg:
+		m.accomplishment.Tasks = append(m.accomplishment.Tasks, msg.Task)
+		cmds = append(cmds, state.RequestState(state.LoadCycle, 0))
+	case state.LoadedStateMsg:
+		cycles := msg.State.([]domain.Cycle)
+		active := false
+		for _, cylcle := range cycles {
+			if cylcle.Active {
+				active = true
+			}
+		}
+		if !active {
+			cmds = append(cmds, toast.ShowToast("No active cycle found, please activate one", toast.Warn))
+		} else {
+			m.ready = true
+		}
 	case tea.KeyMsg:
 		if !m.ready {
 			break
 		}
-
 		switch msg.Type {
 		case tea.KeyEnter:
 			if m.active < strength {
@@ -133,20 +158,19 @@ func (m AccomplishmentFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				break
 			}
 
-			// TODO fix the <nil>
-			// TODO care about strength
-			if m.inputs[description].Err != nil || m.inputs[impact].Err != nil {
-				m.status = fmt.Sprintf("%v, %v", m.inputs[title].Err, m.inputs[due].Err)
-			} else {
-				cmds = append(cmds,
-					addAccomplishment(m.inputs[description].Value(), m.inputs[impact].Value(), m.inputs[strength].Value(), m.task),
-					archiveTask(m.task),
-					router.GotoPage(domain.MenuPage, 0))
-				m.inputs[description].Reset()
-				m.inputs[impact].Reset()
-				m.inputs[strength].Reset()
-				m.active = 0
+			if cmd := validateForm(m.inputs[description].Err, m.inputs[impact].Err, m.inputs[strength].Err); cmd != nil {
+				cmds = append(cmds, cmd)
+				return m, tea.Batch(cmds...)
 			}
+			m.accomplishment.Description = m.inputs[description].Value()
+			m.accomplishment.Impact = m.inputs[impact].Value()
+			m.accomplishment.Strength = m.inputs[strength].Value()
+
+			cmds = append(cmds, saveAccomplishment(*m.accomplishment), archiveTask(m.accomplishment.Tasks[0]))
+			m.inputs[description].Reset()
+			m.inputs[impact].Reset()
+			m.inputs[strength].Reset()
+			m.active = 0
 		case tea.KeyTab:
 			m.inputs[m.active%len(m.inputs)].Blur()
 			m.active++
@@ -158,9 +182,11 @@ func (m AccomplishmentFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.inputs[m.active%len(m.inputs)].Focus()
 			}
 		}
-		if len(m.inputs[description].Value()) > 0 || len(m.inputs[impact].Value()) > 0 {
-			m.status = ""
-		}
+	}
+
+	if m.ready {
+		m.inputs[m.active%len(m.inputs)], cmd = m.inputs[m.active%len(m.inputs)].Update(msg)
+		cmds = append(cmds, cmd)
 	}
 
 	return m, tea.Batch(cmds...)
@@ -176,14 +202,9 @@ func archiveTask(task domain.Task) tea.Cmd {
 	}
 }
 
-func addAccomplishment(description, impact, strength string, task domain.Task) tea.Cmd {
+func saveAccomplishment(accomplishment domain.Accomplishment) tea.Cmd {
+	log.Printf("%+v", accomplishment)
 	return func() tea.Msg {
-		accomplishment := domain.Accomplishment{
-			Description: description,
-			Impact:      impact,
-			Strength:    strength,
-			Tasks:       []domain.Task{task},
-		}
 		return state.SaveStateMsg{
 			Update: accomplishment,
 			Type:   state.ModifyAccomplishment,

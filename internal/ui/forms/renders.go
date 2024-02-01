@@ -64,13 +64,3 @@ func renderResource(resource *domain.Resource, selected bool) string {
 	s := lipgloss.JoinHorizontal(lipgloss.Left, name, resourceType)
 	return fmt.Sprintf("%s%s", cursorStyle.Render(selectedMarker), alignStyle.Render(s))
 }
-
-func renderPriorityOption(option *priorityOption, selected bool) string {
-	var s string
-	if selected {
-		s = selectedBorderOptionStyle.Render(option.Display)
-	} else {
-		s = defaultBorderOptionStyle.Render(option.Display)
-	}
-	return s
-}

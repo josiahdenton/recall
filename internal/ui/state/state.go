@@ -16,6 +16,10 @@ const (
 	ModifySettings
 	ModifyArtifact
 	ModifyRelease
+	UnlinkTaskStep
+	UnlinkTaskResource
+	UnlinkTaskStatus
+	UnlinkZettelResource
 )
 
 // TODO - for now, undo only supported for deleting a whole task/zettel/accomplishment/cycle
@@ -47,6 +51,7 @@ type LoadType = int
 const (
 	LoadZettel = iota
 	LoadResource
+	LoadCycle
 )
 
 type RequestStateMsg struct {

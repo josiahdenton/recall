@@ -7,7 +7,6 @@ import (
 	"github.com/josiahdenton/recall/internal/domain"
 	"github.com/josiahdenton/recall/internal/ui/state"
 	"github.com/josiahdenton/recall/internal/ui/styles"
-	"github.com/josiahdenton/recall/internal/ui/toast"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textinput"
@@ -167,7 +166,7 @@ func (m ResourceModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case state.LoadedStateMsg:
 		resources := msg.State.([]domain.Resource)
-		m.existing = list.New(resourcesToItemList(resources), resourceDelegate{}, 50, 10)
+		m.existing = list.New(resourcesToItemList(resources), resourceDelegate{}, 50, 30)
 		m.existing.Title = "attach one of the following types"
 		m.existing.Styles.PaginationStyle = paginationStyle
 		m.existing.Styles.Title = fadedTitleStyle
@@ -206,7 +205,7 @@ func (m ResourceModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.resource.Source = m.inputs[source].Value()
 				m.resource.Tags = m.inputs[rTags].Value()
 				m.resource.Type = domain.WebResource
-				cmds = append(cmds, addResourceToTask(*m.resource))
+				cmds = append(cmds, putResource(*m.resource))
 
 				// Reset form to defaults
 				m.inputs[name].Reset()
@@ -237,7 +236,7 @@ func (m ResourceModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.choice = none
 			case tea.KeyEnter:
 				selected := m.existing.SelectedItem().(*domain.Resource)
-				cmds = append(cmds, addResourceToTask(*selected))
+				cmds = append(cmds, putResource(*selected))
 				m.choice = none
 			}
 		}
@@ -261,17 +260,7 @@ func (m ResourceModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-func validateForm(titleErr, sourceErr error) tea.Cmd {
-	if titleErr != nil {
-		return toast.ShowToast(fmt.Sprintf("%v", titleErr), toast.Warn)
-	}
-	if sourceErr != nil {
-		return toast.ShowToast(fmt.Sprintf("%v", sourceErr), toast.Warn)
-	}
-	return nil
-}
-
-func addResourceToTask(resource domain.Resource) tea.Cmd {
+func putResource(resource domain.Resource) tea.Cmd {
 	return func() tea.Msg {
 		return ResourceFormMsg{
 			Resource: resource,

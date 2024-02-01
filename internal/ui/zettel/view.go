@@ -27,7 +27,8 @@ var (
 )
 
 const (
-	content = iota
+	header = iota
+	content
 	links
 	resources
 )
@@ -36,6 +37,7 @@ type section = int
 
 func New() Model {
 	return Model{
+		zettelForm:     forms.NewZettelForm(),
 		linkZettelForm: forms.NewLinkForm(),
 		conceptForm:    forms.NewConceptForm(),
 		resourceForm:   forms.NewResourceForm(),
@@ -47,6 +49,7 @@ type Model struct {
 	linkZettelForm tea.Model
 	conceptForm    tea.Model
 	resourceForm   tea.Model
+	zettelForm     tea.Model
 	links          list.Model
 	resources      list.Model
 	showForm       bool
@@ -61,19 +64,23 @@ func (m Model) Init() tea.Cmd {
 func (m Model) View() string {
 	// TODO - tie in glamour for displaying the content
 	var b strings.Builder
-	if m.showForm && m.active == links {
+	if m.showForm && m.active == header {
+		b.WriteString(m.zettelForm.View())
+	} else if m.showForm && m.active == links {
 		b.WriteString(m.linkZettelForm.View())
 	} else if m.showForm && m.active == resources {
 		b.WriteString(m.resourceForm.View())
 	} else if m.showForm && m.active == content {
 		b.WriteString(m.conceptForm.View())
 	} else {
-		if m.active == content {
+		if m.active == header {
 			b.WriteString(titleStyle.Render(m.zettel.Name))
 		} else {
 			b.WriteString(defaultTitleStyle.Render(m.zettel.Name))
 		}
 		b.WriteString("\n")
+		b.WriteString(defaultTitleStyle.Render(m.zettel.Tags))
+		b.WriteString("\n\n")
 		if m.active == content {
 			b.WriteString(alignContent.Render(activeConceptWindowStyle.Render(m.zettel.Concept)))
 		} else if m.active != content {
@@ -124,17 +131,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case forms.ConceptFormMsg:
 		m.zettel.Concept = msg.Concept
 		cmds = append(cmds, modifyZettel(*m.zettel))
-		m.showForm = false
 	case forms.ResourceFormMsg:
 		m.zettel.Resources = append(m.zettel.Resources, msg.Resource)
 		m.resources.InsertItem(len(m.zettel.Resources), &m.zettel.Resources[len(m.zettel.Resources)-1])
 		cmds = append(cmds, modifyZettel(*m.zettel))
-		m.showForm = false
 	case forms.LinkFormMsg:
 		m.zettel.Links = append(m.zettel.Links, &msg.Zettel)
 		m.links.InsertItem(len(m.zettel.Links), m.zettel.Links[len(m.zettel.Links)-1])
 		cmds = append(cmds, modifyZettel(*m.zettel))
-		m.showForm = false
+	case state.SaveStateMsg:
+		if msg.Type == state.ModifyZettel {
+			m.showForm = false
+		}
 	}
 
 	if !m.ready {
@@ -150,6 +158,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	} else if m.showForm && m.active == resources {
 		m.resourceForm, cmd = m.resourceForm.Update(msg)
 		cmds = append(cmds, cmd)
+	} else if m.showForm && m.active == header {
+		m.zettelForm, cmd = m.zettelForm.Update(msg)
+		cmds = append(cmds, cmd)
 	}
 
 	switch msg := msg.(type) {
@@ -160,7 +171,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.showForm = false
 			} else {
 				cmds = append(cmds, router.GotoPreviousPage())
-				m.active = content
+				m.active = header
 			}
 		}
 	}
@@ -169,22 +180,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Batch(cmds...)
 	}
 
-	if m.active == links {
-		m.links, cmd = m.links.Update(msg)
-		cmds = append(cmds, cmd)
-	} else if m.active == resources {
-		m.resources, cmd = m.resources.Update(msg)
-		cmds = append(cmds, cmd)
-	}
-
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyTab:
-			m.active = nextSection(m.active, true)
-			focusMoved = true
-		case tea.KeyShiftTab:
-			m.active = nextSection(m.active, false)
+			m.active = nextSection(m.active)
 			focusMoved = true
 		case tea.KeyEnter:
 			if m.active == content {
@@ -208,17 +208,33 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.active == links || m.active == resources {
 				m.showForm = true
 			}
+		case "e":
+			if m.active == header {
+				m.showForm = true
+				cmds = append(cmds, forms.EditZettel(m.zettel))
+			}
 		case "d":
 			if m.active == links {
 				selected := m.links.SelectedItem().(*domain.Zettel)
-				m.links.RemoveItem(m.links.Index())
+				index := m.links.Index()
+				m.zettel.Links = append(m.zettel.Links[:index], m.zettel.Links[index+1:]...)
+				m.links.SetItems(linksToItemList(m.zettel.Links))
 				cmds = append(cmds, unlinkZettel(m.zettel, selected), toast.ShowToast("unlinked zettel!", toast.Warn))
+			} else if m.active == resources {
+				selected := m.resources.SelectedItem().(*domain.Resource)
+				index := m.resources.Index()
+				m.zettel.Resources = append(m.zettel.Resources[:index], m.zettel.Resources[index+1:]...)
+				m.resources.SetItems(resourcesToItemList(m.zettel.Resources))
+				cmds = append(cmds, unlinkZettelResource(m.zettel, selected))
 			}
 		}
 	}
 
 	if focusMoved {
 		switch m.active {
+		case header:
+			m.links.Styles.Title = defaultListTitle
+			m.resources.Styles.Title = defaultListTitle
 		case content:
 			m.links.Styles.Title = defaultListTitle
 			m.resources.Styles.Title = defaultListTitle
@@ -229,6 +245,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.links.Styles.Title = defaultListTitle
 			m.resources.Styles.Title = activeListTitle
 		}
+	}
+
+	if m.active == links {
+		m.links, cmd = m.links.Update(msg)
+		cmds = append(cmds, cmd)
+	} else if m.active == resources {
+		m.resources, cmd = m.resources.Update(msg)
+		cmds = append(cmds, cmd)
 	}
 
 	return m, tea.Batch(cmds...)
@@ -253,21 +277,27 @@ func unlinkZettel(parent *domain.Zettel, child *domain.Zettel) tea.Cmd {
 	}
 }
 
-func nextSection(section section, forward bool) section {
-	if section == content && forward {
-		return links
-	} else if section == content && !forward {
-		return resources
-	} else if section == links && forward {
-		return resources
-	} else if section == links && !forward {
-		return content
-	} else if section == resources && forward {
-		return content
-	} else if section == resources && !forward {
-		return links
+func unlinkZettelResource(parent *domain.Zettel, child *domain.Resource) tea.Cmd {
+	return func() tea.Msg {
+		return state.DeleteStateMsg{
+			Type:   state.UnlinkZettelResource,
+			Parent: parent,
+			Child:  child,
+		}
 	}
-	return content
+}
+
+func nextSection(section section) section {
+	if section == header {
+		return content
+	} else if section == content {
+		return links
+	} else if section == links {
+		return resources
+	} else if section == resources {
+		return header
+	}
+	return header
 }
 
 func linksToItemList(links []*domain.Zettel) []list.Item {

@@ -50,7 +50,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case router.LoadPageMsg:
 		artifacts := msg.State.([]domain.Artifact)
-		m.artifacts = list.New(toItemList(artifacts), artifactDelegate{}, 50, 30)
+		m.artifacts = list.New(toItemList(artifacts), artifactDelegate{}, 50, 20)
 		m.artifacts.Title = "Artifacts"
 		m.artifacts.Styles.PaginationStyle = paginationStyle
 		m.artifacts.Styles.Title = titleStyle

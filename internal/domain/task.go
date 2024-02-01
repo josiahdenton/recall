@@ -6,16 +6,6 @@ import (
 	"time"
 )
 
-// TODO rename to be more accurate
-const (
-	TaskPriorityNone = iota
-	TaskPriorityLow
-	TaskPriorityMedium
-	TaskPriorityHigh
-)
-
-type Priority int
-
 // Due TODO should be changed to a time.Time
 // TODO this should be a list of Resource Ids
 // TODO tasks can be recurring
@@ -33,9 +23,7 @@ type Task struct {
 	Duration time.Duration
 	// LastActivatedTime tracks how long it's been since this task was activated
 	LastActivatedTime time.Time
-	Priority          Priority
 	Archive           bool
-	Favorite          bool
 	Resources         []Resource `gorm:"many2many:task_resources"`
 	Status            []Status
 	Steps             []Step
@@ -63,10 +51,6 @@ func (t *Task) ActiveDuration() time.Duration {
 	} else {
 		return t.Duration
 	}
-}
-
-func (t *Task) ToggleFavorite() {
-	t.Favorite = !t.Favorite
 }
 
 func (t *Task) RemoveResource(i int) {
