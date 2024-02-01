@@ -101,15 +101,20 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case state.SaveStateMsg:
 		m.showForm = false
 	case forms.ReleaseFormMsg:
-		// attach release
-		m.artifact.Releases = append(m.artifact.Releases, msg.Release)
-		m.releases.InsertItem(len(m.artifact.Releases), &m.artifact.Releases[len(m.artifact.Releases)-1])
-		cmds = append(cmds, updateArtifact(m.artifact))
+		if !msg.Edit {
+			m.artifact.Releases = append(m.artifact.Releases, msg.Release)
+			m.releases.InsertItem(len(m.artifact.Releases), &m.artifact.Releases[len(m.artifact.Releases)-1])
+			cmds = append(cmds, updateArtifact(*m.artifact))
+		} else {
+			m.showForm = false
+			cmds = append(cmds, updateRelease(msg.Release))
+		}
+
 	case forms.ResourceFormMsg:
 		// attach resource
 		m.artifact.Resources = append(m.artifact.Resources, msg.Resource)
 		m.resources.InsertItem(len(m.artifact.Resources), &m.artifact.Resources[len(m.artifact.Resources)-1])
-		cmds = append(cmds, updateArtifact(m.artifact))
+		cmds = append(cmds, updateArtifact(*m.artifact))
 	}
 
 	if !m.ready {
@@ -149,20 +154,27 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.Type {
+		case tea.KeySpace:
+			if m.active == releases && len(m.releases.Items()) > 0 {
+				selected := m.releases.SelectedItem().(*domain.Release)
+				switch selected.Outcome {
+				case domain.AwaitingRelease:
+					selected.Outcome = domain.SuccessfulRelease
+				case domain.SuccessfulRelease:
+					selected.Outcome = domain.FailedRelease
+				case domain.FailedRelease:
+					selected.Outcome = domain.AwaitingRelease
+				}
+				cmds = append(cmds, updateRelease(*selected))
+			}
+
 		case tea.KeyEnter:
 			switch m.active {
 			case releases:
-				if len(m.releases.Items()) > 0 {
-					selected := m.releases.SelectedItem().(*domain.Release)
-					switch selected.Outcome {
-					case domain.AwaitingRelease:
-						selected.Outcome = domain.SuccessfulRelease
-					case domain.SuccessfulRelease:
-						selected.Outcome = domain.FailedRelease
-					case domain.FailedRelease:
-						selected.Outcome = domain.AwaitingRelease
-					}
-					cmds = append(cmds, updateRelease(selected))
+				selected, ok := m.releases.SelectedItem().(*domain.Release)
+				if ok {
+					selected.OpenChange()
+					cmds = append(cmds, toast.ShowToast("opened release change!", toast.Info))
 				}
 			case resources:
 				if len(m.resources.Items()) > 0 {
@@ -194,9 +206,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.showForm = true
 			}
 		case "e":
-			if !m.showForm {
+			if !m.showForm && m.active == header {
 				m.showForm = true
 				cmds = append(cmds, forms.EditArtifact(m.artifact))
+			} else if !m.showForm && m.active == releases {
+				selected := m.releases.SelectedItem().(*domain.Release)
+				cmds = append(cmds, forms.EditRelease(selected))
+				m.showForm = true
 			}
 		case "d":
 			//TODO - support deleting releases / resources
@@ -213,19 +229,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-func updateArtifact(artifact *domain.Artifact) tea.Cmd {
+func updateArtifact(artifact domain.Artifact) tea.Cmd {
 	return func() tea.Msg {
 		return state.SaveStateMsg{
-			Update: *artifact,
+			Update: artifact,
 			Type:   state.ModifyArtifact,
 		}
 	}
 }
 
-func updateRelease(release *domain.Release) tea.Cmd {
+func updateRelease(release domain.Release) tea.Cmd {
 	return func() tea.Msg {
 		return state.SaveStateMsg{
-			Update: *release,
+			Update: release,
 			Type:   state.ModifyRelease,
 		}
 	}

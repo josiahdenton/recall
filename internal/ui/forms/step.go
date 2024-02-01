@@ -75,6 +75,9 @@ func (m StepModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.input.SetValue(msg.step.Description)
 	case tea.KeyMsg:
 		switch msg.Type {
+		case tea.KeyEsc:
+			m.input.Reset()
+			m.step = &domain.Step{}
 		case tea.KeyEnter:
 			if m.input.Err != nil {
 				cmds = append(cmds, toast.ShowToast(fmt.Sprintf("%v", m.input.Err), toast.Warn))

@@ -188,6 +188,14 @@ func (m ResourceModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyMsg:
 			switch msg.Type {
 			case tea.KeyEsc:
+				// TODO - add a "Reset"
+				m.inputs[name].Reset()
+				m.inputs[name].Focus()
+				m.inputs[source].Reset()
+				m.inputs[source].Blur()
+				m.inputs[rTags].Reset()
+				m.inputs[rTags].Blur()
+				m.active = name
 				m.choice = none
 			case tea.KeyEnter:
 				if m.active < rTags {

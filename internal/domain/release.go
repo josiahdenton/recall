@@ -15,10 +15,15 @@ const (
 
 type Release struct {
 	gorm.Model
-	Date       time.Time
-	Owner      string
-	Outcome    Outcome
-	ArtifactID uint
+	Date          time.Time
+	ReleaseChange string
+	Owner         string
+	Outcome       Outcome
+	ArtifactID    uint
+}
+
+func (r *Release) OpenChange() bool {
+	return openWebPage(r.ReleaseChange)
 }
 
 func (r *Release) FilterValue() string {

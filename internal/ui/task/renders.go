@@ -37,7 +37,6 @@ func renderResource(r *domain.Resource, selected bool) string {
 		style = selectedResourceStyle
 	}
 	name := lipgloss.JoinHorizontal(lipgloss.Left, cursorStyle.Width(2).Render(selectedMarker), style.Width(50).Render(r.Name))
-	//resourceType := lipgloss.JoinHorizontal(lipgloss.Left, resourceMetaTitleStyle.Width(5).Render("Type"), style.Width(10).Render(r.StringType()))
 	tags := style.Width(40).Render(r.Tags)
 	return lipgloss.JoinHorizontal(lipgloss.Left, name, tags)
 }

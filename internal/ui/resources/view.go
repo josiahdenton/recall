@@ -45,6 +45,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	var cmds []tea.Cmd
 
+	if m.showForm {
+		m.form, cmd = m.form.Update(msg)
+		cmds = append(cmds, cmd)
+	}
+
 	switch msg := msg.(type) {
 	case router.LoadPageMsg:
 		resources := msg.State.([]domain.Resource)
@@ -94,11 +99,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			//cmds = append(cmds, forms.EditResource(&domain.Resource{})) // TODO: I don't think I need this...
 			m.showForm = true
 		}
-	}
-
-	if m.showForm {
-		m.form, cmd = m.form.Update(msg)
-		cmds = append(cmds, cmd)
 	}
 
 	return m, tea.Batch(cmds...)
