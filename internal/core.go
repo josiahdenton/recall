@@ -60,7 +60,7 @@ func New() Model {
 		cycles:          cycles.New(),
 		accomplishments: accomplishments.Model{},
 		resources:       resources.New(),
-		accomplishment:  accomplishment.Model{},
+		accomplishment:  accomplishment.New(),
 		zettel:          zettel.New(),
 		zettels:         zettels.New(),
 		artifact:        artifact.New(),
@@ -233,6 +233,8 @@ func (m Model) fetchState(msg state.RequestStateMsg) tea.Cmd {
 			}
 		case state.LoadResource:
 			s = m.repository.AllResources()
+		case state.LoadCycle:
+			s = m.repository.AllCycles()
 		}
 
 		return state.LoadedStateMsg{State: s}
@@ -290,23 +292,31 @@ func (m Model) updateState(msg state.SaveStateMsg) {
 	case state.ModifyAccomplishment:
 		allCycles := m.repository.AllCycles()
 		update := msg.Update.(domain.Accomplishment)
-		activeSet := false
-		for _, cycle := range allCycles {
-			if cycle.Active {
-				cycle.Accomplishments = append(cycle.Accomplishments, update)
-				m.repository.ModifyCycle(cycle)
-				activeSet = true
-				break
+		if update.ID == 0 {
+			activeSet := false
+			for _, cycle := range allCycles {
+				if cycle.Active {
+					cycle.Accomplishments = append(cycle.Accomplishments, update)
+					m.repository.ModifyCycle(cycle)
+					activeSet = true
+					break
+				}
 			}
-		}
-		if !activeSet {
+			if !activeSet {
+				m.repository.ModifyAccomplishment(update)
+			}
+		} else {
 			m.repository.ModifyAccomplishment(update)
 		}
 	case state.ModifyStep:
 		update := msg.Update.(domain.Step)
 		m.repository.ModifyStep(update)
 	case state.ModifyResource:
+		update := msg.Update.(domain.Resource)
+		m.repository.ModifyResource(update)
 	case state.ModifyStatus:
+		update := msg.Update.(domain.Status)
+		m.repository.ModifyStatus(update)
 	case state.ModifyZettel:
 		update := msg.Update.(domain.Zettel)
 		m.repository.ModifyZettel(update)
@@ -325,14 +335,19 @@ func (m Model) deleteState(msg state.DeleteStateMsg) {
 	case state.ModifyTask:
 		m.repository.DeleteTask(msg.ID)
 	case state.ModifyStep:
-		m.repository.DeleteTaskStep(msg.Parent.(*domain.Task), msg.Child.(*domain.Step))
+	case state.UnlinkTaskStep:
+		m.repository.UnlinkTaskStep(msg.Parent.(*domain.Task), msg.Child.(*domain.Step))
 	case state.ModifyResource:
-		m.repository.DeleteTaskResource(msg.Parent.(*domain.Task), msg.Child.(*domain.Resource))
+	case state.UnlinkTaskResource:
+		m.repository.UnlinkTaskResource(msg.Parent.(*domain.Task), msg.Child.(*domain.Resource))
+	case state.UnlinkTaskStatus:
+		m.repository.UnlinkTaskStatus(msg.Parent.(*domain.Task), msg.Child.(*domain.Status))
 	case state.ModifyStatus:
-		m.repository.DeleteTaskStatus(msg.Parent.(*domain.Task), msg.Child.(*domain.Status))
 	case state.ModifyCycle:
 	case state.ModifyZettel:
 		m.repository.DeleteZettel(msg.ID)
+	case state.UnlinkZettelResource:
+		m.repository.UnlinkZettelResource(msg.Parent.(*domain.Zettel), msg.Child.(*domain.Resource))
 	case state.ModifyLink:
 		m.repository.UnlinkZettel(msg.Parent.(*domain.Zettel), msg.Child.(*domain.Zettel))
 	case state.ModifyAccomplishment:

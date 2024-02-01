@@ -24,6 +24,20 @@ type GormInstance struct {
 	db *gorm.DB
 }
 
+func (g GormInstance) ModifyStatus(status domain.Status) {
+	err := g.db.Save(&status).Commit().Error
+	if err != nil {
+		log.Printf("failed to save status: %v", err)
+	}
+}
+
+func (g GormInstance) UnlinkZettelResource(zettel *domain.Zettel, resource *domain.Resource) {
+	err := g.db.Model(zettel).Association("Resources").Delete(resource)
+	if err != nil {
+		log.Printf("failed to delete resource (%d) associated with zettel (%d) due to: %v", zettel.ID, resource.ID, err)
+	}
+}
+
 func (g GormInstance) UndoDeleteArtifact(id uint) {
 	err := g.db.Unscoped().Model(&domain.Artifact{}).Where("id", id).Update("deleted_at", nil).Error
 	if err != nil {
@@ -143,14 +157,14 @@ func (g GormInstance) UnlinkZettel(a *domain.Zettel, b *domain.Zettel) {
 	}
 }
 
-func (g GormInstance) DeleteTaskResource(task *domain.Task, resource *domain.Resource) {
+func (g GormInstance) UnlinkTaskResource(task *domain.Task, resource *domain.Resource) {
 	err := g.db.Model(task).Association("Resources").Delete(resource)
 	if err != nil {
 		log.Printf("failed to delete resource (%d) associated with task (%d) due to: %+v", task.ID, resource.ID, err)
 	}
 }
 
-func (g GormInstance) DeleteTaskStep(task *domain.Task, step *domain.Step) {
+func (g GormInstance) UnlinkTaskStep(task *domain.Task, step *domain.Step) {
 	err := g.db.Model(task).Association("Steps").Delete(step)
 	if err != nil {
 		log.Printf("failed to delete step (%d) associated with task (%d) due to: %+v", task.ID, step.ID, err)
@@ -161,7 +175,7 @@ func (g GormInstance) DeleteTaskStep(task *domain.Task, step *domain.Step) {
 	}
 }
 
-func (g GormInstance) DeleteTaskStatus(task *domain.Task, status *domain.Status) {
+func (g GormInstance) UnlinkTaskStatus(task *domain.Task, status *domain.Status) {
 	err := g.db.Model(task).Association("Status").Delete(status)
 	if err != nil {
 		log.Printf("failed to delete status (%d) associated with task (%d) due to: %+v", task.ID, status.ID, err)
@@ -260,20 +274,33 @@ func (g GormInstance) AllTasks() []domain.Task {
 	}
 	// sort them...
 	sort.Slice(tasks, func(i, j int) bool {
-		if tasks[i].Favorite && !tasks[j].Favorite {
-			return true
-		}
-
-		// TODO - try to get priority sorting working one day
-		//if tasks[i].Priority != tasks[j].Priority {
-		//	return !(tasks[i].Priority < tasks[j].Priority)
-		//}
-
-		if (reflect.ValueOf(tasks[i].Due).IsZero() && reflect.ValueOf(tasks[j].Due).IsZero()) || tasks[i].Due.Equal(tasks[j].Due) {
-			return tasks[i].Title < tasks[j].Title
-		}
-		return tasks[i].Due.Before(tasks[j].Due)
+		return tasks[i].Active && !tasks[j].Active
 	})
+
+	lastActiveIndex := 0
+	for i, task := range tasks {
+		if task.Active {
+			lastActiveIndex = i
+		}
+	}
+
+	// TODO: - could push this into a shared func...
+	activeTasks := tasks[:lastActiveIndex+1]
+	sort.Slice(activeTasks, func(i, j int) bool {
+		if (reflect.ValueOf(activeTasks[i].Due).IsZero() && reflect.ValueOf(activeTasks[j].Due).IsZero()) || activeTasks[i].Due.Equal(activeTasks[j].Due) {
+			return activeTasks[i].Title < activeTasks[j].Title
+		}
+		return activeTasks[i].Due.Before(activeTasks[j].Due)
+	})
+
+	inactiveTasks := tasks[lastActiveIndex+1:]
+	sort.Slice(inactiveTasks, func(i, j int) bool {
+		if (reflect.ValueOf(inactiveTasks[i].Due).IsZero() && reflect.ValueOf(inactiveTasks[j].Due).IsZero()) || inactiveTasks[i].Due.Equal(inactiveTasks[j].Due) {
+			return inactiveTasks[i].Title < inactiveTasks[j].Title
+		}
+		return inactiveTasks[i].Due.Before(inactiveTasks[j].Due)
+	})
+
 	return tasks
 }
 

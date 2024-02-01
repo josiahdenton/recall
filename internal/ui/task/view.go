@@ -11,6 +11,7 @@ import (
 	"github.com/josiahdenton/recall/internal/ui/styles"
 	"github.com/josiahdenton/recall/internal/ui/toast"
 	"log"
+	"sort"
 	"strings"
 )
 
@@ -89,17 +90,27 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.lists = setupLists(m.task)
 		m.ready = true
 	case forms.StepFormMsg:
-		m.task.Steps = append(m.task.Steps, msg.Step)
-		m.lists[steps].InsertItem(len(m.task.Steps), &m.task.Steps[len(m.task.Steps)-1])
-		cmds = append(cmds, updateTask(m.task))
+		if !msg.Edit {
+			m.task.Steps = append(m.task.Steps, msg.Step)
+			m.lists[steps].InsertItem(len(m.task.Steps), &m.task.Steps[len(m.task.Steps)-1])
+			cmds = append(cmds, updateTask(m.task))
+		} else {
+			cmds = append(cmds, updateStep(msg.Step))
+			m.showForm = false
+		}
 	case forms.ResourceFormMsg:
 		m.task.Resources = append(m.task.Resources, msg.Resource)
 		m.lists[resources].InsertItem(len(m.task.Resources), &m.task.Resources[len(m.task.Resources)-1])
 		cmds = append(cmds, updateTask(m.task))
 	case forms.StatusFormMsg:
-		m.task.Status = append(m.task.Status, msg.Status)
-		m.lists[status].InsertItem(len(m.task.Status), &m.task.Status[len(m.task.Status)-1])
-		cmds = append(cmds, updateTask(m.task))
+		if !msg.Edit {
+			m.task.Status = append(m.task.Status, msg.Status)
+			m.lists[status].InsertItem(len(m.task.Status), &m.task.Status[len(m.task.Status)-1])
+			cmds = append(cmds, updateTask(m.task))
+		} else {
+			cmds = append(cmds, updateStatus(msg.Status))
+			m.showForm = false
+		}
 	case state.SaveStateMsg:
 		if msg.Type == state.ModifyTask {
 			m.showForm = false
@@ -125,9 +136,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				step := m.lists[steps].SelectedItem().(*domain.Step)
 				step.ToggleStatus()
 				if step.Complete {
-					cmds = append(cmds, updateStep(step), toast.ShowToast("completed step!", toast.Info))
+					cmds = append(cmds, updateStep(*step), toast.ShowToast("completed step!", toast.Info))
 				} else {
-					cmds = append(cmds, updateStep(step), toast.ShowToast("reset step!", toast.Info))
+					cmds = append(cmds, updateStep(*step), toast.ShowToast("reset step!", toast.Info))
 				}
 			case resources:
 				resource := m.lists[resources].SelectedItem().(*domain.Resource)
@@ -149,16 +160,30 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// TODO - figure this out
 				m.task.ToggleActive()
 				if m.task.Active {
-					cmds = append(cmds, updateTask(m.task), toast.ShowToast("active task!", toast.Info))
+					cmds = append(cmds, updateTask(m.task), toast.ShowToast("activate task!", toast.Info))
 				} else {
-					cmds = append(cmds, updateTask(m.task), toast.ShowToast("inactive task", toast.Info))
+					cmds = append(cmds, updateTask(m.task), toast.ShowToast("deactivate task", toast.Info))
 				}
 			}
 		case Edit:
 			switch m.active {
 			case steps:
+				if !m.showForm {
+					selected, ok := m.lists[m.active].SelectedItem().(*domain.Step)
+					if ok {
+						m.showForm = true
+						cmds = append(cmds, forms.EditStep(selected))
+					}
+				}
 			case resources:
 			case status:
+				if !m.showForm {
+					selected, ok := m.lists[m.active].SelectedItem().(*domain.Status)
+					if ok {
+						m.showForm = true
+						cmds = append(cmds, forms.EditStatus(selected))
+					}
+				}
 			case header:
 				if !m.showForm {
 					m.showForm = true
@@ -189,7 +214,6 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.task.Status = append(m.task.Status[:index], m.task.Status[index+1:]...)
 					m.lists[m.active].SetItems(statusToItemList(m.task.Status))
 				}
-				//m.lists[m.active].RemoveItem(index)
 				cmds = append(cmds, toast.ShowToast("removed item!", toast.Warn))
 			}
 		case Add:
@@ -207,15 +231,6 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.active = nextSection(m.active)
 			if m.active < header {
 				m.lists[m.active].Styles.Title = activeListStyle
-			}
-		case Favorite:
-			if m.active == header {
-				m.task.ToggleFavorite()
-				if m.task.Favorite {
-					cmds = append(cmds, updateTask(m.task), toast.ShowToast("favorited task!", toast.Info))
-				} else {
-					cmds = append(cmds, updateTask(m.task), toast.ShowToast("not a favorite task", toast.Info))
-				}
 			}
 		case None:
 		}
@@ -237,11 +252,20 @@ func updateTask(task *domain.Task) tea.Cmd {
 	}
 }
 
-func updateStep(step *domain.Step) tea.Cmd {
+func updateStep(step domain.Step) tea.Cmd {
 	return func() tea.Msg {
 		return state.SaveStateMsg{
-			Update: *step,
+			Update: step,
 			Type:   state.ModifyStep,
+		}
+	}
+}
+
+func updateStatus(status domain.Status) tea.Cmd {
+	return func() tea.Msg {
+		return state.SaveStateMsg{
+			Update: status,
+			Type:   state.ModifyStatus,
 		}
 	}
 }
@@ -249,7 +273,7 @@ func updateStep(step *domain.Step) tea.Cmd {
 func deleteStep(task *domain.Task, step *domain.Step) tea.Cmd {
 	return func() tea.Msg {
 		return state.DeleteStateMsg{
-			Type:   state.ModifyStep,
+			Type:   state.UnlinkTaskStep,
 			Parent: task,
 			Child:  step,
 		}
@@ -259,7 +283,7 @@ func deleteStep(task *domain.Task, step *domain.Step) tea.Cmd {
 func deleteResource(task *domain.Task, resource *domain.Resource) tea.Cmd {
 	return func() tea.Msg {
 		return state.DeleteStateMsg{
-			Type:   state.ModifyResource,
+			Type:   state.UnlinkTaskResource,
 			Parent: task,
 			Child:  resource,
 		}
@@ -269,7 +293,7 @@ func deleteResource(task *domain.Task, resource *domain.Resource) tea.Cmd {
 func deleteStatus(task *domain.Task, status *domain.Status) tea.Cmd {
 	return func() tea.Msg {
 		return state.DeleteStateMsg{
-			Type:   state.ModifyStatus,
+			Type:   state.UnlinkTaskStatus,
 			Parent: task,
 			Child:  status,
 		}
@@ -293,6 +317,10 @@ func setupLists(task *domain.Task) []list.Model {
 	lists[resources].SetShowHelp(false)
 	lists[resources].SetShowStatusBar(false)
 	lists[resources].KeyMap.Quit.Unbind()
+
+	sort.Slice(task.Status, func(i, j int) bool {
+		return task.Status[i].UpdatedAt.Compare(task.Status[j].UpdatedAt) > 0
+	})
 
 	lists[status] = list.New(statusToItemList(task.Status), statusDelegate{}, 80, 5)
 	lists[status].Title = "Status"

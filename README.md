@@ -34,6 +34,9 @@ will add demos soon...
     - [ ] store in json/yaml
 - [x] refinish accomplishments design
 - [ ] export option for accomplishment
+- [ ] artifact can be opened by configured editor (i.e. pycharm/goland/etc)
+  - [ ] tie in git support to show if main &/ feature branches are out of date
+  - [ ] attach PRs to a release (release resources)
 
 ## Colorscheme
 

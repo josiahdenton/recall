@@ -51,7 +51,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case router.LoadPageMsg:
 		zettels := msg.State.([]domain.Zettel)
-		m.zettels = list.New(toItemList(zettels), zettelDelegate{}, 50, 30)
+		m.zettels = list.New(toItemList(zettels), zettelDelegate{}, 50, 20)
 		m.zettels.Title = "Zettels"
 		m.zettels.Styles.PaginationStyle = paginationStyle
 		m.zettels.Styles.Title = titleStyle

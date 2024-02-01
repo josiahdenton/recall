@@ -67,18 +67,3 @@ func (d resourceDelegate) Render(w io.Writer, m list.Model, index int, item list
 	}
 	fmt.Fprintf(w, renderResource(zettel, index == m.Index()))
 }
-
-type priorityDelegate struct{}
-
-func (d priorityDelegate) Height() int  { return 1 }
-func (d priorityDelegate) Spacing() int { return 1 }
-func (d priorityDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd {
-	return nil
-}
-func (d priorityDelegate) Render(w io.Writer, m list.Model, index int, item list.Item) {
-	option, ok := item.(*priorityOption)
-	if !ok {
-		return
-	}
-	fmt.Fprintf(w, renderPriorityOption(option, index == m.Index()))
-}

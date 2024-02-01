@@ -15,6 +15,16 @@ const (
 	zTags
 )
 
+type editZettelMsg struct {
+	zettel *domain.Zettel
+}
+
+func EditZettel(zettel *domain.Zettel) tea.Cmd {
+	return func() tea.Msg {
+		return editZettelMsg{zettel: zettel}
+	}
+}
+
 type ZettelFormMsg struct {
 	Zettel domain.Zettel
 }
@@ -49,12 +59,14 @@ func NewZettelForm() ZettelFormModel {
 	return ZettelFormModel{
 		inputs: inputs,
 		active: zName,
+		zettel: &domain.Zettel{},
 	}
 }
 
 type ZettelFormModel struct {
 	active int
 	inputs []textinput.Model
+	zettel *domain.Zettel
 }
 
 func (m ZettelFormModel) Init() tea.Cmd {
@@ -76,6 +88,10 @@ func (m ZettelFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
+	case editZettelMsg:
+		m.zettel = msg.zettel
+		m.inputs[zName].SetValue(m.zettel.Name)
+		m.inputs[zTags].SetValue(m.zettel.Tags)
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyEsc:
@@ -95,10 +111,9 @@ func (m ZettelFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				cmds = append(cmds, toast.ShowToast(fmt.Sprintf("%v", err), toast.Warn))
 				return m, tea.Batch(cmds...)
 			}
-			cmds = append(cmds, addZettel(domain.Zettel{
-				Name: m.inputs[zName].Value(),
-				Tags: m.inputs[zTags].Value(),
-			}))
+			m.zettel.Name = m.inputs[zName].Value()
+			m.zettel.Tags = m.inputs[zTags].Value()
+			cmds = append(cmds, addZettel(*m.zettel))
 			m.inputs[zName].Reset()
 			m.inputs[zName].Focus()
 			m.inputs[zTags].Reset()

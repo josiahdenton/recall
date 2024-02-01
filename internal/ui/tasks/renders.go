@@ -57,11 +57,6 @@ func renderTask(t *domain.Task, selected bool) string {
 	//	duration = fmt.Sprintf("%d hr, %d min", activeTime/60, activeTime%60)
 	//}
 
-	favoriteMarker := ""
-	if t.Favorite {
-		favoriteMarker = "\uF005"
-	}
-
 	title := style.Width(30).Render(t.Title)
 	//priority := priorityStyle.Width(10).Render(priorityMarker)
 	var date string
@@ -70,10 +65,6 @@ func renderTask(t *domain.Task, selected bool) string {
 	} else {
 		date = lipgloss.JoinHorizontal(lipgloss.Left, keyTitleStyle.Render("Due "), style.Width(15).Italic(true).Render(t.Due.Format("2006/01/02")))
 	}
-	favorite := favoriteStyle.Render(favoriteMarker)
 
-	//top := lipgloss.JoinHorizontal(lipgloss.Left, title, favorite, date)
-	//bottom := lipgloss.JoinHorizontal(lipgloss.Left, spinner.View(), style.Render(duration), metaKeyStyle.Render(t.Tags))
-
-	return boxStyle.Render(lipgloss.JoinHorizontal(lipgloss.Left, title, favorite, date, metaKeyStyle.Render(t.Tags)))
+	return boxStyle.Render(lipgloss.JoinHorizontal(lipgloss.Left, title, date, metaKeyStyle.Render(t.Tags)))
 }

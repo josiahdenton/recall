@@ -17,6 +17,7 @@ type Repository interface {
 	ModifyCycle(domain.Cycle)
 	AllCycles() []domain.Cycle
 	ModifyResource(domain.Resource)
+	ModifyStatus(domain.Status)
 	AllResources() []domain.Resource
 	ModifySettings(domain.Settings)
 	AllZettels() []domain.Zettel
@@ -24,10 +25,11 @@ type Repository interface {
 	ModifyZettel(domain.Zettel)
 	DeleteZettel(uint)
 	UnlinkZettel(*domain.Zettel, *domain.Zettel)
+	UnlinkZettelResource(*domain.Zettel, *domain.Resource)
 	LoadRepository() error
-	DeleteTaskResource(*domain.Task, *domain.Resource)
-	DeleteTaskStep(*domain.Task, *domain.Step)
-	DeleteTaskStatus(*domain.Task, *domain.Status)
+	UnlinkTaskResource(*domain.Task, *domain.Resource)
+	UnlinkTaskStep(*domain.Task, *domain.Step)
+	UnlinkTaskStatus(*domain.Task, *domain.Status)
 	ModifyStep(step domain.Step)
 	UndoDeleteTask(uint)
 	UndoDeleteZettel(uint)

@@ -61,7 +61,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case router.LoadPageMsg:
 		tasks := msg.State.([]domain.Task)
-		m.tasks = list.New(toItemList(tasks), taskDelegate{}, 50, 30)
+		m.tasks = list.New(toItemList(tasks), taskDelegate{}, 50, 20)
 		m.tasks.Title = "Tasks"
 		m.tasks.Styles.PaginationStyle = paginationStyle
 		m.tasks.Styles.Title = titleStyle

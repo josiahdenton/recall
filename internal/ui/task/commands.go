@@ -11,7 +11,6 @@ const (
 	Edit
 	MoveFocus
 	Back
-	Favorite
 	Copy
 	None
 )
@@ -29,7 +28,6 @@ func DefaultCommands() Commands {
 	keys["tab"] = MoveFocus
 	keys["esc"] = Back
 	keys["space"] = Copy
-	keys["f"] = Favorite
 	return Commands{keys: keys}
 }
 

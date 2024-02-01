@@ -2,7 +2,6 @@ package forms
 
 import (
 	"fmt"
-	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/josiahdenton/recall/internal/domain"
 	"github.com/josiahdenton/recall/internal/ui/router"
@@ -21,21 +20,11 @@ const (
 	title = iota
 	due
 	tTags
-	priority
 )
 
 var (
 	leftPad = lipgloss.NewStyle().PaddingLeft(2)
 )
-
-type priorityOption struct {
-	Display string
-	Value   domain.Priority
-}
-
-func (p *priorityOption) FilterValue() string {
-	return ""
-}
 
 func EditTask(task *domain.Task) tea.Cmd {
 	return func() tea.Msg {
@@ -50,12 +39,10 @@ type editTaskMsg struct {
 }
 
 type TaskFormModel struct {
-	title          string
-	inputs         []textinput.Model
-	priority       list.Model
-	priorityCursor int
-	active         int
-	task           *domain.Task
+	title  string
+	inputs []textinput.Model
+	active int
+	task   *domain.Task
 }
 
 func NewTaskForm() TaskFormModel {
@@ -97,45 +84,10 @@ func NewTaskForm() TaskFormModel {
 	inputs[due] = inputDue
 	inputs[tTags] = inputTags
 
-	priorities := []priorityOption{
-		{
-			Display: "None",
-			Value:   domain.TaskPriorityNone,
-		},
-		{
-			Display: "Low",
-			Value:   domain.TaskPriorityLow,
-		},
-		{
-			Display: "Medium",
-			Value:   domain.TaskPriorityMedium,
-		},
-		{
-			Display: "High",
-			Value:   domain.TaskPriorityHigh,
-		},
-	}
-
-	items := make([]list.Item, len(priorities))
-	for i := range priorities {
-		item := &priorities[i]
-		items[i] = item
-	}
-	priority := list.New(items, priorityDelegate{}, 80, 20)
-	priority.Title = "Priority"
-	priority.SetShowStatusBar(false)
-	priority.SetFilteringEnabled(false)
-	priority.Styles.PaginationStyle = paginationStyle
-	priority.Styles.Title = fadedTitleStyle
-	priority.SetShowHelp(false)
-	priority.KeyMap.Quit.Unbind()
-	priority.KeyMap.AcceptWhileFiltering.Unbind()
-
 	return TaskFormModel{
-		title:          "Add Task",
-		inputs:         inputs,
-		priority:       priority,
-		priorityCursor: 0,
+		title:  "Add Task",
+		inputs: inputs,
+		task:   &domain.Task{},
 	}
 }
 
@@ -152,8 +104,6 @@ func (m TaskFormModel) View() string {
 	b.WriteString(leftPad.Render(m.inputs[due].View()))
 	b.WriteString("\n\n")
 	b.WriteString(leftPad.Render(m.inputs[tTags].View()))
-	b.WriteString("\n\n")
-	b.WriteString(m.priority.View())
 	return b.String()
 }
 
@@ -167,7 +117,6 @@ func (m TaskFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.inputs[title].SetValue(m.task.Title)
 		m.inputs[due].SetValue(formatDate(m.task.Due))
 		m.inputs[tTags].SetValue(m.task.Tags)
-		m.priority.Select(int(m.task.Priority))
 		m.title = "Edit Task"
 	case tea.KeyMsg:
 		switch msg.Type {
@@ -196,7 +145,6 @@ func (m TaskFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			m.task.Title = m.inputs[title].Value()
 			m.task.Due = dueDate
-			m.task.Priority = m.priority.SelectedItem().(*priorityOption).Value
 			m.task.Tags = m.inputs[tTags].Value()
 
 			cmds = append(cmds, addTask(m.task), router.RefreshPage())
@@ -205,31 +153,15 @@ func (m TaskFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.inputs[due].Reset()
 			m.active = 0
 			m.inputs[m.active].Focus()
-			m.priority.ResetSelected()
 		case tea.KeyTab:
-			if m.active < priority {
-				m.inputs[m.active].Blur()
-			}
+			m.inputs[m.active].Blur()
 			m.active = m.nextInput(m.active)
-			if m.active < priority {
-				m.inputs[m.active].Focus()
-			}
-
-			if m.active == priority {
-				m.priority.Styles.Title = styles.FocusedInputStyle
-			} else if &m.priority.Styles.Title != &fadedTitleStyle {
-				m.priority.Styles.Title = fadedTitleStyle
-			}
+			m.inputs[m.active].Focus()
 		}
 	}
 
-	if m.active < priority {
-		m.inputs[m.active], cmd = m.inputs[m.active].Update(msg)
-		cmds = append(cmds, cmd)
-	} else {
-		m.priority, cmd = m.priority.Update(msg)
-		cmds = append(cmds, cmd)
-	}
+	m.inputs[m.active], cmd = m.inputs[m.active].Update(msg)
+	cmds = append(cmds, cmd)
 
 	return m, tea.Batch(cmds...)
 }
@@ -241,8 +173,6 @@ func (m TaskFormModel) nextInput(current int) int {
 	case due:
 		return tTags
 	case tTags:
-		return priority
-	case priority:
 		return title
 	}
 	return title

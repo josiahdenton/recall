@@ -69,7 +69,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 type clearStatusMsg struct{}
 
 func clearStatus() tea.Cmd {
-	return tea.Tick(time.Second*3, func(_ time.Time) tea.Msg {
+	return tea.Tick(time.Second*5, func(_ time.Time) tea.Msg {
 		return clearStatusMsg{}
 	})
 }

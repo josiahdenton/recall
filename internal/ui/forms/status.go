@@ -3,19 +3,31 @@ package forms
 import (
 	"fmt"
 	"github.com/josiahdenton/recall/internal/domain"
+	"github.com/josiahdenton/recall/internal/ui/toast"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+type editStatusMsg struct {
+	status *domain.Status
+}
+
+func EditStatus(status *domain.Status) tea.Cmd {
+	return func() tea.Msg {
+		return editStatusMsg{status: status}
+	}
+}
+
 type StatusFormMsg struct {
 	Status domain.Status
+	Edit   bool
 }
 
 type StatusModel struct {
 	input  textarea.Model
-	status string
+	status *domain.Status
 }
 
 func NewStatusForm() StatusModel {
@@ -25,7 +37,8 @@ func NewStatusForm() StatusModel {
 	input.SetWidth(80)
 
 	return StatusModel{
-		input: input,
+		input:  input,
+		status: &domain.Status{},
 	}
 }
 
@@ -39,7 +52,6 @@ func (m StatusModel) View() string {
 	b.WriteString("\n\n")
 	b.WriteString(m.input.View())
 	b.WriteString("\n\n")
-	b.WriteString(errorStyle.Render(m.status))
 	return b.String()
 }
 
@@ -47,34 +59,34 @@ func (m StatusModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	var cmds []tea.Cmd
 
-	m.input, cmd = m.input.Update(msg)
-	cmds = append(cmds, cmd)
-
 	switch msg := msg.(type) {
+	case editStatusMsg:
+		m.status = msg.status
+		m.input.SetValue(msg.status.Description)
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyCtrlS:
 			if m.input.Err != nil {
-				m.status = errorStyle.Render(fmt.Sprintf("%v", m.input.Err))
+				cmds = append(cmds, toast.ShowToast(fmt.Sprintf("%v", m.input.Err), toast.Warn))
 			} else {
-				cmds = append(cmds, addStatus(m.input.Value()))
+				m.status.Description = m.input.Value()
+				cmds = append(cmds, addStatus(*m.status))
 				m.input.Reset()
 			}
 		}
-		if len(m.input.Value()) > 0 {
-			m.status = ""
-		}
 	}
+
+	m.input, cmd = m.input.Update(msg)
+	cmds = append(cmds, cmd)
 
 	return m, tea.Batch(cmds...)
 }
 
-func addStatus(s string) tea.Cmd {
+func addStatus(status domain.Status) tea.Cmd {
 	return func() tea.Msg {
 		return StatusFormMsg{
-			Status: domain.Status{
-				Description: s,
-			},
+			Status: status,
+			Edit:   status.ID != 0,
 		}
 	}
 }

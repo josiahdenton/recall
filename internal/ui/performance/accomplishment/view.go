@@ -5,7 +5,9 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/josiahdenton/recall/internal/domain"
+	"github.com/josiahdenton/recall/internal/ui/forms"
 	"github.com/josiahdenton/recall/internal/ui/router"
+	"github.com/josiahdenton/recall/internal/ui/state"
 	"github.com/josiahdenton/recall/internal/ui/styles"
 	"strings"
 )
@@ -18,8 +20,16 @@ var (
 	headerStyle     = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#3a3b5b")).Width(80)
 )
 
+func New() Model {
+	return Model{
+		form: forms.NewAccomplishmentForm(),
+	}
+}
+
 type Model struct {
 	accomplishment *domain.Accomplishment
+	form           tea.Model
+	showForm       bool
 	tasks          list.Model
 	ready          bool
 }
@@ -30,6 +40,11 @@ func (m Model) Init() tea.Cmd {
 
 func (m Model) View() string {
 	var b strings.Builder
+	if m.showForm {
+		b.WriteString(m.form.View())
+		return styles.WindowStyle.Render(b.String())
+	}
+
 	b.WriteString(fadedTitleStyle.Render("What: "))
 	b.WriteString("\n\n")
 	b.WriteString(fadedTitleStyle.Render("Impact: "))
@@ -58,11 +73,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 	var cmd tea.Cmd
 
-	if m.ready {
-		m.tasks, cmd = m.tasks.Update(msg)
-		cmds = append(cmds, cmd)
-	}
-
 	switch msg := msg.(type) {
 	case router.LoadPageMsg:
 		accomplishment := msg.State.(*domain.Accomplishment)
@@ -76,14 +86,38 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.tasks.SetShowHelp(false)
 		m.tasks.KeyMap.Quit.Unbind()
 		m.ready = true
-	case tea.KeyMsg:
-		switch msg.Type {
-		case tea.KeyEnter:
-			task := m.tasks.SelectedItem().(*domain.Task)
-			cmds = append(cmds, router.GotoPage(domain.TaskDetailedPage, task.ID))
-		case tea.KeyEsc:
-			cmds = append(cmds, router.GotoPreviousPage())
+	case state.SaveStateMsg:
+		if msg.Type == state.ModifyAccomplishment {
+			m.showForm = false
 		}
+	case tea.KeyMsg:
+		if msg.Type == tea.KeyEsc {
+			if m.showForm {
+				m.showForm = false
+			} else {
+				cmds = append(cmds, router.GotoPreviousPage())
+			}
+		}
+		if msg.Type == tea.KeyEnter && !m.showForm {
+			task, ok := m.tasks.SelectedItem().(*domain.Task)
+			if ok {
+				cmds = append(cmds, router.GotoPage(domain.TaskDetailedPage, task.ID))
+			}
+		}
+		if msg.String() == "e" && !m.showForm {
+			cmds = append(cmds, forms.EditAccomplishment(m.accomplishment))
+			m.showForm = true
+		}
+	}
+
+	if m.showForm {
+		m.form, cmd = m.form.Update(msg)
+		cmds = append(cmds, cmd)
+	}
+
+	if m.ready && !m.showForm {
+		m.tasks, cmd = m.tasks.Update(msg)
+		cmds = append(cmds, cmd)
 	}
 
 	return m, tea.Batch(cmds...)
