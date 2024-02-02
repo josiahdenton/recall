@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	selectedAccomplishmentStyle = styles.PrimaryGray.Copy().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#D120AF")).Width(70)
+	selectedAccomplishmentStyle = styles.PrimaryGray.Copy().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#fcd34d")).Width(70)
 	defaultAccomplishmentStyle  = styles.SecondaryGray.Copy().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#3a3b5b")).Width(70)
 	descriptionStyle            = styles.SecondaryColor.Copy()
 	impactStyle                 = styles.PrimaryGray.Copy()

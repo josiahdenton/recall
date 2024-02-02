@@ -1,6 +1,7 @@
 package artifact
 
 import (
+	"fmt"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/josiahdenton/recall/internal/domain"
@@ -183,10 +184,20 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					cmds = append(cmds, toast.ShowToast("opened resource!", toast.Info))
 				}
 			case header:
-				//if !m.showForm {
-				//	m.showForm = true
-				//	cmds = append(cmds, forms.EditArtifact(m.artifact))
-				//}
+				if editor := m.artifact.Open(); editor != nil {
+					cmd = tea.ExecProcess(editor, func(err error) tea.Msg {
+						if err != nil {
+							return toast.ShowToastMsg{
+								Message: fmt.Sprintf("failed to open artifact %v", err),
+								Toast:   toast.Warn,
+							}
+						}
+						return nil
+					})
+					cmds = append(cmds, cmd, toast.ShowToast("opening artifact!", toast.Info))
+				} else {
+					cmds = append(cmds, toast.ShowToast("failed to open artifact", toast.Warn))
+				}
 			}
 		case tea.KeyTab:
 			m.active = nextSection(m.active)
@@ -215,18 +226,27 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.showForm = true
 			}
 		case "d":
-			//TODO - support deleting releases / resources
-			// will need to have my type modifications changed a bit.
-			// should make an "Unlink"
-			//if m.active == links {
-			//	selected := m.links.SelectedItem().(*domain.Zettel)
-			//	m.links.RemoveItem(m.links.Index())
-			//	cmds = append(cmds, unlinkZettel(m.zettel, selected), toast.ShowToast("unlinked zettel!"))
-			//} else if
+			if m.active == releases && len(m.releases.Items()) > 0 {
+				selected := m.releases.SelectedItem().(*domain.Release)
+				index := m.releases.Index()
+				m.artifact.Releases = append(m.artifact.Releases[:index], m.artifact.Releases[index+1:]...)
+				m.releases.SetItems(releasesToItemList(m.artifact.Releases))
+				cmds = append(cmds, removeReleaseFromArtifact(m.artifact, selected))
+			}
 		}
 	}
 
 	return m, tea.Batch(cmds...)
+}
+
+func removeReleaseFromArtifact(parent *domain.Artifact, child *domain.Release) tea.Cmd {
+	return func() tea.Msg {
+		return state.DeleteStateMsg{
+			Type:   state.ModifyRelease,
+			Parent: parent,
+			Child:  child,
+		}
+	}
 }
 
 func updateArtifact(artifact domain.Artifact) tea.Cmd {
