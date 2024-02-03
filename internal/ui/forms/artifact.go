@@ -6,13 +6,14 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/josiahdenton/recall/internal/domain"
 	"github.com/josiahdenton/recall/internal/ui/state"
-	"github.com/josiahdenton/recall/internal/ui/toast"
 	"strings"
 )
 
 const (
 	artifactName = iota
 	artifactTags
+	artifactEditor
+	artifactPath
 )
 
 type editArtifact struct {
@@ -48,9 +49,40 @@ func NewArtifactForm() ArtifactFormModel {
 	inputTags.PromptStyle = formLabelStyle
 	inputTags.Placeholder = "(comma seperated list - tags are for improving searching only)"
 
-	inputs := make([]textinput.Model, 2)
+	inputEditor := textinput.New()
+	inputEditor.Width = 60
+	inputEditor.CharLimit = 60
+	inputEditor.Prompt = "Editor: "
+	inputEditor.PromptStyle = formLabelStyle
+	inputEditor.Placeholder = "(goland)" // TODO - to support nvim, you would need to pause the app...
+
+	// TODO - make these optional
+	inputEditor.Validate = func(s string) error {
+		if len(strings.Trim(s, " \n")) < 1 {
+			return fmt.Errorf("artifact editor missing")
+		}
+		return nil
+	}
+
+	inputPath := textinput.New()
+	inputPath.Width = 60
+	inputPath.CharLimit = 300
+	inputPath.Prompt = "File Location: "
+	inputPath.PromptStyle = formLabelStyle
+	inputPath.Placeholder = "~/projects/foo/bar/baz"
+
+	inputPath.Validate = func(s string) error {
+		if len(strings.Trim(s, " \n")) < 1 {
+			return fmt.Errorf("artifact file path missing")
+		}
+		return nil
+	}
+
+	inputs := make([]textinput.Model, 4)
 	inputs[artifactName] = inputName
 	inputs[artifactTags] = inputTags
+	inputs[artifactEditor] = inputEditor
+	inputs[artifactPath] = inputPath
 
 	return ArtifactFormModel{
 		inputs:   inputs,
@@ -75,6 +107,10 @@ func (m ArtifactFormModel) View() string {
 	b.WriteString(m.inputs[artifactName].View())
 	b.WriteString("\n\n")
 	b.WriteString(m.inputs[artifactTags].View())
+	b.WriteString("\n\n")
+	b.WriteString(m.inputs[artifactEditor].View())
+	b.WriteString("\n\n")
+	b.WriteString(m.inputs[artifactPath].View())
 	return b.String()
 }
 
@@ -87,28 +123,41 @@ func (m ArtifactFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.artifact = msg.artifact
 		m.inputs[artifactName].SetValue(m.artifact.Name)
 		m.inputs[artifactTags].SetValue(m.artifact.Tags)
+		m.inputs[artifactEditor].SetValue(m.artifact.Editor)
+		m.inputs[artifactPath].SetValue(m.artifact.Path)
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyEnter:
-			if m.active < artifactTags {
+			if m.active < artifactPath {
 				m.inputs[m.active%len(m.inputs)].Blur()
 				m.active++
 				m.inputs[m.active%len(m.inputs)].Focus()
 				break
 			}
 
-			if err := m.inputs[artifactName].Err; err != nil {
-				cmds = append(cmds, toast.ShowToast(fmt.Sprintf("%v", err), toast.Warn))
+			if cmd := validateForm(
+				m.inputs[artifactName].Err,
+				m.inputs[artifactEditor].Err,
+				m.inputs[artifactPath].Err,
+			); cmd != nil {
+				cmds = append(cmds, cmd)
 				return m, tea.Batch(cmds...)
 			}
 			m.artifact.Name = m.inputs[artifactName].Value()
 			m.artifact.Tags = m.inputs[artifactTags].Value()
-			cmds = append(cmds, addArtifact(m.artifact))
+			m.artifact.Editor = m.inputs[artifactEditor].Value()
+			m.artifact.Path = m.inputs[artifactPath].Value()
+			cmds = append(cmds, saveArtifact(*m.artifact))
+			m.artifact = &domain.Artifact{}
 			// Reset the form
 			m.inputs[artifactName].Reset()
 			m.inputs[artifactName].Focus()
 			m.inputs[artifactTags].Reset()
 			m.inputs[artifactTags].Blur()
+			m.inputs[artifactEditor].Reset()
+			m.inputs[artifactEditor].Blur()
+			m.inputs[artifactPath].Reset()
+			m.inputs[artifactPath].Blur()
 		case tea.KeyTab:
 			m.inputs[m.active%len(m.inputs)].Blur()
 			m.active++
@@ -122,10 +171,10 @@ func (m ArtifactFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-func addArtifact(artifact *domain.Artifact) tea.Cmd {
+func saveArtifact(artifact domain.Artifact) tea.Cmd {
 	return func() tea.Msg {
 		return state.SaveStateMsg{
-			Update: *artifact,
+			Update: artifact,
 			Type:   state.ModifyArtifact,
 		}
 	}

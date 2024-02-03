@@ -69,7 +69,7 @@ func (g GormInstance) DeleteRelease(id uint) {
 
 func (g GormInstance) AllArtifacts() []domain.Artifact {
 	var artifacts []domain.Artifact
-	err := g.db.Find(&artifacts).Error
+	err := g.db.Preload(clause.Associations).Find(&artifacts).Error
 	if err != nil {
 		log.Printf("failed to get all artifacts: %v", err)
 	}

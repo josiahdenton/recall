@@ -71,8 +71,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case state.SaveStateMsg:
 		m.showForm = false
 		if msg.Type == state.ModifyTask {
-			task := msg.Update.(domain.Task)
-			m.tasks.InsertItem(len(m.tasks.Items()), &task)
+			//task := msg.Update.(domain.Task)
+			//m.tasks.InsertItem(len(m.tasks.Items()), &task)
+			cmds = append(cmds, router.RefreshPage())
 		}
 	}
 

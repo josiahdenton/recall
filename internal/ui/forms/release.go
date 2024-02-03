@@ -6,22 +6,47 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/josiahdenton/recall/internal/domain"
 	"github.com/josiahdenton/recall/internal/ui/styles"
-	"github.com/josiahdenton/recall/internal/ui/toast"
 	"strings"
 )
 
 const (
-	releaseOwner = iota
+	releaseChangeUrl = iota
+	releaseOwner
 	releaseDate
 )
 
+type editReleaseMsg struct {
+	release *domain.Release
+}
+
+func EditRelease(release *domain.Release) tea.Cmd {
+	return func() tea.Msg {
+		return editReleaseMsg{release: release}
+	}
+}
+
 type ReleaseFormMsg struct {
 	Release domain.Release
+	Edit    bool
 }
 
 func NewReleaseForm() ReleaseFormModel {
+	inputChangeUrl := textinput.New()
+	inputChangeUrl.Focus()
+	inputChangeUrl.Width = 60
+	inputChangeUrl.CharLimit = 120
+	inputChangeUrl.Prompt = "Change Source: "
+	inputChangeUrl.PromptStyle = styles.FormLabelStyle
+	inputChangeUrl.Placeholder = "https://www.example.com/..."
+
+	inputChangeUrl.Validate = func(s string) error {
+		if len(strings.Trim(s, " \n")) < 1 {
+			return fmt.Errorf("release change url missing")
+		}
+		return nil
+	}
+
 	inputOwner := textinput.New()
-	inputOwner.Focus()
 	inputOwner.Width = 60
 	inputOwner.CharLimit = 60
 	inputOwner.Prompt = "Owner: "
@@ -49,18 +74,21 @@ func NewReleaseForm() ReleaseFormModel {
 		return nil
 	}
 
-	inputs := make([]textinput.Model, 2)
+	inputs := make([]textinput.Model, 3)
+	inputs[releaseChangeUrl] = inputChangeUrl
 	inputs[releaseOwner] = inputOwner
 	inputs[releaseDate] = inputDate
 
 	return ReleaseFormModel{
-		inputs: inputs,
+		inputs:  inputs,
+		release: &domain.Release{},
 	}
 }
 
 type ReleaseFormModel struct {
-	inputs []textinput.Model
-	active int
+	inputs  []textinput.Model
+	release *domain.Release
+	active  int
 }
 
 func (m ReleaseFormModel) Init() tea.Cmd {
@@ -70,6 +98,8 @@ func (m ReleaseFormModel) Init() tea.Cmd {
 func (m ReleaseFormModel) View() string {
 	var b strings.Builder
 	b.WriteString(titleStyle.Render("Add Release"))
+	b.WriteString("\n\n")
+	b.WriteString(m.inputs[releaseChangeUrl].View())
 	b.WriteString("\n\n")
 	b.WriteString(m.inputs[releaseOwner].View())
 	b.WriteString("\n\n")
@@ -82,8 +112,22 @@ func (m ReleaseFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
+	case editReleaseMsg:
+		m.release = msg.release
+		m.inputs[releaseChangeUrl].SetValue(m.release.ReleaseChange)
+		m.inputs[releaseOwner].SetValue(m.release.Owner)
+		m.inputs[releaseDate].SetValue(formatDate(m.release.Date))
 	case tea.KeyMsg:
 		switch msg.Type {
+		case tea.KeyEsc:
+			m.active = releaseChangeUrl
+			m.inputs[releaseChangeUrl].Reset()
+			m.inputs[releaseChangeUrl].Focus()
+			m.inputs[releaseOwner].Reset()
+			m.inputs[releaseOwner].Blur()
+			m.inputs[releaseDate].Reset()
+			m.inputs[releaseDate].Blur()
+			m.release = &domain.Release{}
 		case tea.KeyEnter:
 			if m.active < releaseDate {
 				m.inputs[m.active%len(m.inputs)].Blur()
@@ -92,7 +136,7 @@ func (m ReleaseFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				break
 			}
 
-			if cmd := validateReleaseForm(m.inputs[releaseOwner].Err, m.inputs[releaseDate].Err); cmd != nil {
+			if cmd := validateForm(m.inputs[releaseOwner].Err, m.inputs[releaseDate].Err, m.inputs[releaseChangeUrl].Err); cmd != nil {
 				cmds = append(cmds, cmd)
 				return m, tea.Batch(cmds...)
 			}
@@ -100,14 +144,17 @@ func (m ReleaseFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if cmd != nil {
 				return m, tea.Batch(cmds...)
 			}
-			cmds = append(cmds, addRelease(domain.Release{
-				Date:  releaseDateParsed,
-				Owner: m.inputs[releaseOwner].Value(),
-			}))
+			m.release.Date = releaseDateParsed
+			m.release.Owner = m.inputs[releaseOwner].Value()
+			m.release.ReleaseChange = m.inputs[releaseChangeUrl].Value()
+			cmds = append(cmds, addRelease(*m.release))
+			m.release = &domain.Release{}
 			// Reset Form
-			m.active = releaseOwner
+			m.active = releaseChangeUrl
+			m.inputs[releaseChangeUrl].Reset()
+			m.inputs[releaseChangeUrl].Focus()
 			m.inputs[releaseOwner].Reset()
-			m.inputs[releaseOwner].Focus()
+			m.inputs[releaseOwner].Blur()
 			m.inputs[releaseDate].Reset()
 			m.inputs[releaseDate].Blur()
 		case tea.KeyTab:
@@ -123,18 +170,8 @@ func (m ReleaseFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-func validateReleaseForm(a, b error) tea.Cmd {
-	if a != nil {
-		return toast.ShowToast(fmt.Sprintf("%v", a), toast.Warn)
-	}
-	if b != nil {
-		return toast.ShowToast(fmt.Sprintf("%v", b), toast.Warn)
-	}
-	return nil
-}
-
 func addRelease(release domain.Release) tea.Cmd {
 	return func() tea.Msg {
-		return ReleaseFormMsg{Release: release}
+		return ReleaseFormMsg{Release: release, Edit: release.ID != 0}
 	}
 }

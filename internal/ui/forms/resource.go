@@ -188,7 +188,16 @@ func (m ResourceModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyMsg:
 			switch msg.Type {
 			case tea.KeyEsc:
+				// TODO - add a "Reset"
+				m.inputs[name].Reset()
+				m.inputs[name].Focus()
+				m.inputs[source].Reset()
+				m.inputs[source].Blur()
+				m.inputs[rTags].Reset()
+				m.inputs[rTags].Blur()
+				m.active = name
 				m.choice = none
+				m.resource = &domain.Resource{}
 			case tea.KeyEnter:
 				if m.active < rTags {
 					m.inputs[m.active%len(m.inputs)].Blur()
@@ -206,6 +215,7 @@ func (m ResourceModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.resource.Tags = m.inputs[rTags].Value()
 				m.resource.Type = domain.WebResource
 				cmds = append(cmds, putResource(*m.resource))
+				m.resource = &domain.Resource{}
 
 				// Reset form to defaults
 				m.inputs[name].Reset()

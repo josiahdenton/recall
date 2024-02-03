@@ -65,12 +65,16 @@ func (m StatusModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.input.SetValue(msg.status.Description)
 	case tea.KeyMsg:
 		switch msg.Type {
+		case tea.KeyEsc:
+			m.status = &domain.Status{}
+			m.input.Reset()
 		case tea.KeyCtrlS:
 			if m.input.Err != nil {
 				cmds = append(cmds, toast.ShowToast(fmt.Sprintf("%v", m.input.Err), toast.Warn))
 			} else {
 				m.status.Description = m.input.Value()
 				cmds = append(cmds, addStatus(*m.status))
+				m.status = &domain.Status{}
 				m.input.Reset()
 			}
 		}

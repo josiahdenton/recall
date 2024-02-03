@@ -60,7 +60,7 @@ func renderResource(resource *domain.Resource, selected bool) string {
 		style = selectedResourceStyle
 	}
 	name := style.Render(resource.Name)
-	resourceType := fmt.Sprintf(" %s %s", titleKeyStyle.Render("Type"), style.Render(resource.StringType()))
-	s := lipgloss.JoinHorizontal(lipgloss.Left, name, resourceType)
+	tags := style.Render(resource.Tags)
+	s := lipgloss.JoinHorizontal(lipgloss.Left, name, tags)
 	return fmt.Sprintf("%s%s", cursorStyle.Render(selectedMarker), alignStyle.Render(s))
 }

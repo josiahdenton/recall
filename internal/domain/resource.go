@@ -2,8 +2,6 @@ package domain
 
 import (
 	"gorm.io/gorm"
-	"os/exec"
-	"runtime"
 )
 
 const (
@@ -50,16 +48,5 @@ func (r *Resource) Open() bool {
 	if r.Type != WebResource {
 		return false
 	}
-	url := r.Source
-	var args []string
-	switch runtime.GOOS {
-	case "darwin":
-		args = []string{"open"}
-	case "windows":
-		args = []string{"cmd", "/c", "start"}
-	default:
-		args = []string{"xdg-open"}
-	}
-	cmd := exec.Command(args[0], append(args[1:], url)...)
-	return cmd.Start() == nil
+	return openWebPage(r.Source)
 }

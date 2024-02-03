@@ -12,9 +12,9 @@ var (
 	infoStatusStyle = styles.PrimaryGray.Copy().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#2dd4bf")).Width(25).Align(lipgloss.Center)
 )
 
-type showToastMsg struct {
-	message string
-	toast   ToastType
+type ShowToastMsg struct {
+	Message string
+	Toast   ToastType
 }
 
 const (
@@ -26,7 +26,7 @@ type ToastType = int
 
 func ShowToast(message string, toast ToastType) tea.Cmd {
 	return func() tea.Msg {
-		return showToastMsg{message: message, toast: toast}
+		return ShowToastMsg{Message: message, Toast: toast}
 	}
 }
 
@@ -55,9 +55,9 @@ func (m Model) View() string {
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	switch msg := msg.(type) {
-	case showToastMsg:
-		m.message = msg.message
-		m.toast = msg.toast
+	case ShowToastMsg:
+		m.message = msg.Message
+		m.toast = msg.Toast
 		cmd = clearStatus()
 	case clearStatusMsg:
 		m.message = ""
