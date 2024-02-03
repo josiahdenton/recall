@@ -15,9 +15,8 @@ will add demos soon...
 ## Road to V1
 
 - [ ] can remove resources from zettels, artifacts, & accomplishments
-- [ ] zettel tags can be edited...
-- [ ] accomplishments have resources now
-- [ ] add edit functionality
+- [x] zettel tags can be edited...
+- [x] add edit functionality
 - [ ] accomplishments can now have resources
 - [ ] standardize patterns, document them
 - [ ] Inbox
@@ -34,9 +33,9 @@ will add demos soon...
     - [ ] store in json/yaml
 - [x] refinish accomplishments design
 - [ ] export option for accomplishment
-- [ ] artifact can be opened by configured editor (i.e. pycharm/goland/etc)
+- [x] artifact can be opened by configured editor (i.e. pycharm/goland/etc)
   - [ ] tie in git support to show if main &/ feature branches are out of date
-  - [ ] attach PRs to a release (release resources)
+  - [x] attach PRs to a release (release resources)
 
 ## Colorscheme
 
