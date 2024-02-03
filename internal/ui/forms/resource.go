@@ -197,6 +197,7 @@ func (m ResourceModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.inputs[rTags].Blur()
 				m.active = name
 				m.choice = none
+				m.resource = &domain.Resource{}
 			case tea.KeyEnter:
 				if m.active < rTags {
 					m.inputs[m.active%len(m.inputs)].Blur()
@@ -214,6 +215,7 @@ func (m ResourceModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.resource.Tags = m.inputs[rTags].Value()
 				m.resource.Type = domain.WebResource
 				cmds = append(cmds, putResource(*m.resource))
+				m.resource = &domain.Resource{}
 
 				// Reset form to defaults
 				m.inputs[name].Reset()

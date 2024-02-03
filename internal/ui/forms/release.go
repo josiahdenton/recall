@@ -120,7 +120,6 @@ func (m ReleaseFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyEsc:
-			m.release = &domain.Release{}
 			m.active = releaseChangeUrl
 			m.inputs[releaseChangeUrl].Reset()
 			m.inputs[releaseChangeUrl].Focus()
@@ -128,6 +127,7 @@ func (m ReleaseFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.inputs[releaseOwner].Blur()
 			m.inputs[releaseDate].Reset()
 			m.inputs[releaseDate].Blur()
+			m.release = &domain.Release{}
 		case tea.KeyEnter:
 			if m.active < releaseDate {
 				m.inputs[m.active%len(m.inputs)].Blur()
@@ -148,6 +148,7 @@ func (m ReleaseFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.release.Owner = m.inputs[releaseOwner].Value()
 			m.release.ReleaseChange = m.inputs[releaseChangeUrl].Value()
 			cmds = append(cmds, addRelease(*m.release))
+			m.release = &domain.Release{}
 			// Reset Form
 			m.active = releaseChangeUrl
 			m.inputs[releaseChangeUrl].Reset()

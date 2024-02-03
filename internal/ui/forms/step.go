@@ -84,6 +84,7 @@ func (m StepModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else {
 				m.step.Description = m.input.Value()
 				cmds = append(cmds, addStep(*m.step))
+				m.step = &domain.Step{}
 				m.input.Reset()
 			}
 		}

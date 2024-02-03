@@ -120,6 +120,15 @@ func (m TaskFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.title = "Edit Task"
 	case tea.KeyMsg:
 		switch msg.Type {
+		case tea.KeyEsc:
+			m.inputs[title].Reset()
+			m.inputs[title].Focus()
+			m.inputs[due].Reset()
+			m.inputs[due].Blur()
+			m.inputs[rTags].Reset()
+			m.inputs[rTags].Blur()
+			m.active = 0
+			m.task = &domain.Task{}
 		case tea.KeyEnter:
 			if m.active == title {
 				m.inputs[title].Blur()
@@ -148,11 +157,15 @@ func (m TaskFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.task.Tags = m.inputs[tTags].Value()
 
 			cmds = append(cmds, addTask(m.task), router.RefreshPage())
-			// Reset form to default state
+			// Reset
 			m.inputs[title].Reset()
+			m.inputs[title].Focus()
 			m.inputs[due].Reset()
+			m.inputs[due].Blur()
+			m.inputs[rTags].Reset()
+			m.inputs[rTags].Blur()
 			m.active = 0
-			m.inputs[m.active].Focus()
+			m.task = &domain.Task{}
 		case tea.KeyTab:
 			m.inputs[m.active].Blur()
 			m.active = m.nextInput(m.active)

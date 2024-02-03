@@ -99,6 +99,7 @@ func (m ZettelFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.inputs[zName].Focus()
 			m.inputs[zTags].Reset()
 			m.inputs[zTags].Blur()
+			m.zettel = &domain.Zettel{}
 		case tea.KeyEnter:
 			if m.active < zTags {
 				m.inputs[m.active%len(m.inputs)].Blur()
@@ -114,6 +115,7 @@ func (m ZettelFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.zettel.Name = m.inputs[zName].Value()
 			m.zettel.Tags = m.inputs[zTags].Value()
 			cmds = append(cmds, addZettel(*m.zettel))
+			m.zettel = &domain.Zettel{}
 			m.inputs[zName].Reset()
 			m.inputs[zName].Focus()
 			m.inputs[zTags].Reset()

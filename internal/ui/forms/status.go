@@ -74,6 +74,7 @@ func (m StatusModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else {
 				m.status.Description = m.input.Value()
 				cmds = append(cmds, addStatus(*m.status))
+				m.status = &domain.Status{}
 				m.input.Reset()
 			}
 		}

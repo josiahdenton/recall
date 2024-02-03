@@ -147,7 +147,8 @@ func (m ArtifactFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.artifact.Tags = m.inputs[artifactTags].Value()
 			m.artifact.Editor = m.inputs[artifactEditor].Value()
 			m.artifact.Path = m.inputs[artifactPath].Value()
-			cmds = append(cmds, saveArtifact(m.artifact))
+			cmds = append(cmds, saveArtifact(*m.artifact))
+			m.artifact = &domain.Artifact{}
 			// Reset the form
 			m.inputs[artifactName].Reset()
 			m.inputs[artifactName].Focus()
@@ -170,10 +171,10 @@ func (m ArtifactFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-func saveArtifact(artifact *domain.Artifact) tea.Cmd {
+func saveArtifact(artifact domain.Artifact) tea.Cmd {
 	return func() tea.Msg {
 		return state.SaveStateMsg{
-			Update: *artifact,
+			Update: artifact,
 			Type:   state.ModifyArtifact,
 		}
 	}
