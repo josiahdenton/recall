@@ -293,13 +293,15 @@ func (g GormInstance) AllTasks() []domain.Task {
 		return activeTasks[i].Due.Before(activeTasks[j].Due)
 	})
 
-	inactiveTasks := tasks[lastActiveIndex+1:]
-	sort.Slice(inactiveTasks, func(i, j int) bool {
-		if (reflect.ValueOf(inactiveTasks[i].Due).IsZero() && reflect.ValueOf(inactiveTasks[j].Due).IsZero()) || inactiveTasks[i].Due.Equal(inactiveTasks[j].Due) {
-			return inactiveTasks[i].Title < inactiveTasks[j].Title
-		}
-		return inactiveTasks[i].Due.Before(inactiveTasks[j].Due)
-	})
+	if len(tasks) > 0 {
+		inactiveTasks := tasks[lastActiveIndex+1:]
+		sort.Slice(inactiveTasks, func(i, j int) bool {
+			if (reflect.ValueOf(inactiveTasks[i].Due).IsZero() && reflect.ValueOf(inactiveTasks[j].Due).IsZero()) || inactiveTasks[i].Due.Equal(inactiveTasks[j].Due) {
+				return inactiveTasks[i].Title < inactiveTasks[j].Title
+			}
+			return inactiveTasks[i].Due.Before(inactiveTasks[j].Due)
+		})
+	}
 
 	return tasks
 }

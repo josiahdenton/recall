@@ -26,18 +26,20 @@ const (
 	header
 )
 
-func New() Model {
+func New(keyBinds domain.Keybindings) Model {
 	models := make([]tea.Model, 3)
 	models[releases] = forms.NewReleaseForm()
 	models[resources] = forms.NewResourceForm()
 	models[header] = forms.NewArtifactForm()
 	return Model{
-		forms:  models,
-		active: header,
+		keyBinds: keyBinds,
+		forms:    models,
+		active:   header,
 	}
 }
 
 type Model struct {
+	keyBinds   domain.Keybindings
 	artifact   *domain.Artifact
 	releases   list.Model
 	resources  list.Model

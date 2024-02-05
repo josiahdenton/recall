@@ -38,7 +38,7 @@ var (
 	paginationStyle = list.DefaultStyles().PaginationStyle
 )
 
-func New() Model {
+func New(keyBinds domain.Keybindings) Model {
 	pages := list.New(toItemList(pageOptions), menuDelegate{}, 50, 20)
 	pages.SetShowStatusBar(false)
 	pages.SetFilteringEnabled(false)
@@ -48,11 +48,15 @@ func New() Model {
 	pages.SetShowHelp(false)
 	pages.KeyMap.Quit.Unbind()
 
-	return Model{pages: pages}
+	return Model{
+		pages:    pages,
+		keyBinds: keyBinds,
+	}
 }
 
 type Model struct {
-	pages list.Model
+	pages    list.Model
+	keyBinds domain.Keybindings
 }
 
 func (m Model) Init() tea.Cmd {

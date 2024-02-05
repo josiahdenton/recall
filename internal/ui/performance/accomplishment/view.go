@@ -20,13 +20,15 @@ var (
 	headerStyle     = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#3a3b5b")).Width(80)
 )
 
-func New() Model {
+func New(keyBinds domain.Keybindings) Model {
 	return Model{
-		form: forms.NewAccomplishmentForm(),
+		keyBinds: keyBinds,
+		form:     forms.NewAccomplishmentForm(),
 	}
 }
 
 type Model struct {
+	keyBinds       domain.Keybindings
 	accomplishment *domain.Accomplishment
 	form           tea.Model
 	showForm       bool

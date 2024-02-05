@@ -28,15 +28,16 @@ var (
 
 const (
 	header = iota
-	content
+	concept
 	links
 	resources
 )
 
 type section = int
 
-func New() Model {
+func New(keyBinds domain.Keybindings) Model {
 	return Model{
+		keyBinds:       keyBinds,
 		zettelForm:     forms.NewZettelForm(),
 		linkZettelForm: forms.NewLinkForm(),
 		conceptForm:    forms.NewConceptForm(),
@@ -45,7 +46,9 @@ func New() Model {
 }
 
 type Model struct {
-	zettel         *domain.Zettel
+	keyBinds domain.Keybindings
+	zettel   *domain.Zettel
+	// TODO - move these to be slice of forms instead
 	linkZettelForm tea.Model
 	conceptForm    tea.Model
 	resourceForm   tea.Model
@@ -62,7 +65,7 @@ func (m Model) Init() tea.Cmd {
 }
 
 func (m Model) View() string {
-	// TODO - tie in glamour for displaying the content
+	// TODO - tie in glamour for displaying the concept
 	var b strings.Builder
 	if m.showForm && m.active == header {
 		b.WriteString(m.zettelForm.View())
@@ -70,7 +73,7 @@ func (m Model) View() string {
 		b.WriteString(m.linkZettelForm.View())
 	} else if m.showForm && m.active == resources {
 		b.WriteString(m.resourceForm.View())
-	} else if m.showForm && m.active == content {
+	} else if m.showForm && m.active == concept {
 		b.WriteString(m.conceptForm.View())
 	} else {
 		if m.active == header {
@@ -81,10 +84,10 @@ func (m Model) View() string {
 		b.WriteString("\n")
 		b.WriteString(defaultTitleStyle.Render(m.zettel.Tags))
 		b.WriteString("\n\n")
-		if m.active == content {
-			b.WriteString(alignContent.Render(activeConceptWindowStyle.Render(m.zettel.Concept)))
-		} else if m.active != content {
-			b.WriteString(alignContent.Render(defaultConceptWindowStyle.Render(m.zettel.Concept)))
+		if m.active == concept {
+			b.WriteString(alignContent.Render(activeConceptWindowStyle.Render(m.zettel.Summary())))
+		} else if m.active != concept {
+			b.WriteString(alignContent.Render(defaultConceptWindowStyle.Render(m.zettel.Summary())))
 		}
 		b.WriteString("\n\n")
 		b.WriteString(leftPad.Render(m.links.View()))
@@ -152,7 +155,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if m.showForm && m.active == links {
 		m.linkZettelForm, cmd = m.linkZettelForm.Update(msg)
 		cmds = append(cmds, cmd)
-	} else if m.showForm && m.active == content {
+	} else if m.showForm && m.active == concept {
 		m.conceptForm, cmd = m.conceptForm.Update(msg)
 		cmds = append(cmds, cmd)
 	} else if m.showForm && m.active == resources {
@@ -187,9 +190,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.active = nextSection(m.active)
 			focusMoved = true
 		case tea.KeyEnter:
-			if m.active == content {
-				cmds = append(cmds, forms.AttachConcept(m.zettel.Concept))
-				m.showForm = true
+			if m.active == concept {
+				cmds = append(cmds, router.GotoPage(domain.ConceptPage, m.zettel.ID))
 			} else if m.active == links && len(m.links.Items()) > 0 {
 				selected := m.links.SelectedItem().(*domain.Zettel)
 				cmds = append(cmds, router.GotoPage(domain.ZettelPage, selected.ID))
@@ -212,6 +214,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.active == header {
 				m.showForm = true
 				cmds = append(cmds, forms.EditZettel(m.zettel))
+			} else if m.active == concept {
+				cmds = append(cmds, forms.AttachConcept(m.zettel.Concept))
+				m.showForm = true
 			}
 		case "d":
 			if m.active == links {
@@ -235,7 +240,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case header:
 			m.links.Styles.Title = defaultListTitle
 			m.resources.Styles.Title = defaultListTitle
-		case content:
+		case concept:
 			m.links.Styles.Title = defaultListTitle
 			m.resources.Styles.Title = defaultListTitle
 		case links:
@@ -289,8 +294,8 @@ func unlinkZettelResource(parent *domain.Zettel, child *domain.Resource) tea.Cmd
 
 func nextSection(section section) section {
 	if section == header {
-		return content
-	} else if section == content {
+		return concept
+	} else if section == concept {
 		return links
 	} else if section == links {
 		return resources

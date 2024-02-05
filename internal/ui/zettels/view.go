@@ -17,13 +17,15 @@ var (
 	titleStyle      = styles.SecondaryColor.Copy()
 )
 
-func New() Model {
+func New(keyBinds domain.Keybindings) Model {
 	return Model{
-		form: forms.NewZettelForm(),
+		keyBinds: keyBinds,
+		form:     forms.NewZettelForm(),
 	}
 }
 
 type Model struct {
+	keyBinds domain.Keybindings
 	ready    bool
 	zettels  list.Model
 	showForm bool

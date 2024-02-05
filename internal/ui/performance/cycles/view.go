@@ -17,15 +17,17 @@ var (
 )
 
 type Model struct {
+	keyBinds domain.Keybindings
 	cycles   list.Model
 	ready    bool
 	form     forms.CycleFormModel
 	showForm bool
 }
 
-func New() Model {
+func New(keyBinds domain.Keybindings) Model {
 	return Model{
-		form: forms.NewCycleForm(),
+		keyBinds: keyBinds,
+		form:     forms.NewCycleForm(),
 	}
 }
 

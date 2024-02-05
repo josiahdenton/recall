@@ -16,13 +16,15 @@ var (
 	titleStyle      = styles.SecondaryColor.Copy()
 )
 
-func New() tea.Model {
+func New(keyBinds domain.Keybindings) tea.Model {
 	return Model{
-		form: forms.NewArtifactForm(),
+		keyBinds: keyBinds,
+		form:     forms.NewArtifactForm(),
 	}
 }
 
 type Model struct {
+	keyBinds  domain.Keybindings
 	artifacts list.Model
 	showForm  bool
 	form      tea.Model

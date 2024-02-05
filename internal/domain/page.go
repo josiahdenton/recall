@@ -14,4 +14,6 @@ const (
 	ZettelsPage
 	ArtifactsPage
 	ArtifactPage
+	KeyBindsPage
+	ConceptPage
 )

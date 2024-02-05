@@ -24,6 +24,7 @@ const (
 type activeForm = int
 
 type Model struct {
+	keyBinds   domain.Keybindings
 	ready      bool
 	tasks      list.Model
 	forms      []tea.Model
@@ -31,12 +32,13 @@ type Model struct {
 	showForm   bool
 }
 
-func New() Model {
+func New(keyBinds domain.Keybindings) Model {
 	return Model{
 		forms: []tea.Model{
 			forms.NewTaskForm(),
 			forms.NewAccomplishmentForm(),
 		},
+		keyBinds: keyBinds,
 	}
 }
 
