@@ -30,6 +30,7 @@ const (
 )
 
 type Model struct {
+	keyBinds     domain.Keybindings
 	ready        bool
 	showForm     bool
 	headerActive bool
@@ -40,13 +41,14 @@ type Model struct {
 	commands     Commands
 }
 
-func New() *Model {
+func New(keyBinds domain.Keybindings) *Model {
 	formList := make([]tea.Model, formCount)
 	formList[steps] = forms.NewStepForm()
 	formList[resources] = forms.NewResourceForm()
 	formList[status] = forms.NewStatusForm()
 	formList[header] = forms.NewTaskForm()
 	return &Model{
+		keyBinds:     keyBinds,
 		headerActive: true,
 		active:       header,
 		forms:        formList,

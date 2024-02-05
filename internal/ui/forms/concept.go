@@ -25,9 +25,7 @@ func NewConceptForm() ConceptFormModel {
 	input.Focus()
 	input.MaxWidth = 80
 	input.SetWidth(80)
-	input.MaxHeight = 20 // TODO - this may change, check zettel/view
-	input.SetHeight(20)
-	input.CharLimit = 2000
+	input.SetHeight(38)
 
 	return ConceptFormModel{
 		input: input,

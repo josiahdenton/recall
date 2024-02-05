@@ -8,6 +8,8 @@ import (
 	"github.com/josiahdenton/recall/internal/domain"
 	"github.com/josiahdenton/recall/internal/ui/artifact"
 	"github.com/josiahdenton/recall/internal/ui/artifacts"
+	"github.com/josiahdenton/recall/internal/ui/concept"
+	"github.com/josiahdenton/recall/internal/ui/keybindings"
 	"github.com/josiahdenton/recall/internal/ui/menu"
 	"github.com/josiahdenton/recall/internal/ui/performance/accomplishment"
 	"github.com/josiahdenton/recall/internal/ui/performance/accomplishments"
@@ -15,6 +17,7 @@ import (
 	"github.com/josiahdenton/recall/internal/ui/resources"
 	"github.com/josiahdenton/recall/internal/ui/router"
 	"github.com/josiahdenton/recall/internal/ui/state"
+	"github.com/josiahdenton/recall/internal/ui/styles"
 	taskdetailed "github.com/josiahdenton/recall/internal/ui/task"
 	tasklist "github.com/josiahdenton/recall/internal/ui/tasks"
 	"github.com/josiahdenton/recall/internal/ui/toast"
@@ -26,7 +29,9 @@ import (
 )
 
 var (
-	windowStyle = lipgloss.NewStyle().Align(lipgloss.Center)
+	windowStyle       = lipgloss.NewStyle().Align(lipgloss.Center)
+	shortcutKeyStyle  = styles.SecondaryGray.Copy().Bold(true)
+	shortcutDescStyle = styles.SecondaryGray.Copy()
 )
 
 func New() Model {
@@ -36,9 +41,27 @@ func New() Model {
 		os.Exit(1)
 	}
 
-	// zettel will still be files within recall-notes...
-	parentPath := fmt.Sprintf("%s/%s", home, "recall-notes")
-	path := fmt.Sprintf("%s/%s", parentPath, ".recall.db")
+	parentPath := fmt.Sprintf("%s/%s", home, ".recall")
+	// check if Dir exists, if not, create it
+	fi, err := os.Stat(parentPath)
+	if os.IsNotExist(err) {
+		err = os.Mkdir(parentPath, 0775)
+		if err != nil {
+			log.Printf("failed to mkdir for recall: %v", err)
+			os.Exit(1)
+		}
+		return New()
+	} else if err != nil {
+		log.Printf("failed to stat recall dir: %v", err)
+		os.Exit(1)
+	}
+
+	if !fi.IsDir() {
+		log.Printf(".recall exists and is not a dir")
+		os.Exit(1)
+	}
+
+	path := fmt.Sprintf("%s/%s", parentPath, "recall.db")
 
 	instance, err := repository.NewGormInstance(fmt.Sprintf(path))
 	if err != nil {
@@ -53,18 +76,26 @@ func New() Model {
 		os.Exit(1)
 	}
 
+	// TODO - integrate with keyset to manage key binds
+	//keys := keyset.New(parentPath)
+	//keyBinds, err := keys.Load()
+	//keybindings.New()
+	keyBinds := domain.DefaultKeybindings()
+
 	return Model{
-		taskList:        tasklist.New(),
-		taskDetailed:    taskdetailed.New(),
-		menu:            menu.New(),
-		cycles:          cycles.New(),
-		accomplishments: accomplishments.Model{},
-		resources:       resources.New(),
-		accomplishment:  accomplishment.New(),
-		zettel:          zettel.New(),
-		zettels:         zettels.New(),
-		artifact:        artifact.New(),
-		artifacts:       artifacts.New(),
+		taskList:        tasklist.New(keyBinds),
+		taskDetailed:    taskdetailed.New(keyBinds),
+		menu:            menu.New(keyBinds),
+		cycles:          cycles.New(keyBinds),
+		accomplishments: accomplishments.New(keyBinds),
+		resources:       resources.New(keyBinds),
+		accomplishment:  accomplishment.New(keyBinds),
+		zettel:          zettel.New(keyBinds),
+		zettels:         zettels.New(keyBinds),
+		artifact:        artifact.New(keyBinds),
+		artifacts:       artifacts.New(keyBinds),
+		keybindings:     keybindings.New(keyBinds),
+		content:         concept.New(),
 		toast:           toast.New(),
 		page:            domain.MenuPage,
 		repository:      instance,
@@ -87,6 +118,8 @@ type Model struct {
 	artifact        tea.Model
 	artifacts       tea.Model
 	toast           tea.Model
+	keybindings     tea.Model
+	content         tea.Model
 	repository      repository.Repository
 	routeHistory    router.History
 	stateHistory    state.History
@@ -124,11 +157,23 @@ func (m Model) View() string {
 		page = m.artifacts
 	case domain.ArtifactPage:
 		page = m.artifact
+	case domain.KeyBindsPage:
+		page = m.keybindings
+	case domain.ConceptPage:
+		page = m.content
 	}
 	var b strings.Builder
 	b.WriteString(page.View())
 	b.WriteString("\n")
-	b.WriteString(m.toast.View())
+	notification := m.toast.View()
+	if len(notification) > 0 {
+		b.WriteString(notification)
+	} else {
+		b.WriteString(lipgloss.JoinHorizontal(
+			lipgloss.Left,
+			shortcutKeyStyle.Render("?"),
+			shortcutDescStyle.Render(" - keybindings")))
+	}
 	return windowStyle.Width(m.width).Height(m.height).Render(b.String())
 }
 
@@ -137,9 +182,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch msg.Type {
-		case tea.KeyCtrlC:
+		if msg.Type == tea.KeyCtrlC {
 			return m, tea.Quit
+		}
+		if msg.String() == "?" && m.page != domain.KeyBindsPage {
+			cmds = append(cmds, router.GotoPage(domain.KeyBindsPage, 0))
 		}
 	case tea.WindowSizeMsg:
 		m.height = msg.Height
@@ -216,6 +263,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case domain.ArtifactPage:
 		m.artifact, cmd = m.artifact.Update(msg)
 		cmds = append(cmds, cmd)
+	case domain.KeyBindsPage:
+		m.keybindings, cmd = m.keybindings.Update(msg)
+		cmds = append(cmds, cmd)
+	case domain.ConceptPage:
+		m.content, cmd = m.content.Update(msg)
+		cmds = append(cmds, cmd)
 	}
 
 	return m, tea.Batch(cmds...)
@@ -269,6 +322,9 @@ func (m Model) loadPage(msg router.GotoPageMsg) tea.Cmd {
 			s = m.repository.AllArtifacts()
 		case domain.ArtifactPage:
 			s = m.repository.Artifact(msg.RequestedItemId)
+		case domain.KeyBindsPage:
+		case domain.ConceptPage:
+			s = m.repository.Zettel(msg.RequestedItemId)
 		}
 		return router.LoadPageMsg{
 			Page:  msg.Page,

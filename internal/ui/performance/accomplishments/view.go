@@ -17,7 +17,14 @@ var (
 	titleStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("#3a3b5b"))
 )
 
+func New(keyBinds domain.Keybindings) Model {
+	return Model{
+		keyBinds: keyBinds,
+	}
+}
+
 type Model struct {
+	keyBinds        domain.Keybindings
 	ready           bool
 	accomplishments list.Model
 	// you cannot add, this will all be just read only
