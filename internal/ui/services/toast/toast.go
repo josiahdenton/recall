@@ -2,19 +2,13 @@ package toast
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 	"github.com/josiahdenton/recall/internal/ui/styles"
 	"time"
 )
 
-var (
-	warnStatusStyle = styles.PrimaryGray.Copy().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#D120AF")).Width(25).Align(lipgloss.Center)
-	infoStatusStyle = styles.PrimaryGray.Copy().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#2dd4bf")).Width(25).Align(lipgloss.Center)
-)
-
 type ShowToastMsg struct {
 	Message string
-	Toast   ToastType
+	Toast   Type
 }
 
 const (
@@ -22,37 +16,37 @@ const (
 	Warn
 )
 
-type ToastType = int
+type Type = int
 
-func ShowToast(message string, toast ToastType) tea.Cmd {
+func ShowToast(message string, toast Type) tea.Cmd {
 	return func() tea.Msg {
 		return ShowToastMsg{Message: message, Toast: toast}
 	}
 }
 
-func New() Model {
-	return Model{}
+func New() *Model {
+	return &Model{}
 }
 
 type Model struct {
 	message string
-	toast   ToastType
+	toast   Type
 }
 
-func (m Model) Init() tea.Cmd {
+func (m *Model) Init() tea.Cmd {
 	return nil
 }
 
-func (m Model) View() string {
+func (m *Model) View() string {
 	if len(m.message) > 0 && m.toast == Info {
-		return infoStatusStyle.Render(m.message)
+		return styles.InfoToastStyle.Render(m.message)
 	} else if len(m.message) > 0 && m.toast == Warn {
-		return warnStatusStyle.Render(m.message)
+		return styles.WarnToastStyle.Render(m.message)
 	}
 	return ""
 }
 
-func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	switch msg := msg.(type) {
 	case ShowToastMsg:

@@ -1,0 +1,281 @@
+package state
+
+import (
+	"errors"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/josiahdenton/recall/internal/domain"
+)
+
+var (
+	FailedItemConversion = errors.New("failed item conversion")
+)
+
+type Repository interface {
+
+	// Tasks
+
+	Task(uint) *domain.Task
+	AllTasks() []domain.Task
+	ArchivedTasks() []domain.Task
+	ModifyTask(domain.Task) domain.Task
+	DeleteTask(uint)
+	UnlinkTaskResource(*domain.Task, *domain.Resource)
+	UnlinkTaskStep(*domain.Task, *domain.Step)
+	UndoDeleteTask(uint)
+	ModifyStep(step domain.Step)
+
+	// Cycles
+
+	Cycle(uint) *domain.Cycle // etc...
+	AllCycles() []domain.Cycle
+	ModifyCycle(domain.Cycle) domain.Cycle
+
+	// Accomplishments
+
+	Accomplishment(uint) *domain.Accomplishment
+	ModifyAccomplishment(domain.Accomplishment) domain.Accomplishment
+	DeleteAccomplishment(uint)
+	UndoDeleteAccomplishment(uint)
+
+	// Resources
+
+	ModifyResource(domain.Resource) domain.Resource
+	AllResources() []domain.Resource
+
+	// Zettels
+
+	AllZettels() []domain.Zettel
+	Zettel(uint) *domain.Zettel
+	ModifyZettel(domain.Zettel) domain.Zettel
+	DeleteZettel(uint)
+	UnlinkZettel(*domain.Zettel, *domain.Zettel)
+	UnlinkZettelResource(*domain.Zettel, *domain.Resource)
+	UndoDeleteZettel(uint)
+
+	LoadRepository() error
+}
+
+const (
+	Task = iota
+	Tasks
+	Zettel
+	Zettels
+	Resource
+	Resources
+	Cycles
+	Cycle
+	Accomplishment
+)
+
+type Type = int
+
+const (
+	// Edit mode is for showing the form
+	Edit = iota
+	View
+)
+
+type Mode = int
+
+func New(path string) *State {
+	// TODO - call and setup repo
+	return &State{
+		Mode:       View,
+		Repository: nil,
+	}
+}
+
+// State represents the state of recall
+type State struct {
+	Mode       Mode
+	Repository Repository
+}
+
+func (s *State) Update(msg tea.Msg) tea.Cmd {
+	var cmd tea.Cmd
+	switch msg := msg.(type) {
+	case saveStateMsg:
+		cmd = s.Save(Request{
+			State: msg.State,
+			Type:  msg.Type,
+		})
+	case deleteStateMsg:
+		cmd = s.Delete(Request{
+			ID:   msg.ID,
+			Type: msg.Type,
+		})
+	case loadStateMsg:
+		cmd = s.Load(Request{
+			ID:   msg.ID,
+			Type: msg.Type,
+		})
+	}
+
+	return cmd
+}
+
+type SavedStateMsg struct {
+	State any
+	Type  Type
+	Err   error
+}
+
+// Save is called after we finish
+// adding or creating a new item
+// use the repository
+func (s *State) Save(r Request) tea.Cmd {
+	return func() tea.Msg {
+		var state any
+		var err error
+		switch r.Type {
+		case Task:
+			if item, ok := r.State.(domain.Task); ok {
+				state = s.Repository.ModifyTask(item)
+			} else {
+				err = FailedItemConversion
+			}
+		case Tasks:
+			// no mass edits supported yet!
+		case Zettel:
+			if item, ok := r.State.(domain.Zettel); ok {
+				state = s.Repository.ModifyZettel(item)
+			} else {
+				err = FailedItemConversion
+			}
+		case Zettels:
+			// no mass edits supported yet!
+		case Resource:
+			if item, ok := r.State.(domain.Resource); ok {
+				state = s.Repository.ModifyResource(item)
+			} else {
+				err = FailedItemConversion
+			}
+		case Resources:
+			// no mass edits supported yet!
+		case Cycle:
+			if item, ok := r.State.(domain.Cycle); ok {
+				state = s.Repository.ModifyCycle(item)
+			} else {
+				err = FailedItemConversion
+			}
+		case Cycles:
+			// no mass edits supported yet!
+		case Accomplishment:
+			if item, ok := r.State.(domain.Accomplishment); ok {
+				state = s.Repository.ModifyAccomplishment(item)
+			} else {
+				err = FailedItemConversion
+			}
+		}
+
+		return SavedStateMsg{
+			State: state,
+			Type:  r.Type,
+			Err:   err,
+		}
+	}
+}
+
+type DeletedStateMsg struct {
+	Type Type
+}
+
+func (s *State) Delete(r Request) tea.Cmd {
+	return func() tea.Msg {
+		switch r.Type {
+		case Task:
+		case Tasks:
+			// no mass edits supported yet!
+		case Zettel:
+		case Zettels:
+			// no mass edits supported yet!
+		case Resource:
+		case Resources:
+			// no mass edits supported yet!
+		case Cycle:
+		case Cycles:
+			// no mass edits supported yet!
+		case Accomplishment:
+		}
+
+		return DeletedStateMsg{Type: r.Type}
+	}
+}
+
+type LoadedStateMsg struct {
+	State any
+	Type  Type
+}
+
+func (s *State) Load(r Request) tea.Cmd {
+	return func() tea.Msg {
+		var state any
+		switch r.Type {
+		case Task:
+		case Tasks:
+		case Zettel:
+		case Zettels:
+		case Resource:
+		case Resources:
+		case Cycle:
+		case Cycles:
+		case Accomplishment:
+		}
+
+		return LoadedStateMsg{
+			State: state,
+			Type:  r.Type,
+		}
+	}
+}
+
+// Messages
+
+type Request struct {
+	ID    uint
+	State any
+	Type  Type
+}
+
+type deleteStateMsg struct {
+	ID   uint
+	Type Type
+}
+
+func Delete(r Request) tea.Cmd {
+	return func() tea.Msg {
+		return deleteStateMsg{
+			ID:   r.ID,
+			Type: r.Type,
+		}
+	}
+}
+
+type saveStateMsg struct {
+	State any
+	Type  Type
+}
+
+func Save(r Request) tea.Cmd {
+	return func() tea.Msg {
+		return saveStateMsg{
+			State: r.State,
+			Type:  r.Type,
+		}
+	}
+}
+
+type loadStateMsg struct {
+	// ID of 0 is loading all
+	ID   uint
+	Type Type
+}
+
+func Load(r Request) tea.Cmd {
+	return func() tea.Msg {
+		return loadStateMsg{
+			ID:   r.ID,
+			Type: r.Type,
+		}
+	}
+}
