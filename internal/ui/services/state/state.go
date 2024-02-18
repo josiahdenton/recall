@@ -4,6 +4,7 @@ import (
 	"errors"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/josiahdenton/recall/internal/domain"
+	"log"
 )
 
 var (
@@ -70,12 +71,29 @@ const (
 type Type = int
 
 const (
+	View = iota
 	// Edit mode is for showing the form
-	Edit = iota
-	View
+	Edit
+	// Focus - idea - this is like Zen
+	Focus
 )
 
 type Mode = int
+
+type switchModeMsg struct {
+	mode Mode
+}
+
+func SwitchMode(mode Mode) tea.Cmd {
+	return func() tea.Msg {
+		return switchModeMsg{mode: mode}
+	}
+}
+
+type ModeSwitchMsg struct {
+	Previous Mode
+	Current  Mode
+}
 
 func New(path string) *State {
 	// TODO - call and setup repo
@@ -105,10 +123,13 @@ func (s *State) Update(msg tea.Msg) tea.Cmd {
 			Type: msg.Type,
 		})
 	case loadStateMsg:
+		log.Printf("loadStateMsg")
 		cmd = s.Load(Request{
 			ID:   msg.ID,
 			Type: msg.Type,
 		})
+	case switchModeMsg:
+		cmd = s.ChangeMode(msg.mode)
 	}
 
 	return cmd
@@ -208,11 +229,14 @@ type LoadedStateMsg struct {
 }
 
 func (s *State) Load(r Request) tea.Cmd {
+	log.Printf("loading...")
 	return func() tea.Msg {
 		var state any
 		switch r.Type {
 		case Task:
 		case Tasks:
+			state = mockTasks
+			log.Printf("loaded mock tasks")
 		case Zettel:
 		case Zettels:
 		case Resource:
@@ -222,9 +246,21 @@ func (s *State) Load(r Request) tea.Cmd {
 		case Accomplishment:
 		}
 
+		log.Printf("loaded state")
 		return LoadedStateMsg{
 			State: state,
 			Type:  r.Type,
+		}
+	}
+}
+
+func (s *State) ChangeMode(mode Mode) tea.Cmd {
+	return func() tea.Msg {
+		prev := s.Mode
+		s.Mode = mode
+		return ModeSwitchMsg{
+			Previous: prev,
+			Current:  mode,
 		}
 	}
 }

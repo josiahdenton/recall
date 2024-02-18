@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/josiahdenton/recall/internal"
+	"github.com/josiahdenton/recall/internal/ui"
 	"log"
 	"os"
 )
@@ -21,7 +21,7 @@ func Run() error {
 	if err != nil {
 		return err
 	}
-	f, err := os.OpenFile(fmt.Sprintf("%s/%s", home, ".recall-log"), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
+	f, err := os.OpenFile(fmt.Sprintf("%s/%s", home, "recall-log"), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
 		return err
 	}
@@ -30,7 +30,10 @@ func Run() error {
 	// on non debug mode, set out to null dest?
 	log.SetOutput(f)
 	log.Println("--------------- Recall! ---------------")
-	p := tea.NewProgram(internal.New())
+
+	path := fmt.Sprintf("%s/%s", home, ".recall")
+
+	p := tea.NewProgram(ui.New(path))
 	if _, err := p.Run(); err != nil {
 		return err
 	}
