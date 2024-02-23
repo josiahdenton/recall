@@ -4,6 +4,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/josiahdenton/recall/internal/ui/forms"
 	"github.com/josiahdenton/recall/internal/ui/pages/tasks"
+	"github.com/josiahdenton/recall/internal/ui/services/clipboard"
 	"github.com/josiahdenton/recall/internal/ui/services/router"
 	"github.com/josiahdenton/recall/internal/ui/services/state"
 	"github.com/josiahdenton/recall/internal/ui/services/toast"
@@ -27,6 +28,7 @@ func New(path string) *Model {
 		active:  router.TasksPage,
 		router:  router.New(),
 		toast:   toast.New(),
+		clip:    clipboard.New(),
 		effects: user.New(),
 	}
 }
@@ -37,6 +39,7 @@ type Model struct {
 	active  router.Page
 	router  *router.Router
 	state   *state.State
+	clip    *clipboard.Clip
 	effects service
 
 	width  int
@@ -86,6 +89,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	cmds = append(cmds, cmd)
 
 	cmd = m.state.Update(msg)
+	cmds = append(cmds, cmd)
+
+	cmd = m.clip.Update(msg)
 	cmds = append(cmds, cmd)
 
 	// set active page

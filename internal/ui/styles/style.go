@@ -84,10 +84,14 @@ var (
 	WarnToastStyle = lipgloss.NewStyle().Foreground(PrimaryGray).Border(lipgloss.RoundedBorder()).BorderForeground(PrimaryColor).Width(25).Align(lipgloss.Center)
 	InfoToastStyle = lipgloss.NewStyle().Foreground(PrimaryGray).Border(lipgloss.RoundedBorder()).BorderForeground(SecondaryColor).Width(25).Align(lipgloss.Center)
 
-	SelectedStyle = lipgloss.NewStyle().Foreground(PrimaryColor)
-	DefaultStyle  = lipgloss.NewStyle().Foreground(SecondaryGray)
+	SelectedItemStyle   = lipgloss.NewStyle().Foreground(PrimaryColor).Width(60)
+	DefaultItemStyle    = lipgloss.NewStyle().Foreground(SecondaryGray).Width(60)
+	ActiveCursorStyle   = lipgloss.NewStyle().Foreground(PrimaryColor).Width(2)
+	InactiveCursorStyle = lipgloss.NewStyle().Foreground(SecondaryGray).Width(2)
 
 	PaginationStyle = list.DefaultStyles().PaginationStyle
+
+	InactiveStyle = lipgloss.NewStyle().Foreground(SecondaryGray)
 
 	PageTitleStyle = lipgloss.NewStyle().Foreground(SecondaryGray).Bold(true)
 )

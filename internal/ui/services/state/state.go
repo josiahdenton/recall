@@ -23,7 +23,7 @@ type Repository interface {
 	UnlinkTaskResource(*domain.Task, *domain.Resource)
 	UnlinkTaskStep(*domain.Task, *domain.Step)
 	UndoDeleteTask(uint)
-	ModifyStep(step domain.Step)
+	ModifyStep(step domain.Step) domain.Step
 
 	// Cycles
 
@@ -57,6 +57,8 @@ type Repository interface {
 }
 
 const (
+	// Pairs //
+
 	Task = iota
 	Tasks
 	Zettel
@@ -65,7 +67,11 @@ const (
 	Resources
 	Cycles
 	Cycle
+
+	// Singles //
+
 	Accomplishment
+	Step
 )
 
 type Type = int
@@ -187,6 +193,12 @@ func (s *State) Save(r Request) tea.Cmd {
 			} else {
 				err = FailedItemConversion
 			}
+		case Step:
+			if item, ok := r.State.(domain.Step); ok {
+				state = s.Repository.ModifyStep(item)
+			} else {
+				err = FailedItemConversion
+			}
 		}
 
 		return SavedStateMsg{
@@ -217,6 +229,7 @@ func (s *State) Delete(r Request) tea.Cmd {
 		case Cycles:
 			// no mass edits supported yet!
 		case Accomplishment:
+		case Step:
 		}
 
 		return DeletedStateMsg{Type: r.Type}
@@ -234,6 +247,8 @@ func (s *State) Load(r Request) tea.Cmd {
 		var state any
 		switch r.Type {
 		case Task:
+			state = mockTask
+			log.Printf("loaded mock task!!!")
 		case Tasks:
 			state = mockTasks
 			log.Printf("loaded mock tasks")

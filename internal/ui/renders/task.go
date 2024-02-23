@@ -30,13 +30,14 @@ func RenderTaskHeader(task *domain.Task) string {
 
 // RenderTask will render the task
 func renderTask(task *domain.Task, selected bool) string {
-	style := styles.DefaultStyle
-
+	style := styles.DefaultItemStyle
+	marker := " "
 	if selected {
-		style = styles.SelectedStyle
+		style = styles.SelectedItemStyle
+		marker = ">"
 	}
 
-	return style.Render(task.Title)
+	return style.Render(fmt.Sprintf("%s %s", marker, task.Title))
 }
 
 func TasksToListItems(tasks []domain.Task) []list.Item {

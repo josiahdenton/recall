@@ -25,6 +25,7 @@ type Task struct {
 	// LastActivatedTime tracks how long it's been since this task was activated
 	LastActivatedTime time.Time
 	Archive           bool
+	Zettels           []Zettel
 	Resources         []Resource `gorm:"many2many:task_resources"`
 	Steps             []Step
 	AccomplishmentID  uint

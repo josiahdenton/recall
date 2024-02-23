@@ -18,6 +18,7 @@ const (
 	TaskForm
 	StepForm
 	ResourceForm
+	ZettelForm
 	PageCount
 	// Forms...
 	PageLoading
@@ -124,12 +125,12 @@ func GotoPage(route Route) tea.Cmd {
 }
 
 // GotoForm TODO - will need to add context support
-func GotoForm(form Page) tea.Cmd {
+func GotoForm(route Route) tea.Cmd {
 	return func() tea.Msg {
 		// TODO - fill in
 		return loadPageMsg{route: Route{
-			Page: form,
-			ID:   0,
+			Page: route.Page,
+			ID:   route.ID,
 		}}
 	}
 }

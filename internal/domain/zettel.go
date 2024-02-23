@@ -11,6 +11,7 @@ type Zettel struct {
 	Tags      string
 	Concept   string
 	Favorite  bool
+	TaskID    uint
 	Links     []*Zettel  `gorm:"many2many:zettels_zettels"`
 	Resources []Resource `gorm:"many2many:zettel_resources"`
 }

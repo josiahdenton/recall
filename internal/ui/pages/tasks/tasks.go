@@ -90,8 +90,6 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, cmd)
 	}
 
-	// form input
-
 	return m, tea.Batch(cmds...)
 }
 
@@ -131,10 +129,17 @@ func (m *Model) onInput(msg tea.Msg) tea.Cmd {
 		case tea.KeyMsg:
 			switch msg.String() {
 			case "e":
-				return nil
+				if selected, ok := m.tasks.SelectedItem().(*domain.Task); ok {
+					return router.GotoForm(router.Route{
+						Page: router.TaskPage,
+						ID:   selected.ID,
+					})
+				}
 			case "a":
 				// cmd to go to form "add task"
-				return router.GotoForm(router.TaskForm)
+				return router.GotoForm(router.Route{
+					Page: router.TaskPage,
+				})
 			case "esc":
 				return router.Back()
 			}
