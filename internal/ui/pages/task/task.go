@@ -5,6 +5,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/josiahdenton/recall/internal/domain"
+	"github.com/josiahdenton/recall/internal/ui/forms"
 	render "github.com/josiahdenton/recall/internal/ui/renders"
 	"github.com/josiahdenton/recall/internal/ui/services/clipboard"
 	"github.com/josiahdenton/recall/internal/ui/services/router"
@@ -33,15 +34,13 @@ func New() *Model {
 }
 
 type Model struct {
-	task  *domain.Task
-	lists []list.Model
-	//steps     list.Model
-	//resources list.Model
-	//zettels   list.Model
-	box lipgloss.Style
-
-	active int
-	ready  bool
+	task     *domain.Task
+	lists    []list.Model
+	forms    []tea.Model
+	box      lipgloss.Style
+	active   int
+	ready    bool
+	showForm bool
 }
 
 func (m *Model) Init() tea.Cmd {
@@ -70,10 +69,10 @@ func (m *Model) View() string {
 
 func (m *Model) Reset() {
 	m.ready = false
+	m.showForm = false
 }
 
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	// global events
 	var (
 		cmd  tea.Cmd
 		cmds []tea.Cmd
@@ -92,17 +91,21 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m *Model) onGlobalEvents(msg tea.Msg) tea.Cmd {
 	switch msg := msg.(type) {
+	case state.DeletedStateMsg:
+		// reload the task to pull the latest data
+		return state.Load(state.Request{
+			Type: state.Task,
+			ID:   m.task.ID,
+		})
 	case router.OnInitPageMsg:
-		if msg.Page == router.TasksPage {
+		if msg.Page == router.TaskPage {
 			return state.Load(state.Request{
 				Type: state.Task,
 				ID:   msg.ID,
 			})
 		}
 	case state.LoadedStateMsg:
-		// setup lists and
-		task, ok := msg.State.(*domain.Task)
-		if ok {
+		if task, ok := msg.State.(*domain.Task); ok {
 			m.setZettels(task.Zettels)
 			m.setSteps(task.Steps)
 			m.setResources(task.Resources)
@@ -127,6 +130,9 @@ func (m *Model) onInput(msg tea.Msg) tea.Cmd {
 		case "e":
 			cmd = m.openEditForm()
 			cmds = append(cmds, cmd)
+		case "d":
+			cmd = m.delete()
+			cmds = append(cmds, cmd)
 		case "enter":
 			cmd = m.interact()
 			cmds = append(cmds, cmd)
@@ -145,49 +151,68 @@ func (m *Model) onInput(msg tea.Msg) tea.Cmd {
 }
 
 func (m *Model) openAddForm() tea.Cmd {
-	switch m.active {
-	case zettels:
-		// create new / add from existing
-		return toast.ShowToast("unsupported!", toast.Warn)
-	case steps:
-		// only new
-		return router.GotoForm(router.Route{
-			Page: router.StepForm,
-		})
-	case resources:
-		// create new / add from existing
-		return toast.ShowToast("unsupported!", toast.Warn)
-	case header:
-		return router.GotoForm(router.Route{
-			Page: router.TaskPage,
-			ID:   m.task.ID,
-		})
+	if m.active == header {
+		toast.ShowToast("unsupported!", toast.Warn)
+	} else {
+		m.showForm = true
 	}
-
-	return toast.ShowToast("failed to open add form", toast.Warn)
+	return nil
 }
 
 func (m *Model) openEditForm() tea.Cmd {
 	switch m.active {
 	case zettels:
+		// TODO - we could support this one day
 		return toast.ShowToast("unsupported!", toast.Warn)
 	case steps:
 		if selected, ok := m.lists[steps].SelectedItem().(*domain.Step); ok {
-			return router.GotoForm(router.Route{
-				Page: router.StepForm,
-				ID:   selected.ID,
-			})
+			m.showForm = true
+			return forms.EditStep(selected)
 		}
 	case resources:
 		return toast.ShowToast("unsupported!", toast.Warn)
 	case header:
-		return router.GotoForm(router.Route{
-			Page: router.TaskPage,
-			ID:   m.task.ID,
-		})
+		m.showForm = true
+		return forms.EditTask(m.task)
 	}
 
 	return toast.ShowToast("failed to open edit form", toast.Warn)
+}
+
+func (m *Model) delete() tea.Cmd {
+	switch m.active {
+	case zettels:
+		if selected, ok := m.lists[zettels].SelectedItem().(*domain.Zettel); ok {
+			return state.Delete(state.Request{
+				ID:         selected.ID,
+				Type:       state.Zettel,
+				ParentType: state.Task,
+				ParentID:   m.task.ID,
+			})
+		}
+	case steps:
+		if selected, ok := m.lists[steps].SelectedItem().(*domain.Step); ok {
+			return state.Delete(state.Request{
+				ID:         selected.ID,
+				Type:       state.Step,
+				ParentType: state.Task,
+				ParentID:   m.task.ID,
+			})
+		}
+	case resources:
+		if selected, ok := m.lists[resources].SelectedItem().(*domain.Resource); ok {
+			return state.Delete(state.Request{
+				ID:         selected.ID,
+				Type:       state.Resource,
+				ParentType: state.Task,
+				ParentID:   m.task.ID,
+			})
+		}
+	case header:
+		return toast.ShowToast("unsupported!", toast.Warn)
+	}
+
+	return nil
 }
 
 func (m *Model) interact() tea.Cmd {
@@ -200,12 +225,11 @@ func (m *Model) interact() tea.Cmd {
 			})
 		}
 	case steps:
-		// this should only modify the step itself, not the task
 		if selected, ok := m.lists[steps].SelectedItem().(*domain.Step); ok {
 			selected.ToggleStatus()
 			return state.Save(state.Request{
 				State: *selected,
-				Type:  state.Task,
+				Type:  state.Step,
 			})
 		}
 	case resources:
@@ -227,6 +251,8 @@ func (m *Model) interact() tea.Cmd {
 
 func (m *Model) copy() tea.Cmd {
 	switch m.active {
+	case header:
+		return toast.ShowToast("unsupported!", toast.Warn)
 	case zettels:
 		return toast.ShowToast("unsupported!", toast.Warn)
 	case steps:

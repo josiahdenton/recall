@@ -31,7 +31,7 @@ func New() *Model {
 		},
 	})
 	return &Model{
-		loading:     true,
+		form:        forms.NewTaskForm(),
 		listStyle:   listBoxStyle,
 		headerStyle: headerStyle,
 	}
@@ -39,10 +39,11 @@ func New() *Model {
 
 type Model struct {
 	tasks       list.Model
-	loading     bool
-	mode        state.Mode
+	form        forms.Form
 	listStyle   lipgloss.Style
 	headerStyle lipgloss.Style
+	ready       bool
+	showForm    bool
 }
 
 func (m *Model) Init() tea.Cmd {
@@ -52,10 +53,13 @@ func (m *Model) Init() tea.Cmd {
 func (m *Model) View() string {
 	// TODO - also render the summary box above??
 	var b strings.Builder
-	if m.loading {
+	if !m.ready {
 		b.WriteString(m.headerStyle.Render(""))
 		b.WriteString("\n")
 		b.WriteString(m.listStyle.Render(""))
+	} else if m.ready && m.showForm {
+		// note - forms handle their own styling
+		b.WriteString(m.form.View())
 	} else {
 		selected, ok := m.tasks.SelectedItem().(*domain.Task)
 		if ok {
@@ -72,7 +76,8 @@ func (m *Model) View() string {
 }
 
 func (m *Model) Reset() {
-	m.loading = true
+	m.ready = false
+	m.showForm = false
 }
 
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -85,8 +90,11 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	cmds = append(cmds, cmd)
 
 	// input
-	if m.mode == state.View && !m.loading {
+	if m.ready && !m.showForm {
 		cmd = m.onInput(msg)
+		cmds = append(cmds, cmd)
+	} else if m.ready && m.showForm {
+		cmd = m.onFormInput(msg)
 		cmds = append(cmds, cmd)
 	}
 
@@ -98,8 +106,6 @@ func (m *Model) onGlobalEvents(msg tea.Msg) tea.Cmd {
 	case forms.TaskFormMsg:
 		// todo - add task to list
 		// send task off to be saved
-	case state.ModeSwitchMsg:
-		m.mode = msg.Current
 	case router.OnInitPageMsg:
 		// request to load tasks from DB
 		log.Printf("did we get an on init")
@@ -116,7 +122,7 @@ func (m *Model) onGlobalEvents(msg tea.Msg) tea.Cmd {
 			return toast.ShowToast("failed to fetch tasks", toast.Warn)
 		}
 		m.setTasks(tasks)
-		m.loading = false
+		m.ready = true
 	}
 
 	// no match found
@@ -130,16 +136,12 @@ func (m *Model) onInput(msg tea.Msg) tea.Cmd {
 			switch msg.String() {
 			case "e":
 				if selected, ok := m.tasks.SelectedItem().(*domain.Task); ok {
-					return router.GotoForm(router.Route{
-						Page: router.TaskPage,
-						ID:   selected.ID,
-					})
+					m.showForm = true
+					return forms.EditTask(selected)
 				}
 			case "a":
 				// cmd to go to form "add task"
-				return router.GotoForm(router.Route{
-					Page: router.TaskPage,
-				})
+				m.showForm = true
 			case "esc":
 				return router.Back()
 			}
@@ -151,7 +153,20 @@ func (m *Model) onInput(msg tea.Msg) tea.Cmd {
 	return cmd
 }
 
-//func (m *Model) onLocalEvents()
+func (m *Model) onFormInput(msg tea.Msg) tea.Cmd {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "esc":
+			m.showForm = false
+			m.form.Reset()
+			return nil
+		}
+	}
+	var cmd tea.Cmd
+	m.form, cmd = m.form.Update(msg)
+	return cmd
+}
 
 func (m *Model) setTasks(tasks []domain.Task) {
 	m.tasks = list.New(render.TasksToListItems(tasks), render.TaskDelegate{}, 50, 20)
@@ -160,5 +175,4 @@ func (m *Model) setTasks(tasks []domain.Task) {
 	m.tasks.Styles.Title = styles.PageTitleStyle
 	m.tasks.SetShowHelp(false)
 	m.tasks.KeyMap.Quit.Unbind()
-	m.loading = false
 }

@@ -7,20 +7,11 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/josiahdenton/recall/internal/domain"
 	"github.com/josiahdenton/recall/internal/ui/services/router"
+	"github.com/josiahdenton/recall/internal/ui/services/state"
 	"github.com/josiahdenton/recall/internal/ui/services/toast"
 	"github.com/josiahdenton/recall/internal/ui/styles"
 	"strings"
 )
-
-type attachTaskMsg struct {
-	task *domain.Task
-}
-
-func AttachTask(task *domain.Task) tea.Cmd {
-	return func() tea.Msg {
-		return attachTaskMsg{task: task}
-	}
-}
 
 const (
 	taskTitle = iota
@@ -29,6 +20,16 @@ const (
 	taskDue
 	taskInputCount
 )
+
+type editTaskMsg struct {
+	task *domain.Task
+}
+
+func EditTask(task *domain.Task) tea.Cmd {
+	return func() tea.Msg {
+		return editTaskMsg{task: task}
+	}
+}
 
 func NewTaskForm() *TaskFormModel {
 	inputTitle := textinput.New()
@@ -109,6 +110,7 @@ type TaskFormModel struct {
 	task     *domain.Task
 
 	active int
+	ready  bool
 }
 
 func (m *TaskFormModel) Init() tea.Cmd {
@@ -139,14 +141,14 @@ func (m *TaskFormModel) Reset() {
 	m.task = &domain.Task{}
 }
 
-func (m *TaskFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *TaskFormModel) Update(msg tea.Msg) (Form, tea.Cmd) {
 	var (
 		cmd  tea.Cmd
 		cmds []tea.Cmd
 	)
 
-	// local events
-	cmd = m.onLocalEvents(msg)
+	// global events
+	cmd = m.onGlobalEvents(msg)
 	cmds = append(cmds, cmd)
 
 	// inputs
@@ -156,16 +158,28 @@ func (m *TaskFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-func (m *TaskFormModel) onLocalEvents(msg tea.Msg) tea.Cmd {
+func (m *TaskFormModel) onGlobalEvents(msg tea.Msg) tea.Cmd {
+	// edits must be handled using the page route ID
 	switch msg := msg.(type) {
-	case attachTaskMsg:
-		m.task = msg.task
-		m.inputs[taskTitle].SetValue(m.task.Title)
-		m.inputs[taskTags].SetValue(m.task.Tags)
-		m.inputs[taskDesc].SetValue(m.task.Description)
-		m.inputs[taskDue].SetValue(domain.FormatDate(m.task.Due))
-	}
+	case router.OnInitPageMsg:
+		if msg.ID != 0 { // Edit task case
+			return state.Load(state.Request{
+				ID:   msg.ID,
+				Type: state.Task,
+			})
+		} else { // Add task case
+			m.ready = true
+		}
+	case state.LoadedStateMsg:
+		if task, ok := msg.State.(*domain.Task); ok {
+			m.task = task
+			m.inputs[taskTitle].SetValue(m.task.Title)
+			m.inputs[taskTags].SetValue(m.task.Tags)
+			m.inputs[taskDesc].SetValue(m.task.Description)
+			m.inputs[taskDue].SetValue(domain.FormatDate(m.task.Due))
+		}
 
+	}
 	return nil
 }
 
@@ -190,7 +204,7 @@ func (m *TaskFormModel) onInput(msg tea.Msg) tea.Cmd {
 
 			// submit form
 			m.Reset()
-			return submitTaskForm(m.task)
+			cmds = append(cmds, submitTaskForm(m.task), router.Back())
 		case "tab":
 			m.inputs[m.active%len(m.inputs)].Blur()
 			m.active++
@@ -225,8 +239,12 @@ type TaskFormMsg struct {
 	Task domain.Task
 }
 
+// submitTaskForm - should send a state.Save
 func submitTaskForm(task *domain.Task) tea.Cmd {
 	return func() tea.Msg {
-		return TaskFormMsg{Task: *task}
+		return state.Save(state.Request{
+			State: *task,
+			Type:  state.Task,
+		})
 	}
 }

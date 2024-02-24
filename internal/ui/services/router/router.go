@@ -14,11 +14,6 @@ const (
 	CyclesPage
 	CyclePage
 	AccomplishmentPage
-	ContentForm
-	TaskForm
-	StepForm
-	ResourceForm
-	ZettelForm
 	PageCount
 	// Forms...
 	PageLoading
@@ -101,8 +96,9 @@ func (r *Router) Back() tea.Cmd {
 // Messages
 
 type OnInitPageMsg struct {
-	Page Page
-	ID   uint
+	Page  Page
+	ID    uint
+	Flags map[string]bool
 }
 
 func initPage(r Route) tea.Cmd {
@@ -121,17 +117,6 @@ type loadPageMsg struct {
 func GotoPage(route Route) tea.Cmd {
 	return func() tea.Msg {
 		return loadPageMsg{route: route}
-	}
-}
-
-// GotoForm TODO - will need to add context support
-func GotoForm(route Route) tea.Cmd {
-	return func() tea.Msg {
-		// TODO - fill in
-		return loadPageMsg{route: Route{
-			Page: route.Page,
-			ID:   route.ID,
-		}}
 	}
 }
 

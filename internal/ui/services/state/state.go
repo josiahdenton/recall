@@ -211,6 +211,7 @@ func (s *State) Save(r Request) tea.Cmd {
 
 type DeletedStateMsg struct {
 	Type Type
+	ID   uint
 }
 
 func (s *State) Delete(r Request) tea.Cmd {
@@ -232,7 +233,7 @@ func (s *State) Delete(r Request) tea.Cmd {
 		case Step:
 		}
 
-		return DeletedStateMsg{Type: r.Type}
+		return DeletedStateMsg{Type: r.Type, ID: r.ID}
 	}
 }
 
@@ -286,6 +287,9 @@ type Request struct {
 	ID    uint
 	State any
 	Type  Type
+	// ParentID for removing associations in a delete request
+	ParentID   uint
+	ParentType Type
 }
 
 type deleteStateMsg struct {
