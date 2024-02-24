@@ -1,11 +1,16 @@
 package forms
 
-const longDateForm = "Jan 2, 2006 at 3:04pm (MST)"
-
-const (
-	none = iota
-	newItem
-	existingItem
+import (
+	"fmt"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/josiahdenton/recall/internal/ui/services/toast"
 )
 
-type attachMethod = int
+func validateFrom(errs ...error) tea.Cmd {
+	for _, err := range errs {
+		if err != nil {
+			return toast.ShowToast(fmt.Sprintf("%v", err), toast.Warn)
+		}
+	}
+	return nil
+}

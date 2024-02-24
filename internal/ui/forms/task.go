@@ -2,50 +2,35 @@ package forms
 
 import (
 	"fmt"
-	"github.com/charmbracelet/lipgloss"
-	"github.com/josiahdenton/recall/internal/domain"
-	"github.com/josiahdenton/recall/internal/ui/router"
-	"github.com/josiahdenton/recall/internal/ui/state"
-	"github.com/josiahdenton/recall/internal/ui/styles"
-	"github.com/josiahdenton/recall/internal/ui/toast"
-	"reflect"
-	"strings"
-	"time"
-
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/josiahdenton/recall/internal/domain"
+	"github.com/josiahdenton/recall/internal/ui/services/router"
+	"github.com/josiahdenton/recall/internal/ui/services/toast"
+	"github.com/josiahdenton/recall/internal/ui/styles"
+	"strings"
 )
 
-const (
-	title = iota
-	due
-	tTags
-)
+type attachTaskMsg struct {
+	task *domain.Task
+}
 
-var (
-	leftPad = lipgloss.NewStyle().PaddingLeft(2)
-)
-
-func EditTask(task *domain.Task) tea.Cmd {
+func AttachTask(task *domain.Task) tea.Cmd {
 	return func() tea.Msg {
-		return editTaskMsg{
-			Task: task,
-		}
+		return attachTaskMsg{task: task}
 	}
 }
 
-type editTaskMsg struct {
-	Task *domain.Task
-}
+const (
+	taskTitle = iota
+	taskTags
+	taskDesc
+	taskDue
+	taskInputCount
+)
 
-type TaskFormModel struct {
-	title  string
-	inputs []textinput.Model
-	active int
-	task   *domain.Task
-}
-
-func NewTaskForm() TaskFormModel {
+func NewTaskForm() *TaskFormModel {
 	inputTitle := textinput.New()
 	inputTitle.Focus()
 	inputTitle.Width = 60
@@ -61,165 +46,187 @@ func NewTaskForm() TaskFormModel {
 		return nil
 	}
 
+	inputTags := textinput.New()
+	inputTags.Width = 60
+	inputTags.CharLimit = 60
+	inputTags.Prompt = "Tags: "
+	inputTags.PromptStyle = styles.FormLabelStyle
+	inputTags.Placeholder = "(comma seperated list - tags improve search!)"
+
+	inputTags.Validate = func(s string) error {
+		if len(strings.Trim(s, " \n")) < 1 {
+			return fmt.Errorf("task tags missing")
+		}
+		return nil
+	}
+
+	inputDesc := textinput.New()
+	inputDesc.Width = 60
+	inputDesc.CharLimit = 60
+	inputDesc.Prompt = "Description: "
+	inputDesc.PromptStyle = styles.FormLabelStyle
+	inputDesc.Placeholder = "..."
+
+	inputDesc.Validate = func(s string) error {
+		if len(strings.Trim(s, " \n")) < 1 {
+			return fmt.Errorf("task description missing")
+		}
+		return nil
+	}
+
 	inputDue := textinput.New()
 	inputDue.Width = 60
-	inputDue.CharLimit = 120
+	inputDue.CharLimit = 60
 	inputDue.Prompt = "Due: "
 	inputDue.PromptStyle = styles.FormLabelStyle
 	inputDue.Placeholder = "Jan 5, 2013 (optional)"
 
 	inputDue.Validate = func(s string) error {
+		if len(strings.Trim(s, " \n")) < 1 {
+			return fmt.Errorf("task due date missing")
+		}
 		return nil
 	}
 
-	inputTags := textinput.New()
-	inputTags.Width = 60
-	inputTags.CharLimit = 120
-	inputTags.Prompt = "Tags: "
-	inputTags.PromptStyle = styles.FormLabelStyle
-	inputTags.Placeholder = "(comma seperated list - tags improve search)"
+	inputs := make([]textinput.Model, taskInputCount)
+	inputs[taskTitle] = inputTitle
+	inputs[taskTags] = inputTags
+	inputs[taskDesc] = inputDesc
+	inputs[taskDue] = inputDue
 
-	inputs := make([]textinput.Model, 3)
-	inputs[title] = inputTitle
-	inputs[due] = inputDue
-	inputs[tTags] = inputTags
-
-	return TaskFormModel{
-		title:  "Add Task",
+	return &TaskFormModel{
 		inputs: inputs,
-		task:   &domain.Task{},
+		boxStyle: styles.Box(styles.BoxOptions{
+			Size:        styles.Single,
+			BorderColor: styles.SecondaryGray,
+		}),
 	}
 }
 
-func (m TaskFormModel) Init() tea.Cmd {
+type TaskFormModel struct {
+	inputs   []textinput.Model
+	boxStyle lipgloss.Style
+	task     *domain.Task
+
+	active int
+}
+
+func (m *TaskFormModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m TaskFormModel) View() string {
+func (m *TaskFormModel) View() string {
 	var b strings.Builder
-	b.WriteString(styles.FormTitleStyle.Render(m.title))
-	b.WriteString("\n\n")
-	b.WriteString(leftPad.Render(m.inputs[title].View()))
-	b.WriteString("\n\n")
-	b.WriteString(leftPad.Render(m.inputs[due].View()))
-	b.WriteString("\n\n")
-	b.WriteString(leftPad.Render(m.inputs[tTags].View()))
-	return b.String()
+	b.WriteString("Add Task\n\n")
+	for _, input := range m.inputs {
+		b.WriteString(input.View())
+		b.WriteString("\n\n")
+	}
+	return m.boxStyle.Render(b.String())
 }
 
-func (m TaskFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmd tea.Cmd
-	var cmds []tea.Cmd
+func (m *TaskFormModel) Reset() {
+	m.inputs[taskTitle].Reset()
+	m.inputs[taskTags].Reset()
+	m.inputs[taskDesc].Reset()
+	m.inputs[taskDue].Reset()
 
-	switch msg := msg.(type) {
-	case editTaskMsg:
-		m.task = msg.Task
-		m.inputs[title].SetValue(m.task.Title)
-		m.inputs[due].SetValue(formatDate(m.task.Due))
-		m.inputs[tTags].SetValue(m.task.Tags)
-		m.title = "Edit Task"
-	case tea.KeyMsg:
-		switch msg.Type {
-		case tea.KeyEsc:
-			m.inputs[title].Reset()
-			m.inputs[title].Focus()
-			m.inputs[due].Reset()
-			m.inputs[due].Blur()
-			m.inputs[rTags].Reset()
-			m.inputs[rTags].Blur()
-			m.active = 0
-			m.task = &domain.Task{}
-		case tea.KeyEnter:
-			if m.active == title {
-				m.inputs[title].Blur()
-				m.active++
-				m.inputs[due].Focus()
-				break
-			} else if m.active == due {
-				m.inputs[due].Blur()
-				m.active++
-				break
-			}
+	m.inputs[taskTitle].Focus()
+	m.inputs[taskTags].Blur()
+	m.inputs[taskDesc].Blur()
+	m.inputs[taskDue].Blur()
+	m.active = taskTitle
+	m.task = &domain.Task{}
+}
 
-			if err := m.inputs[title].Err; err != nil {
-				cmds = append(cmds, toast.ShowToast(fmt.Sprintf("%v", err), toast.Warn))
-				return m, tea.Batch(cmds...)
-			}
+func (m *TaskFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var (
+		cmd  tea.Cmd
+		cmds []tea.Cmd
+	)
 
-			date := m.inputs[due].Value()
-			dueDate, cmd := parseDate(date)
-			if cmd != nil {
-				cmds = append(cmds, cmd)
-				return m, tea.Batch(cmds...)
-			}
-			m.task.Title = m.inputs[title].Value()
-			m.task.Due = dueDate
-			m.task.Tags = m.inputs[tTags].Value()
-
-			cmds = append(cmds, addTask(m.task), router.RefreshPage())
-			// Reset
-			m.inputs[title].Reset()
-			m.inputs[title].Focus()
-			m.inputs[due].Reset()
-			m.inputs[due].Blur()
-			m.inputs[rTags].Reset()
-			m.inputs[rTags].Blur()
-			m.active = 0
-			m.task = &domain.Task{}
-		case tea.KeyTab:
-			m.inputs[m.active].Blur()
-			m.active = m.nextInput(m.active)
-			m.inputs[m.active].Focus()
-		}
-	}
-
-	m.inputs[m.active], cmd = m.inputs[m.active].Update(msg)
+	// local events
+	cmd = m.onLocalEvents(msg)
 	cmds = append(cmds, cmd)
 
-	return m, tea.Batch(cmds...)
+	// inputs
+	cmd = m.onInput(msg)
+	cmds = append(cmds, cmd)
+
+	return m, cmd
 }
 
-func (m TaskFormModel) nextInput(current int) int {
-	switch current {
-	case title:
-		return due
-	case due:
-		return tTags
-	case tTags:
-		return title
+func (m *TaskFormModel) onLocalEvents(msg tea.Msg) tea.Cmd {
+	switch msg := msg.(type) {
+	case attachTaskMsg:
+		m.task = msg.task
+		m.inputs[taskTitle].SetValue(m.task.Title)
+		m.inputs[taskTags].SetValue(m.task.Tags)
+		m.inputs[taskDesc].SetValue(m.task.Description)
+		m.inputs[taskDue].SetValue(domain.FormatDate(m.task.Due))
 	}
-	return title
 
+	return nil
 }
 
-func addTask(task *domain.Task) tea.Cmd {
-	return func() tea.Msg {
-		return state.SaveStateMsg{
-			Type:   state.ModifyTask,
-			Update: *task,
+func (m *TaskFormModel) onInput(msg tea.Msg) tea.Cmd {
+	var (
+		cmd  tea.Cmd
+		cmds []tea.Cmd
+	)
+
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "enter":
+			if cmd := validateFrom(m.inputs[taskTitle].Err); cmd != nil {
+				return cmd
+			}
+
+			// parse form inputs
+			if cmd := m.parseFormInputs(); cmd != nil {
+				return cmd
+			}
+
+			// submit form
+			m.Reset()
+			return submitTaskForm(m.task)
+		case "tab":
+			m.inputs[m.active%len(m.inputs)].Blur()
+			m.active++
+			m.inputs[m.active%len(m.inputs)].Focus()
+		case "esc":
+			cmds = append(cmds, router.Back())
+			m.Reset()
 		}
 	}
+
+	m.inputs[m.active%len(m.inputs)], cmd = m.inputs[m.active%len(m.inputs)].Update(msg)
+	cmds = append(cmds, cmd)
+
+	return tea.Batch(cmds...)
 }
 
-func formatDate(due time.Time) string {
-	if reflect.ValueOf(due).IsZero() {
-		return ""
-	}
-
-	s := due.Format(longDateForm)
-	value := strings.Split(s, "at")[0]
-	return value
-}
-
-func parseDate(date string) (time.Time, tea.Cmd) {
-	if len(strings.Trim(date, " \n")) < 1 {
-		return time.Time{}, nil
-	}
-
-	input := fmt.Sprintf("%s at 10:00pm (EST)", date)
-	t, err := time.Parse(longDateForm, input)
+func (m *TaskFormModel) parseFormInputs() tea.Cmd {
+	m.task.Title = m.inputs[taskTitle].Value()
+	m.task.Tags = m.inputs[taskTags].Value()
+	m.task.Description = m.inputs[taskDesc].Value()
+	due := m.inputs[taskDue].Value()
+	parsedDue, err := domain.ParseDate(due)
 	if err != nil {
-		return time.Time{}, toast.ShowToast("failed to parse date", toast.Warn)
+		return toast.ShowToast(fmt.Sprintf("%v", err), toast.Warn)
 	}
-	return t, nil
+	m.task.Due = parsedDue
+
+	return nil
+}
+
+type TaskFormMsg struct {
+	Task domain.Task
+}
+
+func submitTaskForm(task *domain.Task) tea.Cmd {
+	return func() tea.Msg {
+		return TaskFormMsg{Task: *task}
+	}
 }

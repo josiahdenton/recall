@@ -76,7 +76,7 @@ func DefaultKeybindings() Keybindings {
 	}
 	keys["u"] = Keybinding{
 		Key:         "u",
-		Description: "Undo the last action (limited support)",
+		Description: "Undo the last io (limited support)",
 		Action:      ActionUndo,
 	}
 	keys["r"] = Keybinding{
@@ -174,5 +174,5 @@ func (k Keybindings) ParseKeyPress(keyPress string) Action {
 type Keybinding struct {
 	Key         string `json:"key"`
 	Description string `json:"description"`
-	Action      Action `json:"action"`
+	Action      Action `json:"io"`
 }

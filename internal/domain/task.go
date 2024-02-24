@@ -14,9 +14,10 @@ import (
 
 type Task struct {
 	gorm.Model
-	Title string
-	Tags  string
-	Due   time.Time
+	Title       string
+	Tags        string
+	Description string
+	Due         time.Time
 	// Active tracks if the current task is actively being worked on
 	Active bool
 	// Duration is the total time worked on a task
@@ -24,8 +25,8 @@ type Task struct {
 	// LastActivatedTime tracks how long it's been since this task was activated
 	LastActivatedTime time.Time
 	Archive           bool
+	Zettels           []Zettel
 	Resources         []Resource `gorm:"many2many:task_resources"`
-	Status            []Status
 	Steps             []Step
 	AccomplishmentID  uint
 }
@@ -55,10 +56,6 @@ func (t *Task) ActiveDuration() time.Duration {
 
 func (t *Task) RemoveResource(i int) {
 	t.Resources = append(t.Resources[:i], t.Resources[i+1:]...)
-}
-
-func (t *Task) RemoveStatus(i int) {
-	t.Status = append(t.Status[:i], t.Status[i+1:]...)
 }
 
 func (t *Task) RemoveStep(i int) {
