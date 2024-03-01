@@ -13,7 +13,7 @@ const (
 	BaseWidth = 60
 	maxWidth  = 120
 	// BaseHeight represents the basic size of a "single" BaseHeight
-	BaseHeight = 20
+	BaseHeight = 16
 	maxHeight  = 40
 )
 
@@ -93,5 +93,6 @@ var (
 
 	InactiveStyle = lipgloss.NewStyle().Foreground(SecondaryGray)
 
-	PageTitleStyle = lipgloss.NewStyle().Foreground(SecondaryGray).Bold(true)
+	PageTitleStyle       = lipgloss.NewStyle().Foreground(SecondaryGray).Bold(true)
+	ActivePageTitleStyle = lipgloss.NewStyle().Foreground(SecondaryColor).Bold(true)
 )

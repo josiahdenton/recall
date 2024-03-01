@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-func RenderTaskHeader(task *domain.Task) string {
+func TaskHeader(task *domain.Task) string {
 	/**
 	Task Name
 	Due 11/11/23 (tag1, tag2, tag3, tag4, ...)

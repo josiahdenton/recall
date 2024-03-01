@@ -22,6 +22,7 @@ type Repository interface {
 	DeleteTask(uint)
 	UnlinkTaskResource(*domain.Task, *domain.Resource)
 	UnlinkTaskStep(*domain.Task, *domain.Step)
+	UnlinkTaskStatus(*domain.Task, *domain.Status)
 	UndoDeleteTask(uint)
 	ModifyStep(step domain.Step) domain.Step
 
@@ -43,16 +44,6 @@ type Repository interface {
 	ModifyResource(domain.Resource) domain.Resource
 	AllResources() []domain.Resource
 
-	// Zettels
-
-	AllZettels() []domain.Zettel
-	Zettel(uint) *domain.Zettel
-	ModifyZettel(domain.Zettel) domain.Zettel
-	DeleteZettel(uint)
-	UnlinkZettel(*domain.Zettel, *domain.Zettel)
-	UnlinkZettelResource(*domain.Zettel, *domain.Resource)
-	UndoDeleteZettel(uint)
-
 	LoadRepository() error
 }
 
@@ -61,8 +52,6 @@ const (
 
 	Task = iota
 	Tasks
-	Zettel
-	Zettels
 	Resource
 	Resources
 	Cycles
@@ -72,6 +61,7 @@ const (
 
 	Accomplishment
 	Step
+	Status
 )
 
 type Type = int
@@ -101,18 +91,18 @@ type ModeSwitchMsg struct {
 	Current  Mode
 }
 
-func New(path string) *State {
-	// TODO - call and setup repo
+func New(path string, storage Repository) *State {
+	// TODO - call and setup storage...
 	return &State{
-		Mode:       View,
-		Repository: nil,
+		Mode:    View,
+		Storage: storage,
 	}
 }
 
 // State represents the state of recall
 type State struct {
-	Mode       Mode
-	Repository Repository
+	Mode    Mode
+	Storage Repository
 }
 
 func (s *State) Update(msg tea.Msg) tea.Cmd {
@@ -157,23 +147,15 @@ func (s *State) Save(r Request) tea.Cmd {
 		switch r.Type {
 		case Task:
 			if item, ok := r.State.(domain.Task); ok {
-				state = s.Repository.ModifyTask(item)
+				state = s.Storage.ModifyTask(item)
 			} else {
 				err = FailedItemConversion
 			}
 		case Tasks:
 			// no mass edits supported yet!
-		case Zettel:
-			if item, ok := r.State.(domain.Zettel); ok {
-				state = s.Repository.ModifyZettel(item)
-			} else {
-				err = FailedItemConversion
-			}
-		case Zettels:
-			// no mass edits supported yet!
 		case Resource:
 			if item, ok := r.State.(domain.Resource); ok {
-				state = s.Repository.ModifyResource(item)
+				state = s.Storage.ModifyResource(item)
 			} else {
 				err = FailedItemConversion
 			}
@@ -181,7 +163,7 @@ func (s *State) Save(r Request) tea.Cmd {
 			// no mass edits supported yet!
 		case Cycle:
 			if item, ok := r.State.(domain.Cycle); ok {
-				state = s.Repository.ModifyCycle(item)
+				state = s.Storage.ModifyCycle(item)
 			} else {
 				err = FailedItemConversion
 			}
@@ -189,13 +171,13 @@ func (s *State) Save(r Request) tea.Cmd {
 			// no mass edits supported yet!
 		case Accomplishment:
 			if item, ok := r.State.(domain.Accomplishment); ok {
-				state = s.Repository.ModifyAccomplishment(item)
+				state = s.Storage.ModifyAccomplishment(item)
 			} else {
 				err = FailedItemConversion
 			}
 		case Step:
 			if item, ok := r.State.(domain.Step); ok {
-				state = s.Repository.ModifyStep(item)
+				state = s.Storage.ModifyStep(item)
 			} else {
 				err = FailedItemConversion
 			}
@@ -218,12 +200,11 @@ func (s *State) Delete(r Request) tea.Cmd {
 	return func() tea.Msg {
 		switch r.Type {
 		case Task:
+			s.Storage.DeleteTask(r.ID)
 		case Tasks:
 			// no mass edits supported yet!
-		case Zettel:
-		case Zettels:
-			// no mass edits supported yet!
 		case Resource:
+			s.Storage.UnlinkTaskResource(r.Parent.(*domain.Task), r.State.(*domain.Resource))
 		case Resources:
 			// no mass edits supported yet!
 		case Cycle:
@@ -253,8 +234,6 @@ func (s *State) Load(r Request) tea.Cmd {
 		case Tasks:
 			state = mockTasks
 			log.Printf("loaded mock tasks")
-		case Zettel:
-		case Zettels:
 		case Resource:
 		case Resources:
 			state = mockResources
@@ -290,7 +269,7 @@ type Request struct {
 	State any
 	Type  Type
 	// ParentID for removing associations in a delete request
-	ParentID   uint
+	Parent     any
 	ParentType Type
 }
 

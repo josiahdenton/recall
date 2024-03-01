@@ -2,6 +2,7 @@ package ui
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/josiahdenton/recall/internal/adapters/repository"
 	"github.com/josiahdenton/recall/internal/ui/pages/task"
 	"github.com/josiahdenton/recall/internal/ui/pages/tasks"
 	"github.com/josiahdenton/recall/internal/ui/services/clipboard"
@@ -23,7 +24,7 @@ func New(path string) *Model {
 	pages[router.TaskPage] = task.New()
 
 	return &Model{
-		state:   state.New(path),
+		state:   state.New(path, repository.DefaultInMemory()),
 		pages:   pages,
 		active:  router.TasksPage,
 		router:  router.New(),

@@ -25,12 +25,16 @@ const (
 
 func New() *Model {
 	boxStyle := styles.Box(styles.BoxOptions{
-		Size:        styles.Full,
 		BorderColor: styles.SecondaryGray,
+		BoxSize: styles.BoxSize{
+			Width:  150,
+			Height: 35,
+		},
 	})
 
 	return &Model{
-		box: boxStyle,
+		box:   boxStyle,
+		lists: make([]list.Model, 3),
 	}
 }
 
@@ -55,20 +59,19 @@ func (m *Model) View() string {
 		b.WriteString(m.box.Render(""))
 	} else {
 		// if header active - switch "active/inactive" box styles
-		b.WriteString(m.box.Render(render.RenderTaskHeader(m.task)))
+		b.WriteString(render.TaskHeader(m.task))
 		b.WriteString("\n")
-		for i, l := range m.lists {
-			if m.active != i {
-				b.WriteString(styles.InactiveStyle.Render(l.View()))
-			} else {
-				b.WriteString(l.View())
-			}
-		}
+		b.WriteString("\n")
+		b.WriteString(lipgloss.JoinHorizontal(lipgloss.Left, m.lists[steps].View(), m.lists[resources].View()))
+		b.WriteString("\n")
+		b.WriteString(m.lists[status].View())
+		b.WriteString("\n")
 	}
-	return b.String()
+	return m.box.Render(b.String())
 }
 
 func (m *Model) Reset() {
+	m.active = 0
 	m.ready = false
 	m.showForm = false
 }
@@ -111,8 +114,8 @@ func (m *Model) onGlobalEvents(msg tea.Msg) tea.Cmd {
 		if task, ok := msg.State.(*domain.Task); ok {
 			m.setSteps(task.Steps)
 			m.setResources(task.Resources)
-			m.setStatus()
-			log.Printf("ready")
+			m.setStatus(task.Status)
+			m.task = task
 			m.ready = true
 		}
 	}
@@ -143,15 +146,37 @@ func (m *Model) onInput(msg tea.Msg) tea.Cmd {
 		case "space":
 			cmd = m.copy()
 			cmds = append(cmds, cmd)
+		case "esc":
+			cmds = append(cmds, router.Back())
+		case "tab":
+			m.changeFocus()
 		}
 	}
 
 	if m.active < header {
-		m.lists[m.active%len(m.lists)], cmd = m.lists[m.active%len(m.lists)].Update(msg)
+		m.lists[m.active], cmd = m.lists[m.active].Update(msg)
 		cmds = append(cmds, cmd)
 	}
 
 	return tea.Batch(cmds...)
+}
+
+func (m *Model) changeFocus() {
+	if m.active == header {
+		m.active = steps
+		m.lists[m.active].Styles.Title = styles.ActivePageTitleStyle
+	} else if m.active == steps {
+		m.lists[m.active].Styles.Title = styles.PageTitleStyle
+		m.active = resources
+		m.lists[m.active].Styles.Title = styles.ActivePageTitleStyle
+	} else if m.active == resources {
+		m.lists[m.active].Styles.Title = styles.PageTitleStyle
+		m.active = status
+		m.lists[m.active].Styles.Title = styles.ActivePageTitleStyle
+	} else if m.active == status {
+		m.lists[m.active].Styles.Title = styles.PageTitleStyle
+		m.active = header
+	}
 }
 
 func (m *Model) openAddForm() tea.Cmd {
@@ -165,8 +190,8 @@ func (m *Model) openAddForm() tea.Cmd {
 
 func (m *Model) openEditForm() tea.Cmd {
 	switch m.active {
-	case zettels:
-		// TODO - we could support this one day
+	case status:
+		// TODO - add support
 		return toast.ShowToast("unsupported!", toast.Warn)
 	case steps:
 		if selected, ok := m.lists[steps].SelectedItem().(*domain.Step); ok {
@@ -185,31 +210,34 @@ func (m *Model) openEditForm() tea.Cmd {
 
 func (m *Model) delete() tea.Cmd {
 	switch m.active {
-	case zettels:
-		if selected, ok := m.lists[zettels].SelectedItem().(*domain.Zettel); ok {
+	case status:
+		if selected, ok := m.lists[status].SelectedItem().(*domain.Status); ok {
+			m.lists[status].RemoveItem(m.lists[status].Index())
 			return state.Delete(state.Request{
 				ID:         selected.ID,
-				Type:       state.Zettel,
+				Type:       state.Status,
 				ParentType: state.Task,
-				ParentID:   m.task.ID,
+				Parent:     m.task,
 			})
 		}
 	case steps:
 		if selected, ok := m.lists[steps].SelectedItem().(*domain.Step); ok {
+			m.lists[steps].RemoveItem(m.lists[status].Index())
 			return state.Delete(state.Request{
 				ID:         selected.ID,
 				Type:       state.Step,
 				ParentType: state.Task,
-				ParentID:   m.task.ID,
+				Parent:     m.task,
 			})
 		}
 	case resources:
 		if selected, ok := m.lists[resources].SelectedItem().(*domain.Resource); ok {
+			m.lists[resources].RemoveItem(m.lists[status].Index())
 			return state.Delete(state.Request{
 				ID:         selected.ID,
 				Type:       state.Resource,
 				ParentType: state.Task,
-				ParentID:   m.task.ID,
+				Parent:     m.task,
 			})
 		}
 	case header:
@@ -221,13 +249,8 @@ func (m *Model) delete() tea.Cmd {
 
 func (m *Model) interact() tea.Cmd {
 	switch m.active {
-	case zettels:
-		if selected, ok := m.lists[zettels].SelectedItem().(*domain.Zettel); ok {
-			return router.GotoPage(router.Route{
-				Page: router.ZettelPage,
-				ID:   selected.ID,
-			})
-		}
+	case status:
+		return toast.ShowToast("unsupported", toast.Warn)
 	case steps:
 		if selected, ok := m.lists[steps].SelectedItem().(*domain.Step); ok {
 			selected.ToggleStatus()
@@ -257,8 +280,10 @@ func (m *Model) copy() tea.Cmd {
 	switch m.active {
 	case header:
 		return toast.ShowToast("unsupported!", toast.Warn)
-	case zettels:
-		return toast.ShowToast("unsupported!", toast.Warn)
+	case status:
+		if s, ok := m.lists[status].SelectedItem().(*domain.Step); ok {
+			return clipboard.Copy(s.Description)
+		}
 	case steps:
 		if step, ok := m.lists[steps].SelectedItem().(*domain.Step); ok {
 			return clipboard.Copy(step.Description)
@@ -272,8 +297,8 @@ func (m *Model) copy() tea.Cmd {
 }
 
 func (m *Model) setStatus(statuses []domain.Status) {
-	m.lists[status] = list.New(render.StatusToListItems(statuses), render.statusDelegate{}, 120, 10)
-	m.lists[status].Title = "Zettels"
+	m.lists[status] = list.New(render.StatusToListItems(statuses), render.StatusDelegate{}, 120, 10)
+	m.lists[status].Title = "Status"
 	m.lists[status].Styles.PaginationStyle = styles.PaginationStyle
 	m.lists[status].Styles.Title = styles.PageTitleStyle
 	m.lists[status].SetShowHelp(false)

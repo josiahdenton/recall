@@ -15,15 +15,12 @@ var (
 		Duration:          0,
 		LastActivatedTime: time.Time{},
 		Archive:           false,
-		Zettels: []domain.Zettel{
+		Status: []domain.Status{
 			{
-				Name:      "Something something abcs",
-				Tags:      "here tag, tags cool, tags neat",
-				Concept:   "ABC's are boring.",
-				Favorite:  false,
-				TaskID:    0,
-				Links:     nil,
-				Resources: nil,
+				Description: "This is a long status as an example to show on some task as a way to make sure we know what we're doing here.",
+			},
+			{
+				Description: "Something slightly shorter to offer a differing point of view",
 			},
 		},
 		Resources: []domain.Resource{
