@@ -10,14 +10,14 @@ import (
 	"io"
 )
 
-type ZettelDelegate struct{}
+type statusDelegate struct{}
 
-func (d ZettelDelegate) Height() int  { return 1 }
-func (d ZettelDelegate) Spacing() int { return 0 }
-func (d ZettelDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd {
+func (d statusDelegate) Height() int  { return 1 }
+func (d statusDelegate) Spacing() int { return 0 }
+func (d statusDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd {
 	return nil
 }
-func (d ZettelDelegate) Render(w io.Writer, m list.Model, index int, item list.Item) {
+func (d statusDelegate) Render(w io.Writer, m list.Model, index int, item list.Item) {
 	step, ok := item.(*domain.Step)
 	if !ok {
 		return
@@ -25,16 +25,16 @@ func (d ZettelDelegate) Render(w io.Writer, m list.Model, index int, item list.I
 	fmt.Fprintf(w, renderStep(step, index == m.Index()))
 }
 
-func ZettelsToListItems(zettels []domain.Zettel) []list.Item {
-	items := make([]list.Item, len(zettels))
-	for i := range zettels {
-		item := &zettels[i]
+func StatusToListItems(status []domain.Status) []list.Item {
+	items := make([]list.Item, len(status))
+	for i := range status {
+		item := &status[i]
 		items[i] = item
 	}
 	return items
 }
 
-func renderZettel(zettel *domain.Zettel, selected bool) string {
+func renderStatus(status *domain.Status, selected bool) string {
 	style := styles.DefaultItemStyle
 	marker := ""
 	cursorStyle := styles.InactiveCursorStyle
@@ -44,5 +44,5 @@ func renderZettel(zettel *domain.Zettel, selected bool) string {
 		cursorStyle = styles.ActiveCursorStyle
 	}
 
-	return lipgloss.JoinHorizontal(lipgloss.Left, cursorStyle.Render(marker), style.Render(zettel.Name), style.Render(zettel.Tags))
+	return lipgloss.JoinHorizontal(lipgloss.Left, cursorStyle.Render(marker), style.Render(status.Name), style.Render(status.Tags))
 }

@@ -11,39 +11,67 @@ import (
 	"github.com/josiahdenton/recall/internal/ui/services/state"
 	"github.com/josiahdenton/recall/internal/ui/services/toast"
 	"github.com/josiahdenton/recall/internal/ui/styles"
-	"log"
 	"strings"
 )
 
+const (
+	tasks = iota
+	resources
+)
+
 func New() *Model {
-	listBoxStyle := styles.Box(styles.BoxOptions{
+	tasksStyle := styles.Box(styles.BoxOptions{
+		BorderColor: styles.SecondaryColor,
 		BoxSize: styles.BoxSize{
 			Width:  styles.BaseWidth * 2,
 			Height: styles.BaseHeight*2 - 10,
 		},
-		BorderColor: styles.SecondaryGray,
 	})
-	headerStyle := styles.Box(styles.BoxOptions{
+	inactiveTasksStyle := styles.Box(styles.BoxOptions{
 		BorderColor: styles.SecondaryGray,
+		TextColor:   styles.SecondaryColor,
+		BoxSize: styles.BoxSize{
+			Width:  styles.BaseWidth * 2,
+			Height: styles.BaseHeight*2 - 10,
+		},
+	})
+	resourcesStyle := styles.Box(styles.BoxOptions{
+		BorderColor: styles.SecondaryColor,
+		BoxSize: styles.BoxSize{
+			Width:  styles.BaseWidth * 2,
+			Height: 10,
+		},
+	})
+	inactiveResourcesStyle := styles.Box(styles.BoxOptions{
+		BorderColor: styles.SecondaryGray,
+		TextColor:   styles.SecondaryColor,
 		BoxSize: styles.BoxSize{
 			Width:  styles.BaseWidth * 2,
 			Height: 10,
 		},
 	})
 	return &Model{
-		form:        forms.NewTaskForm(),
-		listStyle:   listBoxStyle,
-		headerStyle: headerStyle,
+		forms:                  []forms.Form{forms.NewTaskForm()},
+		tasksStyle:             tasksStyle,
+		inactiveTasksStyle:     inactiveTasksStyle,
+		resourcesStyle:         resourcesStyle,
+		inactiveResourcesStyle: inactiveResourcesStyle,
 	}
 }
 
 type Model struct {
-	tasks       list.Model
-	form        forms.Form
-	listStyle   lipgloss.Style
-	headerStyle lipgloss.Style
-	ready       bool
-	showForm    bool
+	tasks                  list.Model
+	resources              list.Model
+	forms                  []forms.Form
+	tasksStyle             lipgloss.Style
+	inactiveTasksStyle     lipgloss.Style
+	resourcesStyle         lipgloss.Style
+	inactiveResourcesStyle lipgloss.Style
+	ready                  bool
+	resourcesLoaded        bool
+	tasksLoaded            bool
+	showForm               bool
+	active                 int
 }
 
 func (m *Model) Init() tea.Cmd {
@@ -51,25 +79,20 @@ func (m *Model) Init() tea.Cmd {
 }
 
 func (m *Model) View() string {
-	// TODO - also render the summary box above??
 	var b strings.Builder
-	if !m.ready {
-		b.WriteString(m.headerStyle.Render(""))
-		b.WriteString("\n")
-		b.WriteString(m.listStyle.Render(""))
+	if m.ready {
+		if m.active == tasks {
+			b.WriteString(m.tasksStyle.Render(m.tasks.View()))
+			b.WriteString("\n")
+			b.WriteString(m.inactiveResourcesStyle.Render(m.resources.View()))
+		} else {
+			b.WriteString(m.inactiveTasksStyle.Render(m.tasks.View()))
+			b.WriteString("\n")
+			b.WriteString(m.resourcesStyle.Render(m.resources.View()))
+		}
 	} else if m.ready && m.showForm {
 		// note - forms handle their own styling
-		b.WriteString(m.form.View())
-	} else {
-		selected, ok := m.tasks.SelectedItem().(*domain.Task)
-		if ok {
-			b.WriteString(m.headerStyle.Render(render.RenderTaskHeader(selected)))
-		} else {
-			b.WriteString(m.headerStyle.Render("Try adding a task..."))
-		}
-
-		b.WriteString("\n")
-		b.WriteString(m.listStyle.Render(m.tasks.View()))
+		b.WriteString(m.forms[m.active].View())
 	}
 
 	return b.String()
@@ -90,8 +113,11 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	cmds = append(cmds, cmd)
 
 	// input
-	if m.ready && !m.showForm {
-		cmd = m.onInput(msg)
+	if m.ready && !m.showForm && m.active == tasks {
+		cmd = m.onInputTasks(msg)
+		cmds = append(cmds, cmd)
+	} else if m.ready && !m.showForm && m.active == resources {
+		cmd = m.onInputResources(msg)
 		cmds = append(cmds, cmd)
 	} else if m.ready && m.showForm {
 		cmd = m.onFormInput(msg)
@@ -104,43 +130,100 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m *Model) onGlobalEvents(msg tea.Msg) tea.Cmd {
 	switch msg := msg.(type) {
 	case forms.TaskFormMsg:
-		// todo - add task to list
-		// send task off to be saved
+		m.tasks.InsertItem(len(m.tasks.Items()), &msg.Task)
+		return state.Save(state.Request{
+			State: msg.Task,
+			Type:  state.Task,
+		})
 	case router.OnInitPageMsg:
-		// request to load tasks from DB
-		log.Printf("did we get an on init")
 		if msg.Page == router.TasksPage {
-			return state.Load(state.Request{
-				Type: state.Tasks,
-			})
+			return tea.Batch(
+				state.Load(state.Request{
+					Type: state.Tasks,
+				}),
+				state.Load(state.Request{
+					Type: state.Resources,
+				}),
+			)
 		}
 	case state.LoadedStateMsg:
-		log.Printf("did we get a loaded?")
-		// get tasks and create lists from them
-		tasks, ok := msg.State.([]domain.Task)
-		if !ok {
-			return toast.ShowToast("failed to fetch tasks", toast.Warn)
+		if msg.Type == state.Tasks {
+			tasks, ok := msg.State.([]domain.Task)
+			if !ok {
+				return toast.ShowToast("failed to fetch tasks", toast.Warn)
+			}
+			m.setTasks(tasks)
+			m.tasksLoaded = true
+		} else if msg.Type == state.Resources {
+			resources, ok := msg.State.([]domain.Resource)
+			if !ok {
+				return toast.ShowToast("failed to fetch resources", toast.Warn)
+			}
+			m.setResources(resources)
+			m.resourcesLoaded = true
 		}
-		m.setTasks(tasks)
-		m.ready = true
+		m.ready = m.resourcesLoaded && m.tasksLoaded
 	}
 
 	// no match found
 	return nil
 }
 
-func (m *Model) onInput(msg tea.Msg) tea.Cmd {
+func (m *Model) onInputResources(msg tea.Msg) tea.Cmd {
+	if m.resources.FilterState() != list.Filtering {
+		switch msg := msg.(type) {
+		case tea.KeyMsg:
+			switch msg.String() {
+			case "tab":
+				m.changeFocus()
+			case "enter":
+				if selected, ok := m.resources.SelectedItem().(*domain.Resource); ok {
+					if selected.Open() {
+						return toast.ShowToast("opening web page!", toast.Info)
+					} else {
+						return toast.ShowToast("failed to open resource", toast.Warn)
+					}
+				}
+			case "e":
+				if _, ok := m.resources.SelectedItem().(*domain.Task); ok {
+					m.showForm = true
+					// TODO forms.EditResource
+				}
+			case "a":
+				// cmd to go to forms "add task"
+				m.showForm = true
+			case "esc":
+				return router.Back()
+			}
+		}
+	}
+
+	var cmd tea.Cmd
+	m.resources, cmd = m.resources.Update(msg)
+	return cmd
+}
+
+func (m *Model) onInputTasks(msg tea.Msg) tea.Cmd {
 	if m.tasks.FilterState() != list.Filtering {
 		switch msg := msg.(type) {
 		case tea.KeyMsg:
 			switch msg.String() {
+			case "tab":
+				m.changeFocus()
+			case "enter":
+				if selected, ok := m.tasks.SelectedItem().(*domain.Task); ok {
+					return router.GotoPage(router.Route{
+						Page: router.TaskPage,
+						ID:   selected.ID,
+					})
+				}
 			case "e":
 				if selected, ok := m.tasks.SelectedItem().(*domain.Task); ok {
 					m.showForm = true
 					return forms.EditTask(selected)
 				}
 			case "a":
-				// cmd to go to form "add task"
+				// cmd to go to forms "add task"
 				m.showForm = true
 			case "esc":
 				return router.Back()
@@ -159,13 +242,21 @@ func (m *Model) onFormInput(msg tea.Msg) tea.Cmd {
 		switch msg.String() {
 		case "esc":
 			m.showForm = false
-			m.form.Reset()
+			m.forms[m.active].Reset()
 			return nil
 		}
 	}
 	var cmd tea.Cmd
-	m.form, cmd = m.form.Update(msg)
+	m.forms[m.active], cmd = m.forms[m.active].Update(msg)
 	return cmd
+}
+
+func (m *Model) changeFocus() {
+	if m.active == tasks {
+		m.active = resources
+	} else {
+		m.active = tasks
+	}
 }
 
 func (m *Model) setTasks(tasks []domain.Task) {
@@ -175,4 +266,13 @@ func (m *Model) setTasks(tasks []domain.Task) {
 	m.tasks.Styles.Title = styles.PageTitleStyle
 	m.tasks.SetShowHelp(false)
 	m.tasks.KeyMap.Quit.Unbind()
+}
+
+func (m *Model) setResources(resources []domain.Resource) {
+	m.resources = list.New(render.ResourcesToListItems(resources), render.ResourceDelegate{}, 50, 10)
+	m.resources.Title = "Resources"
+	m.resources.Styles.PaginationStyle = styles.PaginationStyle
+	m.resources.Styles.Title = styles.PageTitleStyle
+	m.resources.SetShowHelp(false)
+	m.resources.KeyMap.Quit.Unbind()
 }

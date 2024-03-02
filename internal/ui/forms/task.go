@@ -110,7 +110,6 @@ type TaskFormModel struct {
 	task     *domain.Task
 
 	active int
-	ready  bool
 }
 
 func (m *TaskFormModel) Init() tea.Cmd {
@@ -147,8 +146,8 @@ func (m *TaskFormModel) Update(msg tea.Msg) (Form, tea.Cmd) {
 		cmds []tea.Cmd
 	)
 
-	// global events
-	cmd = m.onGlobalEvents(msg)
+	// local events
+	cmd = m.onLocalEvents(msg)
 	cmds = append(cmds, cmd)
 
 	// inputs
@@ -158,27 +157,14 @@ func (m *TaskFormModel) Update(msg tea.Msg) (Form, tea.Cmd) {
 	return m, cmd
 }
 
-func (m *TaskFormModel) onGlobalEvents(msg tea.Msg) tea.Cmd {
-	// edits must be handled using the page route ID
+func (m *TaskFormModel) onLocalEvents(msg tea.Msg) tea.Cmd {
 	switch msg := msg.(type) {
-	case router.OnInitPageMsg:
-		if msg.ID != 0 { // Edit task case
-			return state.Load(state.Request{
-				ID:   msg.ID,
-				Type: state.Task,
-			})
-		} else { // Add task case
-			m.ready = true
-		}
-	case state.LoadedStateMsg:
-		if task, ok := msg.State.(*domain.Task); ok {
-			m.task = task
-			m.inputs[taskTitle].SetValue(m.task.Title)
-			m.inputs[taskTags].SetValue(m.task.Tags)
-			m.inputs[taskDesc].SetValue(m.task.Description)
-			m.inputs[taskDue].SetValue(domain.FormatDate(m.task.Due))
-		}
-
+	case editTaskMsg:
+		m.task = msg.task
+		m.inputs[taskTitle].SetValue(m.task.Title)
+		m.inputs[taskTags].SetValue(m.task.Tags)
+		m.inputs[taskDesc].SetValue(m.task.Description)
+		m.inputs[taskDue].SetValue(domain.FormatDate(m.task.Due))
 	}
 	return nil
 }

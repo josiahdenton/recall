@@ -248,7 +248,7 @@ func (s *State) Load(r Request) tea.Cmd {
 		var state any
 		switch r.Type {
 		case Task:
-			state = mockTask
+			state = &mockTask
 			log.Printf("loaded mock task!!!")
 		case Tasks:
 			state = mockTasks
@@ -257,6 +257,8 @@ func (s *State) Load(r Request) tea.Cmd {
 		case Zettels:
 		case Resource:
 		case Resources:
+			state = mockResources
+			log.Printf("loaded mock resources")
 		case Cycle:
 		case Cycles:
 		case Accomplishment:

@@ -23,7 +23,6 @@ type Resource struct {
 	Tags       string
 	Type       ResourceType
 	TaskID     uint
-	ZettelID   uint
 	ArtifactID uint
 }
 

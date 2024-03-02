@@ -18,11 +18,11 @@ func (d ResourceDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd {
 	return nil
 }
 func (d ResourceDelegate) Render(w io.Writer, m list.Model, index int, item list.Item) {
-	step, ok := item.(*domain.Step)
+	resource, ok := item.(*domain.Resource)
 	if !ok {
 		return
 	}
-	fmt.Fprintf(w, renderStep(step, index == m.Index()))
+	fmt.Fprintf(w, renderResource(resource, index == m.Index()))
 }
 
 func ResourcesToListItems(resources []domain.Resource) []list.Item {

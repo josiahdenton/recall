@@ -2,6 +2,7 @@ package ui
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/josiahdenton/recall/internal/ui/pages/task"
 	"github.com/josiahdenton/recall/internal/ui/pages/tasks"
 	"github.com/josiahdenton/recall/internal/ui/services/clipboard"
 	"github.com/josiahdenton/recall/internal/ui/services/router"
@@ -19,6 +20,7 @@ type service interface {
 func New(path string) *Model {
 	pages := make([]tea.Model, router.PageCount)
 	pages[router.TasksPage] = tasks.New()
+	pages[router.TaskPage] = task.New()
 
 	return &Model{
 		state:   state.New(path),

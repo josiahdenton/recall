@@ -12,13 +12,14 @@ import (
 	"github.com/josiahdenton/recall/internal/ui/services/state"
 	"github.com/josiahdenton/recall/internal/ui/services/toast"
 	"github.com/josiahdenton/recall/internal/ui/styles"
+	"log"
 	"strings"
 )
 
 const (
-	zettels = iota
-	steps
+	steps = iota
 	resources
+	status
 	header
 )
 
@@ -98,6 +99,7 @@ func (m *Model) onGlobalEvents(msg tea.Msg) tea.Cmd {
 			ID:   m.task.ID,
 		})
 	case router.OnInitPageMsg:
+		log.Printf("init task page")
 		if msg.Page == router.TaskPage {
 			return state.Load(state.Request{
 				Type: state.Task,
@@ -105,10 +107,12 @@ func (m *Model) onGlobalEvents(msg tea.Msg) tea.Cmd {
 			})
 		}
 	case state.LoadedStateMsg:
+		log.Printf("loaded %+v", msg)
 		if task, ok := msg.State.(*domain.Task); ok {
-			m.setZettels(task.Zettels)
 			m.setSteps(task.Steps)
 			m.setResources(task.Resources)
+			m.setStatus()
+			log.Printf("ready")
 			m.ready = true
 		}
 	}
@@ -267,13 +271,13 @@ func (m *Model) copy() tea.Cmd {
 	return nil
 }
 
-func (m *Model) setZettels(zls []domain.Zettel) {
-	m.lists[zettels] = list.New(render.ZettelsToListItems(zls), render.ZettelDelegate{}, 120, 10)
-	m.lists[zettels].Title = "Zettels"
-	m.lists[zettels].Styles.PaginationStyle = styles.PaginationStyle
-	m.lists[zettels].Styles.Title = styles.PageTitleStyle
-	m.lists[zettels].SetShowHelp(false)
-	m.lists[zettels].KeyMap.Quit.Unbind()
+func (m *Model) setStatus(statuses []domain.Status) {
+	m.lists[status] = list.New(render.StatusToListItems(statuses), render.statusDelegate{}, 120, 10)
+	m.lists[status].Title = "Zettels"
+	m.lists[status].Styles.PaginationStyle = styles.PaginationStyle
+	m.lists[status].Styles.Title = styles.PageTitleStyle
+	m.lists[status].SetShowHelp(false)
+	m.lists[status].KeyMap.Quit.Unbind()
 }
 
 func (m *Model) setSteps(sps []domain.Step) {

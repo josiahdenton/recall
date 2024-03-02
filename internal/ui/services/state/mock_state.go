@@ -57,4 +57,18 @@ var (
 			Tags:  "103",
 		},
 	}
+	mockResources = []domain.Resource{
+		{
+			Name:   "Google",
+			Source: "https://www.google.com",
+			Tags:   "t1,t2,t3,t4",
+			Type:   domain.WebResource,
+		},
+		{
+			Name:   "Youtube",
+			Source: "https://www.youtube.com/",
+			Tags:   "t1,t2,t3,t4",
+			Type:   domain.WebResource,
+		},
+	}
 )
