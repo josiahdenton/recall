@@ -7,9 +7,9 @@ import (
 )
 
 var (
-	selectedTasksStyle = styles.SecondaryColor.Copy().Width(50)
-	defaultTaskStyle   = styles.PrimaryGray.Copy().Width(50)
-	cursorStyle        = styles.PrimaryColor.Copy()
+	selectedTasksStyle = styles.SecondaryColorStyle.Copy().Width(50)
+	defaultTaskStyle   = styles.PrimaryGrayStyle.Copy().Width(50)
+	cursorStyle        = styles.PrimaryColorStyle.Copy()
 )
 
 func renderMinimumTask(task *domain.Task, selected bool) string {

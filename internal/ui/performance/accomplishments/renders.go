@@ -7,10 +7,10 @@ import (
 )
 
 var (
-	selectedAccomplishmentStyle = styles.PrimaryGray.Copy().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#fcd34d")).Width(70)
-	defaultAccomplishmentStyle  = styles.SecondaryGray.Copy().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#3a3b5b")).Width(70)
-	descriptionStyle            = styles.SecondaryColor.Copy()
-	impactStyle                 = styles.PrimaryGray.Copy()
+	selectedAccomplishmentStyle = styles.PrimaryGrayStyle.Copy().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#fcd34d")).Width(70)
+	defaultAccomplishmentStyle  = styles.SecondaryGrayStyle.Copy().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#3a3b5b")).Width(70)
+	descriptionStyle            = styles.SecondaryColorStyle.Copy()
+	impactStyle                 = styles.PrimaryGrayStyle.Copy()
 )
 
 func renderAccomplishment(accomplishment *domain.Accomplishment, selected bool) string {

@@ -15,23 +15,11 @@ var (
 			Page:  domain.TaskListPage,
 		},
 		{
-			Title: "Zettels",
-			Page:  domain.ZettelsPage,
-		},
-		{
-			Title: "Artifacts",
-			Page:  domain.ArtifactsPage,
-		},
-		{
 			Title: "Resources",
 			Page:  domain.ResourcesPage,
 		},
 		{
 			Title: "Performance Cycles",
-			Page:  domain.CyclesPage,
-		},
-		{
-			Title: "Settings",
 			Page:  domain.CyclesPage,
 		},
 	}
@@ -44,7 +32,7 @@ func New(keyBinds domain.Keybindings) Model {
 	pages.SetFilteringEnabled(false)
 	pages.Title = "Recall"
 	pages.Styles.PaginationStyle = paginationStyle
-	pages.Styles.Title = styles.SecondaryColor.Copy()
+	pages.Styles.Title = styles.SecondaryColorStyle.Copy()
 	pages.SetShowHelp(false)
 	pages.KeyMap.Quit.Unbind()
 

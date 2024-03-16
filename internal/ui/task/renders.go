@@ -11,19 +11,19 @@ import (
 )
 
 var (
-	cursorStyle = styles.PrimaryColor.Copy()
+	cursorStyle = styles.PrimaryColorStyle.Copy()
 	// steps
-	stepStyle         = styles.PrimaryGray.Copy().PaddingLeft(2)
-	selectedStepStyle = styles.AccentColor.Copy().PaddingLeft(2)
+	stepStyle         = styles.PrimaryGrayStyle.Copy().PaddingLeft(2)
+	selectedStepStyle = styles.AccentColorStyle.Copy().PaddingLeft(2)
 	// header
-	metaTagsStyle    = styles.SecondaryGray.Copy()
-	hiDueDateStyle   = styles.PrimaryGray.Copy().Italic(true)
-	titleStyle       = styles.SecondaryGray.Copy()
-	activeTitleStyle = styles.SecondaryColor.Copy()
+	metaTagsStyle    = styles.SecondaryGrayStyle.Copy()
+	hiDueDateStyle   = styles.PrimaryGrayStyle.Copy().Italic(true)
+	titleStyle       = styles.SecondaryGrayStyle.Copy()
+	activeTitleStyle = styles.SecondaryColorStyle.Copy()
 	// resources
-	resourceStyle          = styles.PrimaryGray.Copy().PaddingLeft(2)
-	selectedResourceStyle  = styles.AccentColor.Copy().PaddingLeft(2)
-	resourceMetaTitleStyle = styles.SecondaryGray.Copy()
+	resourceStyle          = styles.PrimaryGrayStyle.Copy().PaddingLeft(2)
+	selectedResourceStyle  = styles.AccentColorStyle.Copy().PaddingLeft(2)
+	resourceMetaTitleStyle = styles.SecondaryGrayStyle.Copy()
 	// status
 	statusStyle   = lipgloss.NewStyle().Width(80).Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#3a3b5b"))
 	hiStatusStyle = lipgloss.NewStyle().Width(80).Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#fcd34d"))

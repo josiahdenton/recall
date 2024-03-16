@@ -15,8 +15,8 @@ import (
 var (
 	// TODO make these std across the whole app...
 	paginationStyle = list.DefaultStyles().PaginationStyle
-	titleStyle      = styles.AccentColor.Copy().PaddingLeft(1)
-	fadedTitleStyle = styles.SecondaryGray.Copy().Width(16).Align(lipgloss.Right)
+	titleStyle      = styles.AccentColorStyle.Copy().PaddingLeft(1)
+	fadedTitleStyle = styles.SecondaryGrayStyle.Copy().Width(16).Align(lipgloss.Right)
 	headerStyle     = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#3a3b5b")).Width(80)
 )
 
