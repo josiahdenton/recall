@@ -11,7 +11,7 @@ import (
 type taskDelegate struct{}
 
 func (d taskDelegate) Height() int  { return 1 }
-func (d taskDelegate) Spacing() int { return 1 }
+func (d taskDelegate) Spacing() int { return 0 }
 func (d taskDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd {
 	return nil
 }

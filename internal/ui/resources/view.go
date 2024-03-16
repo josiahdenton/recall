@@ -12,7 +12,7 @@ import (
 
 var (
 	paginationStyle = list.DefaultStyles().PaginationStyle
-	titleStyle      = styles.SecondaryColor.Copy()
+	titleStyle      = styles.SecondaryColorStyle.Copy()
 )
 
 func New(keyBinds domain.Keybindings) Model {
@@ -63,7 +63,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.resources.KeyMap.Quit.Unbind()
 		m.ready = true
 	case forms.ResourceFormMsg:
-		cmds = append(cmds, saveResource(msg.Resource))
+		cmds = append(cmds, saveResource(msg.Resource), router.RefreshPage())
 		m.showForm = false
 	}
 	if !m.ready {

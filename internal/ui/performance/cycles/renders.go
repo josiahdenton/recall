@@ -7,9 +7,9 @@ import (
 )
 
 var (
-	activeCycleStyle  = styles.SecondaryColor.Copy().PaddingLeft(2)
-	defaultCycleStyle = styles.PrimaryGray.Copy().PaddingLeft(2)
-	cursorStyle       = styles.PrimaryColor.Copy().PaddingLeft(2)
+	activeCycleStyle  = styles.SecondaryColorStyle.Copy().PaddingLeft(2)
+	defaultCycleStyle = styles.PrimaryGrayStyle.Copy().PaddingLeft(2)
+	cursorStyle       = styles.PrimaryColorStyle.Copy().PaddingLeft(2)
 )
 
 func renderCycleOption(cycle *domain.Cycle, selected bool) string {

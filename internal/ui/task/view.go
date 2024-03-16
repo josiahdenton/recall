@@ -16,8 +16,8 @@ import (
 )
 
 var (
-	listTitleStyle  = styles.SecondaryGray.Copy()
-	activeListStyle = styles.SecondaryColor.Copy()
+	listTitleStyle  = styles.SecondaryGrayStyle.Copy()
+	activeListStyle = styles.SecondaryColorStyle.Copy()
 )
 
 // active options

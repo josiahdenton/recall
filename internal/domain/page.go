@@ -10,10 +10,5 @@ const (
 	AccomplishmentsPage
 	AccomplishmentPage
 	ResourcesPage
-	ZettelPage
-	ZettelsPage
-	ArtifactsPage
-	ArtifactPage
 	KeyBindsPage
-	ConceptPage
 )

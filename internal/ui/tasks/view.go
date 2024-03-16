@@ -13,7 +13,7 @@ import (
 
 var (
 	paginationStyle = list.DefaultStyles().PaginationStyle
-	titleStyle      = styles.SecondaryColor.Copy()
+	titleStyle      = styles.SecondaryColorStyle.Copy()
 )
 
 const (

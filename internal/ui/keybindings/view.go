@@ -13,8 +13,8 @@ type SaveKeyBindingsMsg struct {
 }
 
 var (
-	keyStyle               = styles.AccentColor.Copy().Width(6).Bold(true)
-	actionDescriptionStyle = styles.SecondaryGray.Copy()
+	keyStyle               = styles.AccentColorStyle.Copy().Width(6).Bold(true)
+	actionDescriptionStyle = styles.SecondaryGrayStyle.Copy()
 )
 
 var actions = []domain.Action{

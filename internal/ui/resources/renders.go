@@ -7,11 +7,11 @@ import (
 )
 
 var (
-	activeResourceStyle  = styles.AccentColor.Copy().Width(40).PaddingRight(2)
-	defaultResourceStyle = styles.PrimaryGray.Copy().Width(40).PaddingRight(2)
-	cursorStyle          = styles.PrimaryColor.Copy()
-	metaStyle            = styles.SecondaryGray.Copy().Width(40).Align(lipgloss.Right)
-	selectedMetaStyle    = styles.AccentColor.Copy().Width(40).Align(lipgloss.Right)
+	activeResourceStyle  = styles.SelectedItemStyle.Copy().Width(40).PaddingRight(2)
+	defaultResourceStyle = styles.DefaultItemStyle.Copy().Width(40).PaddingRight(2)
+	cursorStyle          = styles.PrimaryColorStyle.Copy()
+	metaStyle            = styles.SecondaryGrayStyle.Copy().Width(40).Align(lipgloss.Right)
+	selectedMetaStyle    = styles.AccentColorStyle.Copy().Width(40).Align(lipgloss.Right)
 	alignStyle           = lipgloss.NewStyle().PaddingLeft(1)
 )
 

@@ -6,9 +6,6 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/josiahdenton/recall/internal/adapters/repository"
 	"github.com/josiahdenton/recall/internal/domain"
-	"github.com/josiahdenton/recall/internal/ui/artifact"
-	"github.com/josiahdenton/recall/internal/ui/artifacts"
-	"github.com/josiahdenton/recall/internal/ui/concept"
 	"github.com/josiahdenton/recall/internal/ui/keybindings"
 	"github.com/josiahdenton/recall/internal/ui/menu"
 	"github.com/josiahdenton/recall/internal/ui/performance/accomplishment"
@@ -21,8 +18,6 @@ import (
 	taskdetailed "github.com/josiahdenton/recall/internal/ui/task"
 	tasklist "github.com/josiahdenton/recall/internal/ui/tasks"
 	"github.com/josiahdenton/recall/internal/ui/toast"
-	"github.com/josiahdenton/recall/internal/ui/zettel"
-	"github.com/josiahdenton/recall/internal/ui/zettels"
 	"log"
 	"os"
 	"strings"
@@ -30,8 +25,8 @@ import (
 
 var (
 	windowStyle       = lipgloss.NewStyle().Align(lipgloss.Center)
-	shortcutKeyStyle  = styles.SecondaryGray.Copy().Bold(true)
-	shortcutDescStyle = styles.SecondaryGray.Copy()
+	shortcutKeyStyle  = styles.SecondaryGrayStyle.Copy().Bold(true)
+	shortcutDescStyle = styles.SecondaryGrayStyle.Copy()
 )
 
 func New() Model {
@@ -90,12 +85,7 @@ func New() Model {
 		accomplishments: accomplishments.New(keyBinds),
 		resources:       resources.New(keyBinds),
 		accomplishment:  accomplishment.New(keyBinds),
-		zettel:          zettel.New(keyBinds),
-		zettels:         zettels.New(keyBinds),
-		artifact:        artifact.New(keyBinds),
-		artifacts:       artifacts.New(keyBinds),
 		keybindings:     keybindings.New(keyBinds),
-		content:         concept.New(),
 		toast:           toast.New(),
 		page:            domain.MenuPage,
 		repository:      instance,
@@ -113,13 +103,8 @@ type Model struct {
 	accomplishments tea.Model
 	accomplishment  tea.Model
 	resources       tea.Model
-	zettel          tea.Model
-	zettels         tea.Model
-	artifact        tea.Model
-	artifacts       tea.Model
 	toast           tea.Model
 	keybindings     tea.Model
-	content         tea.Model
 	repository      repository.Repository
 	routeHistory    router.History
 	stateHistory    state.History
@@ -149,18 +134,8 @@ func (m Model) View() string {
 		page = m.resources
 	case domain.AccomplishmentPage:
 		page = m.accomplishment
-	case domain.ZettelPage:
-		page = m.zettel
-	case domain.ZettelsPage:
-		page = m.zettels
-	case domain.ArtifactsPage:
-		page = m.artifacts
-	case domain.ArtifactPage:
-		page = m.artifact
 	case domain.KeyBindsPage:
 		page = m.keybindings
-	case domain.ConceptPage:
-		page = m.content
 	}
 	var b strings.Builder
 	b.WriteString(page.View())
@@ -251,23 +226,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case domain.ResourcesPage:
 		m.resources, cmd = m.resources.Update(msg)
 		cmds = append(cmds, cmd)
-	case domain.ZettelPage:
-		m.zettel, cmd = m.zettel.Update(msg)
-		cmds = append(cmds, cmd)
-	case domain.ZettelsPage:
-		m.zettels, cmd = m.zettels.Update(msg)
-		cmds = append(cmds, cmd)
-	case domain.ArtifactsPage:
-		m.artifacts, cmd = m.artifacts.Update(msg)
-		cmds = append(cmds, cmd)
-	case domain.ArtifactPage:
-		m.artifact, cmd = m.artifact.Update(msg)
-		cmds = append(cmds, cmd)
 	case domain.KeyBindsPage:
 		m.keybindings, cmd = m.keybindings.Update(msg)
-		cmds = append(cmds, cmd)
-	case domain.ConceptPage:
-		m.content, cmd = m.content.Update(msg)
 		cmds = append(cmds, cmd)
 	}
 
@@ -278,12 +238,6 @@ func (m Model) fetchState(msg state.RequestStateMsg) tea.Cmd {
 	return func() tea.Msg {
 		var s any
 		switch msg.Type {
-		case state.LoadZettel:
-			if msg.ID > 0 {
-				s = m.repository.Zettel(msg.ID)
-			} else {
-				s = m.repository.AllZettels()
-			}
 		case state.LoadResource:
 			s = m.repository.AllResources()
 		case state.LoadCycle:
@@ -314,17 +268,7 @@ func (m Model) loadPage(msg router.GotoPageMsg) tea.Cmd {
 			// TODO - have the repository read the settings file to determine this
 		case domain.ResourcesPage:
 			s = m.repository.AllResources()
-		case domain.ZettelPage:
-			s = m.repository.Zettel(msg.RequestedItemId)
-		case domain.ZettelsPage:
-			s = m.repository.AllZettels()
-		case domain.ArtifactsPage:
-			s = m.repository.AllArtifacts()
-		case domain.ArtifactPage:
-			s = m.repository.Artifact(msg.RequestedItemId)
 		case domain.KeyBindsPage:
-		case domain.ConceptPage:
-			s = m.repository.Zettel(msg.RequestedItemId)
 		}
 		return router.LoadPageMsg{
 			Page:  msg.Page,
@@ -339,9 +283,6 @@ func (m Model) updateState(msg state.SaveStateMsg) {
 	case state.ModifyCycle:
 		update := msg.Update.(domain.Cycle)
 		m.repository.ModifyCycle(update)
-	case state.ModifySettings:
-		update := msg.Update.(domain.Settings)
-		m.repository.ModifySettings(update)
 	case state.ModifyTask:
 		update := msg.Update.(domain.Task)
 		m.repository.ModifyTask(update)
@@ -373,16 +314,6 @@ func (m Model) updateState(msg state.SaveStateMsg) {
 	case state.ModifyStatus:
 		update := msg.Update.(domain.Status)
 		m.repository.ModifyStatus(update)
-	case state.ModifyZettel:
-		update := msg.Update.(domain.Zettel)
-		m.repository.ModifyZettel(update)
-	case state.ModifyLink:
-	case state.ModifyArtifact:
-		update := msg.Update.(domain.Artifact)
-		m.repository.ModifyArtifact(update)
-	case state.ModifyRelease:
-		update := msg.Update.(domain.Release)
-		m.repository.ModifyRelease(update)
 	}
 }
 
@@ -400,20 +331,8 @@ func (m Model) deleteState(msg state.DeleteStateMsg) {
 		m.repository.UnlinkTaskStatus(msg.Parent.(*domain.Task), msg.Child.(*domain.Status))
 	case state.ModifyStatus:
 	case state.ModifyCycle:
-	case state.ModifyZettel:
-		m.repository.DeleteZettel(msg.ID)
-	case state.UnlinkZettelResource:
-		m.repository.UnlinkZettelResource(msg.Parent.(*domain.Zettel), msg.Child.(*domain.Resource))
-	case state.ModifyLink:
-		m.repository.UnlinkZettel(msg.Parent.(*domain.Zettel), msg.Child.(*domain.Zettel))
 	case state.ModifyAccomplishment:
 		m.repository.DeleteAccomplishment(msg.ID)
-	case state.ModifySettings:
-	case state.ModifyArtifact:
-		m.repository.DeleteArtifact(msg.ID)
-	case state.ModifyRelease:
-		m.repository.DeleteArtifactRelease(msg.Parent.(*domain.Artifact), msg.Child.(*domain.Release))
-		m.repository.DeleteRelease(msg.ID)
 	}
 }
 
@@ -423,17 +342,9 @@ func (m Model) undoDeleteState(msg state.DeleteStateMsg) {
 		m.repository.UndoDeleteTask(msg.ID)
 	case state.ModifyAccomplishment:
 		m.repository.UndoDeleteAccomplishment(msg.ID)
-	case state.ModifyZettel:
-		m.repository.UndoDeleteZettel(msg.ID)
 	case state.ModifyStep:
 	case state.ModifyResource:
 	case state.ModifyStatus:
 	case state.ModifyCycle:
-	case state.ModifyLink:
-	case state.ModifySettings:
-	case state.ModifyArtifact:
-		m.repository.UndoDeleteArtifact(msg.ID)
-	case state.ModifyRelease:
-		// TODO - fill in
 	}
 }
