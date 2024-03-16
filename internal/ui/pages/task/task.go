@@ -26,15 +26,13 @@ const (
 func New() *Model {
 	boxStyle := styles.Box(styles.BoxOptions{
 		BorderColor: styles.SecondaryGray,
-		BoxSize: styles.BoxSize{
-			Width:  150,
-			Height: 35,
-		},
+		Size:        styles.Full,
 	})
 
 	return &Model{
-		box:   boxStyle,
-		lists: make([]list.Model, 3),
+		box:    boxStyle,
+		lists:  make([]list.Model, 3),
+		active: header,
 	}
 }
 
@@ -55,14 +53,13 @@ func (m *Model) Init() tea.Cmd {
 func (m *Model) View() string {
 	var b strings.Builder
 
-	if !m.ready {
-		b.WriteString(m.box.Render(""))
-	} else {
+	if m.ready {
 		// if header active - switch "active/inactive" box styles
 		b.WriteString(render.TaskHeader(m.task))
+		b.WriteString("\n\n")
+		b.WriteString(m.lists[steps].View())
 		b.WriteString("\n")
-		b.WriteString("\n")
-		b.WriteString(lipgloss.JoinHorizontal(lipgloss.Left, m.lists[steps].View(), m.lists[resources].View()))
+		b.WriteString(m.lists[resources].View())
 		b.WriteString("\n")
 		b.WriteString(m.lists[status].View())
 		b.WriteString("\n")
@@ -71,7 +68,7 @@ func (m *Model) View() string {
 }
 
 func (m *Model) Reset() {
-	m.active = 0
+	m.active = header
 	m.ready = false
 	m.showForm = false
 }

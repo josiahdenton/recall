@@ -80,7 +80,10 @@ func (m *Model) Init() tea.Cmd {
 
 func (m *Model) View() string {
 	var b strings.Builder
-	if m.ready {
+	if m.ready && m.showForm {
+		// note - forms handle their own styling
+		b.WriteString(m.forms[m.active].View())
+	} else if m.ready {
 		if m.active == tasks {
 			b.WriteString(m.tasksStyle.Render(m.tasks.View()))
 			b.WriteString("\n")
@@ -90,9 +93,6 @@ func (m *Model) View() string {
 			b.WriteString("\n")
 			b.WriteString(m.resourcesStyle.Render(m.resources.View()))
 		}
-	} else if m.ready && m.showForm {
-		// note - forms handle their own styling
-		b.WriteString(m.forms[m.active].View())
 	}
 
 	return b.String()
@@ -130,7 +130,12 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m *Model) onGlobalEvents(msg tea.Msg) tea.Cmd {
 	switch msg := msg.(type) {
 	case forms.TaskFormMsg:
+		if msg.Edit {
+			m.showForm = false
+			return toast.ShowToast("Modified Task", toast.Info)
+		}
 		m.tasks.InsertItem(len(m.tasks.Items()), &msg.Task)
+		// TODO - should also send a toast
 		return state.Save(state.Request{
 			State: msg.Task,
 			Type:  state.Task,

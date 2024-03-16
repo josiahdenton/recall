@@ -31,9 +31,7 @@ func Run() error {
 	log.SetOutput(f)
 	log.Println("--------------- Recall! ---------------")
 
-	path := fmt.Sprintf("%s/%s", home, ".recall")
-
-	p := tea.NewProgram(ui.New(path))
+	p := tea.NewProgram(ui.New())
 	if _, err := p.Run(); err != nil {
 		return err
 	}

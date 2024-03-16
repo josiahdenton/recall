@@ -7,7 +7,6 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/josiahdenton/recall/internal/domain"
 	"github.com/josiahdenton/recall/internal/ui/services/router"
-	"github.com/josiahdenton/recall/internal/ui/services/state"
 	"github.com/josiahdenton/recall/internal/ui/services/toast"
 	"github.com/josiahdenton/recall/internal/ui/styles"
 	"strings"
@@ -223,14 +222,12 @@ func (m *TaskFormModel) parseFormInputs() tea.Cmd {
 
 type TaskFormMsg struct {
 	Task domain.Task
+	Edit bool
 }
 
 // submitTaskForm - should send a state.Save
 func submitTaskForm(task *domain.Task) tea.Cmd {
 	return func() tea.Msg {
-		return state.Save(state.Request{
-			State: *task,
-			Type:  state.Task,
-		})
+		return TaskFormMsg{Task: *task, Edit: task.ID != 0}
 	}
 }

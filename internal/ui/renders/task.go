@@ -22,7 +22,7 @@ func TaskHeader(task *domain.Task) string {
 	b.WriteString(task.Title)
 	b.WriteString("\n")
 	b.WriteString(task.Due.String())
-	b.WriteString("\t")
+	b.WriteString("  ")
 	b.WriteString(task.Tags)
 
 	return b.String()

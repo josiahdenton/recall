@@ -1,7 +1,9 @@
 package ui
 
 import (
+	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/josiahdenton/recall/internal/adapters/config"
 	"github.com/josiahdenton/recall/internal/adapters/repository"
 	"github.com/josiahdenton/recall/internal/ui/pages/task"
 	"github.com/josiahdenton/recall/internal/ui/pages/tasks"
@@ -11,6 +13,8 @@ import (
 	"github.com/josiahdenton/recall/internal/ui/services/toast"
 	"github.com/josiahdenton/recall/internal/ui/services/user"
 	"github.com/josiahdenton/recall/internal/ui/styles"
+	"log"
+	"os"
 	"strings"
 )
 
@@ -18,13 +22,21 @@ type service interface {
 	Update(msg tea.Msg) tea.Cmd
 }
 
-func New(path string) *Model {
+func New() *Model {
+	recallDirPath := config.SetupDir()
+	path := fmt.Sprintf("%s/%s", recallDirPath, "recall.db")
+	storage, err := repository.NewGormInstance(path)
+	if err != nil {
+		log.Printf("failed to startup sqlite connection: %v", err)
+		os.Exit(1)
+	}
+
 	pages := make([]tea.Model, router.PageCount)
 	pages[router.TasksPage] = tasks.New()
 	pages[router.TaskPage] = task.New()
 
 	return &Model{
-		state:   state.New(path, repository.DefaultInMemory()),
+		state:   state.New(storage),
 		pages:   pages,
 		active:  router.TasksPage,
 		router:  router.New(),

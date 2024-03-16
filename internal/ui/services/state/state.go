@@ -39,6 +39,10 @@ type Repository interface {
 	DeleteAccomplishment(uint)
 	UndoDeleteAccomplishment(uint)
 
+	// Status
+
+	ModifyStatus(domain.Status) domain.Status
+
 	// Resources
 
 	ModifyResource(domain.Resource) domain.Resource
@@ -91,7 +95,7 @@ type ModeSwitchMsg struct {
 	Current  Mode
 }
 
-func New(path string, storage Repository) *State {
+func New(storage Repository) *State {
 	// TODO - call and setup storage...
 	return &State{
 		Mode:    View,
@@ -181,6 +185,12 @@ func (s *State) Save(r Request) tea.Cmd {
 			} else {
 				err = FailedItemConversion
 			}
+		case Status:
+			if item, ok := r.State.(domain.Status); ok {
+				state = s.Storage.ModifyStatus(item)
+			} else {
+				err = FailedItemConversion
+			}
 		}
 
 		return SavedStateMsg{
@@ -212,6 +222,9 @@ func (s *State) Delete(r Request) tea.Cmd {
 			// no mass edits supported yet!
 		case Accomplishment:
 		case Step:
+			s.Storage.UnlinkTaskStep(r.Parent.(*domain.Task), r.State.(*domain.Step))
+		case Status:
+			s.Storage.UnlinkTaskStatus(r.Parent.(*domain.Task), r.State.(*domain.Status))
 		}
 
 		return DeletedStateMsg{Type: r.Type, ID: r.ID}
@@ -229,18 +242,24 @@ func (s *State) Load(r Request) tea.Cmd {
 		var state any
 		switch r.Type {
 		case Task:
-			state = &mockTask
-			log.Printf("loaded mock task!!!")
+			state = s.Storage.Task(r.ID)
 		case Tasks:
-			state = mockTasks
-			log.Printf("loaded mock tasks")
+			state = s.Storage.AllTasks()
 		case Resource:
+			// we don't load single resources for this type
 		case Resources:
-			state = mockResources
+			state = s.Storage.AllResources()
 			log.Printf("loaded mock resources")
 		case Cycle:
+			state = s.Storage.Cycle(r.ID)
 		case Cycles:
+			state = s.Storage.AllCycles()
 		case Accomplishment:
+			state = s.Storage.Accomplishment(r.ID)
+		case Step:
+			// we don't load single resources for this type
+		case Status:
+			// we don't load single resources for this type
 		}
 
 		log.Printf("loaded state")
@@ -252,6 +271,7 @@ func (s *State) Load(r Request) tea.Cmd {
 }
 
 func (s *State) ChangeMode(mode Mode) tea.Cmd {
+	// TODO - is this func necessary anymore? may still need it for the ? switch
 	return func() tea.Msg {
 		prev := s.Mode
 		s.Mode = mode
